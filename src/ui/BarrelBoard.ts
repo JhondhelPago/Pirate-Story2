@@ -34,17 +34,30 @@ export class BarrelBoard extends Container {
         }
     }
 
+    /** 🟢 RESET — identical concept to Pillar.reset() */
+    public reset() {
+        // Clear the debug panel
+        this.debugPanel.clear();
+        this.debugPanel.visible = false;
+
+        // Hide the sprite instead of removing it (same idea as Pillar keeping spine)
+        if (this.bgSprite) {
+            this.bgSprite.visible = false;
+        }
+    }
+
     /**
      * Rebuilds the board based on match3 config
+     * 🟢 Now follows the Pillar.setup() pattern
      */
     public setup(options: { rows: number; columns: number; tileSize: number }) {
+        // Same pattern as Pillar:
+        this.reset();
+
         const { rows, columns, tileSize } = options;
 
         const width = columns * tileSize;
         const height = rows * tileSize;
-
-        // Clear debug panel
-        this.debugPanel.clear();
 
         // If texture exists → scale sprite
         if (this.bgSprite) {

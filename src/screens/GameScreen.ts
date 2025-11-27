@@ -1,6 +1,5 @@
 import { Container, Ticker } from 'pixi.js';
 import { Match3, SlotOnJackpotMatchData, SlotOnJackpotTriggerData } from '../slot/Match3';
-import { Pillar } from '../ui/Pillar';
 import { navigation } from '../utils/navigation';
 import { GameEffects } from '../ui/GameEffects';
 import { bgm } from '../utils/audio';
@@ -10,14 +9,15 @@ import { slotGetConfig } from '../slot/Match3Config';
 import { JackpotTier } from '../ui/JackpotTier';
 import { GameLogo } from '../ui/GameLogo';
 import { BuyFreeSpin } from '../ui/BuyFreeSpin';
-import { RoundResult } from '../ui/RoundResult';
+// import { RoundResult } from '../ui/RoundResult';
 import { ControlPanel } from '../ui/ControlPanel';
 import { BetAction, userSettings } from '../utils/userSettings';
-import { BabyZeus } from '../ui/BabyZeus';
+import { GoldRoger } from '../ui/GoldRoger';
 import { FreeSpinPopup } from '../popups/FreeSpinPopup';
 import { FreeSpinWinPopup } from '../popups/FreeSpinWinPopup';
 import { gameConfig } from '../utils/gameConfig';
 import { JackpotWinPopup } from '../popups/JackpotWinPopup';
+import { BarrelBoard } from '../ui/BarrelBoard';
 
 /** The screen tha holds the Match3 game */
 export class GameScreen extends Container {
@@ -29,8 +29,8 @@ export class GameScreen extends Container {
     public readonly gameContainer: Container;
     /** Countdown displayed when the gameplay is about to finish */
     public readonly overtime: GameOvertime;
-    /** The match3 book shelf background */
-    public readonly pillar?: Pillar;
+
+    public readonly barrelBoard?: BarrelBoard;
 
     /** The Divine Multiplier */
     public readonly divineJackpotTier: JackpotTier;
@@ -48,9 +48,9 @@ export class GameScreen extends Container {
     public readonly buyFreeSpin: BuyFreeSpin;
 
     /** The round result frame */
-    public readonly roundResult: RoundResult;
+    // public readonly roundResult: RoundResult;
     /** The floading mascot */
-    public readonly babyZeus: BabyZeus;
+    public readonly goldRoger: GoldRoger;
 
     /** The Control Panel */
     public readonly controlPanel: ControlPanel;
@@ -67,8 +67,9 @@ export class GameScreen extends Container {
         this.gameContainer = new Container();
         this.addChild(this.gameContainer);
 
-        this.pillar = new Pillar();
-        this.gameContainer.addChild(this.pillar);
+        this.barrelBoard = new BarrelBoard('Barrel-Board');
+        this.barrelBoard.scale.set(1.2);
+        this.gameContainer.addChild(this.barrelBoard);
 
         this.gameLogo = new GameLogo();
         this.addChild(this.gameLogo);
@@ -76,11 +77,13 @@ export class GameScreen extends Container {
         this.buyFreeSpin = new BuyFreeSpin();
         this.addChild(this.buyFreeSpin);
 
-        this.roundResult = new RoundResult();
-        this.addChild(this.roundResult);
+        // this.roundResult = new RoundResult();
+        // this.addChild(this.roundResult);
 
-        this.babyZeus = new BabyZeus();
-        this.addChild(this.babyZeus);
+        this.goldRoger = new GoldRoger();
+        this.goldRoger.scale.set(1);
+        this.addChild(this.goldRoger);
+
 
         this.divineJackpotTier = new JackpotTier({
             name: 'multiplier-label-divine',
@@ -91,6 +94,8 @@ export class GameScreen extends Container {
         this.addChild(this.divineJackpotTier);
         this.divineJackpotTier.setTotalDots(5);
         this.divineJackpotTier.setActiveDots(0);
+        // change to true to make it visible
+        this.divineJackpotTier.visible = false;
 
         this.blessedJackpotTier = new JackpotTier({
             name: 'multiplier-label-blessed',
@@ -101,6 +106,8 @@ export class GameScreen extends Container {
         this.addChild(this.blessedJackpotTier);
         this.blessedJackpotTier.setTotalDots(4);
         this.blessedJackpotTier.setActiveDots(0);
+        // change to true to make it visible
+        this.blessedJackpotTier.visible = false;
 
         this.angelicJackpotTier = new JackpotTier({
             name: 'multiplier-label-angelic',
@@ -111,6 +118,8 @@ export class GameScreen extends Container {
         this.addChild(this.angelicJackpotTier);
         this.angelicJackpotTier.setTotalDots(3);
         this.angelicJackpotTier.setActiveDots(0);
+        // change to true to make it visible
+        this.angelicJackpotTier.visible = false;
 
         this.grandJackpotTier = new JackpotTier({
             name: 'multiplier-label-grand',
@@ -121,6 +130,8 @@ export class GameScreen extends Container {
         this.addChild(this.grandJackpotTier);
         this.grandJackpotTier.setTotalDots(2);
         this.grandJackpotTier.setActiveDots(0);
+        // change to true to make it visible
+        this.grandJackpotTier.visible = false;
 
         this.match3 = new Match3();
         this.match3.onSpinStart = this.onSpinStart.bind(this);
@@ -133,6 +144,7 @@ export class GameScreen extends Container {
         this.match3.onFreeSpinRoundComplete = this.onFreeSpinRoundComplete.bind(this);
         this.match3.onProcessStart = this.onProcessStart.bind(this);
         this.match3.onProcessComplete = this.onProcessComplete.bind(this);
+        this.match3.scale.set(1.2);
         this.gameContainer.addChild(this.match3);
 
         this.vfx = new GameEffects(this);
@@ -200,7 +212,7 @@ export class GameScreen extends Container {
     /** Prepare the screen just before showing */
     public prepare() {
         const match3Config = slotGetConfig();
-        this.pillar?.setup(match3Config);
+        this.barrelBoard?.setup(match3Config);
         this.match3.setup(match3Config);
     }
 
@@ -223,7 +235,7 @@ export class GameScreen extends Container {
 
     /** Fully reset the game, clearing all pieces and shelf blocks */
     public reset() {
-        this.pillar?.reset();
+        this.barrelBoard?.reset();
         this.match3.reset();
     }
 
@@ -236,9 +248,9 @@ export class GameScreen extends Container {
             this.gameContainer.x = centerX;
             this.gameContainer.y = this.gameContainer.height * 0.5;
 
-            this.gameLogo.scale.set(1);
-            this.gameLogo.x = width - this.gameLogo.width + 50;
-            this.gameLogo.y = this.gameLogo.height * 0.5;
+            this.gameLogo.scale.set(.9);
+            this.gameLogo.x = 220;
+            this.gameLogo.y = this.gameLogo.height * 0.6;
 
             const multiplierX = width;
             const multiplierTierY = 340;
@@ -262,14 +274,16 @@ export class GameScreen extends Container {
 
             this.buyFreeSpin.scale.set(1);
             this.buyFreeSpin.x = 220;
-            this.buyFreeSpin.y = 200;
+            this.buyFreeSpin.y = 480;
 
-            this.roundResult.scale.set(1);
-            this.roundResult.x = 220;
-            this.roundResult.y = height - this.roundResult.height - 60;
+            // this.roundResult.scale.set(1);
+            // this.roundResult.x = 220;
+            // this.roundResult.y = height - this.roundResult.height - 60;
 
-            this.babyZeus.x = 500;
-            this.babyZeus.y = height - this.babyZeus.height * 0.5 - 100;
+            this.goldRoger.x = width - 250;
+            // this.goldRoger.y = height - this.goldRoger.height * 0.5 - 100;
+            this.goldRoger.y = height - 260;
+ 
 
             this.overtime.x = this.gameContainer.x;
             this.overtime.y = this.gameContainer.y;
@@ -306,12 +320,12 @@ export class GameScreen extends Container {
             this.grandJackpotTier.x = width * 0.5;
             this.grandJackpotTier.y = multiplierTierY + 330;
 
-            this.roundResult.scale.set(0.75);
-            this.roundResult.x = width - this.roundResult.width * 0.5 - 40;
-            this.roundResult.y = height - this.roundResult.height - 320;
+            // this.roundResult.scale.set(0.75);
+            // this.roundResult.x = width - this.roundResult.width * 0.5 - 40;
+            // this.roundResult.y = height - this.roundResult.height - 320;
 
-            this.babyZeus.x = 160;
-            this.babyZeus.y = centerY - 60;
+            this.goldRoger.x = 160;
+            this.goldRoger.y = centerY - 60;
         }
 
         const isMobile = document.documentElement.id === 'isMobile';

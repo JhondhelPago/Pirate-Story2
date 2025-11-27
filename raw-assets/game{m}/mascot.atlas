@@ -1,27 +1,45 @@
 mascot.png
-size:230,497
-filter:Linear,Linear
-arm
-bounds:129,142,80,83
-offsets:2,0,82,83
-rotate:90
-base
-bounds:4,4,335,121
-offsets:0,0,335,124
-rotate:90
-eyes closed
-bounds:129,51,63,36
-hair 1
-bounds:129,91,71,47
-hair 2
-bounds:159,296,78,67
-rotate:90
+	size: 1242, 1122
+	filter: Linear, Linear
+0000
+	bounds: 477, 3, 245, 245
+0001
+	bounds: 724, 3, 245, 245
+0002
+	bounds: 971, 3, 245, 245
+0003
+	bounds: 995, 875, 245, 245
+0004
+	bounds: 995, 628, 245, 245
+0005
+	bounds: 995, 381, 245, 245
+back hair
+	bounds: 753, 577, 116, 114
+	rotate: 90
+bangs
+	bounds: 869, 587, 123, 106
+	offsets: 0, 0, 123, 107
+body
+	bounds: 2, 237, 360, 883
+front cape
+	bounds: 995, 272, 107, 229
+	offsets: 0, 1, 107, 230
+	rotate: 90
+hair tail
+	bounds: 753, 695, 168, 94
+	offsets: 0, 0, 168, 95
 head
-bounds:4,343,150,151
-offsets:0,0,150,153
-rotate:90
-leg 1
-bounds:129,226,97,66
-leg-two
-bounds:159,378,115,67
-rotate:90
+	bounds: 753, 950, 170, 195
+	rotate: 90
+left arm
+	bounds: 753, 791, 157, 202
+	rotate: 90
+left forearm
+	bounds: 364, 548, 387, 572
+right arm
+	bounds: 2, 2, 233, 473
+	offsets: 0, 0, 234, 473
+	rotate: 90
+slash
+	bounds: 364, 250, 296, 629
+	rotate: 90

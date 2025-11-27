@@ -5,7 +5,7 @@ import { Spine } from '@esotericsoftware/spine-pixi-v8';
 /**
  * Animated little Zeus sprite that shows up in Home and Result screens.
  */
-export class BabyZeus extends Container {
+export class GoldRoger extends Container {
     /** The Zeus sprite */
     private zeus: Spine;
     /** Inner container for internal animations */
@@ -35,7 +35,7 @@ export class BabyZeus extends Container {
 
     /** Play floating idle animation */
     public playIdle() {
-        this.zeus.state.setAnimation(0, 'animation', true);
+        // this.zeus.state.setAnimation(0, 'animation', true);
     }
 
     /** Show the Zeus sprite */

@@ -5,7 +5,6 @@ import { initAssets } from './utils/assets';
 import { navigation } from './utils/navigation';
 import { LoadScreen } from './screens/LoadScreen';
 import { sound } from '@pixi/sound';
-import { CloudBackground } from './ui/CloudBackground';
 import { IslandBackground } from './ui/IslandBackground';
 import { getUrlParam } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
