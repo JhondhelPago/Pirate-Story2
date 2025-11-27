@@ -1,0 +1,27 @@
+mascot.png
+size:230,497
+filter:Linear,Linear
+arm
+bounds:129,142,80,83
+offsets:2,0,82,83
+rotate:90
+base
+bounds:4,4,335,121
+offsets:0,0,335,124
+rotate:90
+eyes closed
+bounds:129,51,63,36
+hair 1
+bounds:129,91,71,47
+hair 2
+bounds:159,296,78,67
+rotate:90
+head
+bounds:4,343,150,151
+offsets:0,0,150,153
+rotate:90
+leg 1
+bounds:129,226,97,66
+leg-two
+bounds:159,378,115,67
+rotate:90

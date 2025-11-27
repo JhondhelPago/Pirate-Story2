@@ -1,0 +1,13 @@
+symbol-boot.png
+size:478,269
+filter:Linear,Linear
+Boot
+bounds:340,93,174,136
+offsets:27,48,235,235
+rotate:90
+bg
+bounds:2,2,265,265
+offsets:1,1,267,267
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267

@@ -1,0 +1,12 @@
+symbol-trident.png
+size:517,269
+filter:Linear,Linear
+bg
+bounds:2,2,265,265
+offsets:1,1,267,267
+shine
+bounds:446,2,69,265
+offsets:3,1,75,267
+trident
+bounds:269,92,175,175
+offsets:15,11,205,205

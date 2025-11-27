@@ -1,0 +1,12 @@
+symbol-chalice.png
+size:486,269
+filter:Linear,Linear
+Chalice
+bounds:340,95,144,172
+offsets:34,20,213,213
+bg
+bounds:2,2,265,265
+offsets:1,1,267,267
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267

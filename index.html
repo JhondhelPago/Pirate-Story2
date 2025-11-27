@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Olympus Story</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #000;
+            }
+
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* ------------------ */
+            /* CANVAS CONTAINER   */
+            /* ------------------ */
+            canvas {
+                display: block;
+                position: absolute;
+                /* Position and size will be set by JavaScript */
+            }
+
+            /* ------------------ */
+            /* DESKTOP (Default)  */
+            /* ------------------ */
+            html#isDesktop {
+                background-color: #000;
+            }
+
+            html#isDesktop body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* ------------------ */
+            /* MOBILE VERSION     */
+            /* ------------------ */
+            html#isMobile {
+                background-color: #000;
+                /* Prevent mobile bounce scrolling */
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+
+            html#isMobile body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                /* Prevent iOS Safari bounce */
+                touch-action: none;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Prevent mobile address bar issues */
+            @supports (-webkit-touch-callout: none) {
+                html#isMobile {
+                    height: -webkit-fill-available;
+                }
+            }
+
+            /* LOADER */
+            #loader {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                pointer-events: none;
+            }
+
+            #loader.hidden {
+                opacity: 0;
+                transition: opacity 0.3s ease-out;
+            }
+
+            /* Simple spinner */
+            .spinner {
+                width: 50px;
+                height: 50px;
+                background-image: url('/loader.gif');
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center;
+                transform: scale(1);
+            }
+            /* Prevent text selection on mobile */
+            html#isMobile * {
+                -webkit-user-select: none;
+                user-select: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /** AGA Logo size */
+            #asset-loader {
+                display: none;
+                width: 100%;
+                max-width: 240px;
+                transform: scale(1);
+            }
+
+            #asset-loader #agalogo {
+                max-width: 250px;
+            }
+
+            #asset-loader .meter {
+                height: 6px;
+                background: rgba(37, 37, 37, 1);
+                border-radius: 6px;
+                width: 356px;
+                top: 50%;
+                left: 50%;
+                margin-top: 30px;
+                margin-left: -178px;
+                overflow: visible;
+                position: relative;
+                display: block;
+            }
+
+            #asset-loader .meter > span {
+                height: 6px;
+                display: block !important;
+                border-top-right-radius: 6px;
+                border-bottom-right-radius: 6px;
+                border-top-left-radius: 6px;
+                border-bottom-left-radius: 6px;
+                background-image: linear-gradient(
+                    rgb(255, 212, 160) 10%,
+                    rgb(255, 164, 57),
+                    rgb(241, 151, 44),
+                    rgb(221, 132, 28),
+                    rgb(201, 115, 12),
+                    rgb(197, 116, 21)
+                );
+                box-shadow: 0px 0px 8px 8px rgba(255, 178, 86, 0.11);
+                position: absolute;
+                overflow: hidden;
+                width: 356;
+            }
+
+            /* Scale down based on window width */
+            @media (max-width: 1200px) {
+                .spinner {
+                    transform: scale(0.9);
+                }
+                #asset-loader {
+                    transform: scale(0.9);
+                }
+            }
+
+            @media (max-width: 1024px) {
+                .spinner {
+                    transform: scale(0.85);
+                }
+                #asset-loader {
+                    transform: scale(0.85);
+                }
+            }
+
+            @media (max-width: 768px) {
+                .spinner {
+                    transform: scale(0.75);
+                }
+                #asset-loader {
+                    transform: scale(0.75);
+                }
+            }
+
+            @media (max-width: 480px) {
+                .spinner {
+                    transform: scale(0.6);
+                }
+                #asset-loader {
+                    transform: scale(0.6);
+                }
+            }
+
+            @media (max-width: 360px) {
+                .spinner {
+                    transform: scale(0.5);
+                }
+                #asset-loader {
+                    transform: scale(0.5);
+                }
+            }
+
+            /* Scale down based on window height (for landscape/small height) */
+            @media (max-height: 600px) {
+                .spinner {
+                    transform: scale(0.7);
+                }
+                #asset-loader {
+                    transform: scale(0.7);
+                }
+            }
+
+            @media (max-height: 480px) {
+                .spinner {
+                    transform: scale(0.6);
+                }
+                #asset-loader {
+                    transform: scale(0.6);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- JS Loader wait -->
+        <div id="loader">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- ASSET Loader wait -->
+        <div id="asset-loader">
+            <img id="agalogo" src="/agalogo.png" alt="Alpha Gaming Arcade" />
+            <div class="meter">
+                <span id="bg-progress"></span>
+            </div>
+        </div>
+
+        <script type="module" src="/src/main.ts"></script>
+    </body>
+</html>

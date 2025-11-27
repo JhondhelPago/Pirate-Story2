@@ -1,0 +1,14 @@
+symbol-scatter.png
+size:572,269
+filter:Linear,Linear
+bg
+bounds:2,2,265,265
+grand
+bounds:340,210,230,57
+halo
+bounds:340,7,201,208
+offsets:26,31,253,253
+rotate:90
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267

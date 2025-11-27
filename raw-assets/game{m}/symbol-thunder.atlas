@@ -1,0 +1,13 @@
+symbol-thunder.png
+size:496,269
+filter:Linear,Linear
+bg
+bounds:2,2,265,265
+offsets:1,1,267,267
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267
+thunder
+bounds:340,99,168,154
+offsets:50,64,269,269
+rotate:90

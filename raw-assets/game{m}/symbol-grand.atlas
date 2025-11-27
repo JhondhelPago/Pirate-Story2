@@ -1,0 +1,15 @@
+symbol-grand.png
+size:552,269
+filter:Linear,Linear
+bg
+bounds:2,2,265,265
+grand
+bounds:340,45,222,58
+rotate:90
+halo
+bounds:400,116,151,150
+offsets:13,15,178,178
+rotate:90
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267

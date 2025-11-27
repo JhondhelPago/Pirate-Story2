@@ -1,0 +1,13 @@
+symbol-laurel.png
+size:494,269
+filter:Linear,Linear
+Laurel
+bounds:340,110,157,152
+offsets:19,25,196,196
+rotate:90
+bg
+bounds:2,2,265,265
+offsets:1,1,267,267
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267

@@ -1,0 +1,14 @@
+symbol-divine.png
+size:542,269
+filter:Linear,Linear
+DIVINE
+bounds:340,44,200,58
+offsets:0,0,201,58
+bg
+bounds:2,2,265,265
+crystal
+bounds:340,104,169,163
+offsets:146,152,456,456
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267

@@ -1,0 +1,15 @@
+symbol-angelic.png
+size:497,269
+filter:Linear,Linear
+ANGELIC
+bounds:340,19,248,58
+rotate:90
+bg
+bounds:2,2,265,265
+halo
+bounds:400,105,162,95
+offsets:25,68,213,213
+rotate:90
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267

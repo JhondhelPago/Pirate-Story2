@@ -1,0 +1,15 @@
+symbol-blessed.png
+size:561,269
+filter:Linear,Linear
+bg
+bounds:2,2,265,265
+blessed
+bounds:501,18,249,58
+rotate:90
+shine
+bounds:430,2,69,265
+offsets:3,1,75,267
+wings
+bounds:269,56,211,159
+offsets:53,93,314,314
+rotate:90

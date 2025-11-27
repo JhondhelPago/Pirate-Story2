@@ -1,0 +1,12 @@
+symbol-hourglass.png
+size:471,269
+filter:Linear,Linear
+Hourglass
+bounds:340,75,129,192
+offsets:1,1,131,194
+bg
+bounds:2,2,265,265
+offsets:1,1,267,267
+shine
+bounds:269,2,69,265
+offsets:3,1,75,267
