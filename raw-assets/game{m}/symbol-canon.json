@@ -1,0 +1,204 @@
+{
+"skeleton": {
+	"hash": "smMXbfanj18",
+	"spine": "4.2.43",
+	"x": -139.45,
+	"y": -134,
+	"width": 273.45,
+	"height": 267,
+	"images": "./images/",
+	"audio": "./audio"
+},
+"bones": [
+	{ "name": "root" },
+	{ "name": "canon", "parent": "root", "x": 7, "y": -4.5 },
+	{ "name": "canon front", "parent": "canon", "x": -68.9, "y": 50.38 },
+	{ "name": "canon back", "parent": "canon", "x": 72.53, "y": 40 },
+	{ "name": "smoke VFX", "parent": "canon", "x": -64.98, "y": 53.51, "scaleX": 1.5371, "scaleY": 1.5371 }
+],
+"slots": [
+	{ "name": "bg", "bone": "root", "attachment": "bg" },
+	{ "name": "canon back", "bone": "canon back", "attachment": "canon back" },
+	{ "name": "canon", "bone": "canon", "attachment": "canon" },
+	{ "name": "canon2", "bone": "canon", "attachment": "canon", "blend": "additive" },
+	{ "name": "canon3", "bone": "canon", "attachment": "canon", "blend": "additive" },
+	{ "name": "canon front", "bone": "canon front", "attachment": "canon front" },
+	{ "name": "bounding", "bone": "root", "attachment": "bounding" },
+	{ "name": "smoke VFX", "bone": "smoke VFX", "attachment": "0004", "blend": "additive" },
+	{ "name": "smoke VFX2", "bone": "smoke VFX", "attachment": "0004", "blend": "additive" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"bg": {
+				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
+			},
+			"bounding": {
+				"bounding": {
+					"type": "boundingbox",
+					"vertexCount": 4,
+					"vertices": [ -131.98, 132.02, 133.02, 132.03, 132.99, -132.99, -132, -132.99 ]
+				}
+			},
+			"canon": {
+				"canon": { "width": 174, "height": 199 }
+			},
+			"canon2": {
+				"canon": { "width": 174, "height": 199 }
+			},
+			"canon3": {
+				"canon": { "width": 174, "height": 199 }
+			},
+			"canon back": {
+				"canon back": { "x": -21.37, "y": 5.01, "width": 47, "height": 70 }
+			},
+			"canon front": {
+				"canon front": { "x": 2.4, "y": -0.38, "width": 81, "height": 101 }
+			},
+			"smoke VFX": {
+				"0000": { "width": 106, "height": 106 },
+				"0001": { "width": 106, "height": 106 },
+				"0002": { "width": 106, "height": 106 },
+				"0003": { "width": 106, "height": 106 },
+				"0004": { "width": 106, "height": 106 }
+			},
+			"smoke VFX2": {
+				"0000": { "width": 106, "height": 106 },
+				"0001": { "width": 106, "height": 106 },
+				"0002": { "width": 106, "height": 106 },
+				"0003": { "width": 106, "height": 106 },
+				"0004": { "width": 106, "height": 106 }
+			}
+		}
+	}
+],
+"animations": {
+	"animation": {
+		"slots": {
+			"canon2": {
+				"rgba": [
+					{ "color": "ffffff00" },
+					{ "time": 0.1, "color": "ffffffff" },
+					{ "time": 0.6667, "color": "ffffff00" }
+				]
+			},
+			"canon3": {
+				"rgba": [
+					{ "color": "ffffff00" },
+					{ "time": 0.1, "color": "ffffffff" },
+					{ "time": 0.6667, "color": "ffffff00" }
+				]
+			},
+			"smoke VFX": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 0.0667, "color": "ffffff00" },
+					{ "time": 0.1, "color": "ffffffff", "curve": "stepped" },
+					{ "time": 0.3667, "color": "ffffffff" },
+					{ "time": 0.6667, "color": "ffffff00" }
+				],
+				"attachment": [
+					{ "time": 0.1, "name": "0000" },
+					{ "time": 0.1667, "name": "0001" },
+					{ "time": 0.2333, "name": "0002" },
+					{ "time": 0.3, "name": "0003" },
+					{ "time": 0.3667, "name": "0004" }
+				]
+			},
+			"smoke VFX2": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 0.0667, "color": "ffffff00" },
+					{ "time": 0.1, "color": "ffffffff", "curve": "stepped" },
+					{ "time": 0.3667, "color": "ffffffff" },
+					{ "time": 0.6667, "color": "ffffff00" }
+				],
+				"attachment": [
+					{ "time": 0.1, "name": "0000" },
+					{ "time": 0.1667, "name": "0001" },
+					{ "time": 0.2333, "name": "0002" },
+					{ "time": 0.3, "name": "0003" },
+					{ "time": 0.3667, "name": "0004" }
+				]
+			}
+		},
+		"bones": {
+			"canon": {
+				"rotate": [
+					{
+						"curve": [ 0.033, 0, 0.003, -17.9 ]
+					},
+					{
+						"time": 0.1,
+						"value": -17.9,
+						"curve": [ 0.233, -17.9, 0.367, -4.81 ]
+					},
+					{
+						"time": 0.5,
+						"value": -4.81,
+						"curve": [ 0.556, -4.81, 0.611, -3.87 ]
+					},
+					{ "time": 0.6667 }
+				],
+				"translate": [
+					{
+						"curve": [ 0.033, 0, 0.003, 40.1, 0.033, 0, 0.003, -15.92 ]
+					},
+					{
+						"time": 0.1,
+						"x": 40.09,
+						"y": -15.92,
+						"curve": [ 0.178, 40.09, 0.256, 37.39, 0.178, -15.92, 0.256, -24.04 ]
+					},
+					{
+						"time": 0.3333,
+						"x": 37.39,
+						"y": -24.04,
+						"curve": [ 0.444, 37.39, 0.556, -8.68, 0.444, -24.04, 0.556, -20.07 ]
+					},
+					{ "time": 0.6667 }
+				],
+				"scale": [
+					{
+						"x": 0.819,
+						"y": 0.819,
+						"curve": [ 0.033, 0.819, 0.003, 0.997, 0.033, 0.819, 0.003, 0.997 ]
+					},
+					{
+						"time": 0.1,
+						"x": 0.997,
+						"y": 0.997,
+						"curve": [ 0.289, 0.997, 0.478, 0.819, 0.289, 0.997, 0.478, 0.819 ]
+					},
+					{ "time": 0.6667, "x": 0.819, "y": 0.819 }
+				]
+			},
+			"canon front": {
+				"translate": [
+					{ "time": 0.1 },
+					{ "time": 0.2, "x": 28.62, "y": -0.58 },
+					{ "time": 0.2667 }
+				]
+			},
+			"canon back": {
+				"translate": [
+					{ "time": 0.1 },
+					{ "time": 0.2, "x": 11.74, "y": 0.98 },
+					{ "time": 0.2667 }
+				]
+			},
+			"smoke VFX": {
+				"translate": [
+					{},
+					{ "time": 0.1, "x": -2.65, "y": 8.21 }
+				],
+				"scale": [
+					{},
+					{ "time": 0.1, "x": 3.708, "y": 3.708 }
+				]
+			}
+		}
+	}
+}
+}

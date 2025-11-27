@@ -1,0 +1,35 @@
+symbol-bomb.png
+	size: 556, 491
+	filter: Linear, Linear
+0
+	bounds: 194, 163, 23, 12
+	offsets: 1, 1, 25, 14
+1
+	bounds: 456, 267, 103, 73
+	offsets: 1, 1, 105, 75
+	rotate: 90
+2
+	bounds: 368, 14, 147, 142
+	offsets: 1, 1, 149, 144
+	rotate: 90
+3
+	bounds: 269, 312, 178, 177
+	offsets: 1, 1, 180, 179
+4
+	bounds: 269, 163, 185, 147
+	offsets: 1, 1, 198, 149
+5
+	bounds: 194, 13, 172, 148
+	offsets: 1, 1, 175, 150
+bg
+	bounds: 2, 224, 265, 265
+	offsets: 1, 1, 267, 267
+bomb
+	bounds: 2, 2, 190, 220
+	offsets: 1, 1, 192, 222
+bomb rope
+	bounds: 194, 177, 42, 45
+bomb skull
+	bounds: 449, 372, 117, 105
+	offsets: 1, 1, 119, 107
+	rotate: 90

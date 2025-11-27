@@ -1,0 +1,23 @@
+symbol-treasure.png
+	size: 738, 269
+	filter: Linear, Linear
+BG
+	bounds: 2, 2, 265, 265
+	offsets: 1, 1, 267, 267
+TREASURE text
+	bounds: 501, 2, 265, 75
+	offsets: 1, 1, 267, 77
+	rotate: 90
+Treasure
+	bounds: 269, 107, 230, 160
+	offsets: 1, 1, 232, 162
+box cover-back
+	bounds: 578, 30, 158, 78
+	offsets: 1, 1, 160, 80
+box cover-front
+	bounds: 269, 4, 180, 101
+	offsets: 1, 1, 182, 103
+coin
+	bounds: 578, 110, 157, 155
+	offsets: 2, 3, 162, 161
+	rotate: 90

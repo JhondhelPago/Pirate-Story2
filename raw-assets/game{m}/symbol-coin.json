@@ -1,0 +1,123 @@
+{
+"skeleton": {
+	"hash": "XB3eWbIDWqA",
+	"spine": "4.2.43",
+	"x": -132,
+	"y": -133,
+	"width": 265,
+	"height": 265,
+	"images": "./images/",
+	"audio": "./audio"
+},
+"bones": [
+	{ "name": "root" },
+	{ "name": "coin", "parent": "root", "x": 1.5, "color": "df00ffff" },
+	{ "name": "skull", "parent": "coin", "x": -1, "y": 0.5, "color": "df00ffff" }
+],
+"slots": [
+	{ "name": "bg", "bone": "root", "attachment": "bg" },
+	{ "name": "coin", "bone": "coin", "attachment": "coin" },
+	{ "name": "coin2", "bone": "coin", "attachment": "coin", "blend": "additive" },
+	{ "name": "skull shadow", "bone": "coin", "attachment": "skull shadow" },
+	{ "name": "skull", "bone": "skull", "attachment": "skull" },
+	{ "name": "eyes", "bone": "skull", "color": "ffffff00", "attachment": "eyes" },
+	{ "name": "bounding", "bone": "root", "attachment": "bounding" }
+],
+"skins": [
+	{
+		"name": "default",
+		"attachments": {
+			"bg": {
+				"bg": { "x": 0.5, "y": -0.5, "width": 265, "height": 265 }
+			},
+			"bounding": {
+				"bounding": {
+					"type": "boundingbox",
+					"vertexCount": 4,
+					"vertices": [ -131.99, -132.97, 133.03, -132.97, 133, 132, -131.99, 132.02 ]
+				}
+			},
+			"coin": {
+				"coin": { "width": 205, "height": 202 }
+			},
+			"coin2": {
+				"coin": { "width": 205, "height": 202 }
+			},
+			"eyes": {
+				"eyes": { "x": 0.5, "y": 16.5, "width": 82, "height": 46 }
+			},
+			"skull": {
+				"skull": { "width": 137, "height": 121 }
+			},
+			"skull shadow": {
+				"skull shadow": { "x": -0.5, "y": -3.5, "width": 146, "height": 129 }
+			}
+		}
+	}
+],
+"animations": {
+	"animation": {
+		"slots": {
+			"coin2": {
+				"rgba": [
+					{ "color": "ffffff00", "curve": "stepped" },
+					{ "time": 0.3333, "color": "ffffff00" },
+					{ "time": 0.5, "color": "ffffffff" },
+					{ "time": 0.6667, "color": "ffffff00" }
+				]
+			},
+			"eyes": {
+				"rgba": [
+					{ "time": 0.2667, "color": "ffffff00" },
+					{ "time": 0.3333, "color": "fdfbfbff", "curve": "stepped" },
+					{
+						"time": 0.5,
+						"color": "fdfbfbff",
+						"curve": [ 0.556, 0.99, 0.611, 0.99, 0.556, 0.98, 0.611, 0.98, 0.556, 0.98, 0.611, 0.98, 0.556, 1, 0.611, 0 ]
+					},
+					{ "time": 0.6667, "color": "fdfbfb00" }
+				]
+			}
+		},
+		"bones": {
+			"coin": {
+				"scale": [
+					{
+						"curve": [ 0.022, 1, 0.044, 1.162, 0.022, 1, 0.044, 1.162 ]
+					},
+					{ "time": 0.0667, "x": 1.162, "y": 1.162 },
+					{ "time": 0.1, "x": 1.151, "y": 0.071 },
+					{ "time": 0.1333, "x": -1, "y": -1 },
+					{ "time": 0.1667, "x": 1.151, "y": 0.071 },
+					{ "time": 0.2, "x": 1.162, "y": 1.162 },
+					{ "time": 0.2333, "x": 1.151, "y": 0.071 },
+					{ "time": 0.2667, "x": -1, "y": -1 },
+					{ "time": 0.3333, "x": 1.162, "y": 1.162, "curve": "stepped" },
+					{
+						"time": 0.5,
+						"x": 1.162,
+						"y": 1.162,
+						"curve": [ 0.556, 1.162, 0.611, 1, 0.556, 1.162, 0.611, 1 ]
+					},
+					{ "time": 0.6667 }
+				]
+			},
+			"skull": {
+				"scale": [
+					{
+						"time": 0.3333,
+						"curve": [ 0.389, 1, 0.333, 1.599, 0.389, 1, 0.333, 1.599 ]
+					},
+					{
+						"time": 0.5,
+						"x": 1.599,
+						"y": 1.599,
+						"curve": [ 0.556, 1.599, 0.611, 1.2, 0.556, 1.599, 0.611, 1.2 ]
+					},
+					{ "time": 0.6667 }
+				]
+			}
+		}
+	}
+}
+}

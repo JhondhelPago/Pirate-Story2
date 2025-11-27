@@ -1,0 +1,20 @@
+symbol-mug.png
+	size: 594, 269
+	filter: Linear, Linear
+beer
+	bounds: 471, 90, 121, 65
+bg
+	bounds: 2, 2, 265, 265
+	offsets: 1, 1, 267, 267
+bubble
+	bounds: 471, 157, 110, 110
+	offsets: 2, 3, 115, 115
+eyes
+	bounds: 269, 37, 56, 27
+	offsets: 1, 1, 59, 29
+mug
+	bounds: 269, 66, 200, 201
+	offsets: 1, 1, 202, 203
+skull
+	bounds: 471, 17, 72, 71
+	offsets: 1, 1, 74, 73

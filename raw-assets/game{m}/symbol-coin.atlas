@@ -1,0 +1,19 @@
+symbol-coin.png
+	size: 608, 269
+	filter: Linear, Linear
+bg
+	bounds: 2, 2, 265, 265
+coin
+	bounds: 269, 64, 203, 200
+	offsets: 1, 1, 205, 202
+	rotate: 90
+eyes
+	bounds: 269, 20, 80, 42
+	offsets: 1, 2, 82, 46
+skull
+	bounds: 471, 5, 135, 119
+	offsets: 1, 1, 137, 121
+skull shadow
+	bounds: 471, 126, 141, 125
+	offsets: 2, 2, 146, 129
+	rotate: 90

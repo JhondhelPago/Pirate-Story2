@@ -1,0 +1,37 @@
+symbol-anchor.png
+	size: 808, 320
+	filter: Linear, Linear
+0
+	bounds: 636, 99, 23, 12
+	offsets: 1, 1, 25, 14
+	rotate: 90
+01
+	bounds: 269, 66, 103, 73
+	offsets: 1, 1, 105, 75
+02
+	bounds: 658, 2, 147, 142
+	offsets: 1, 1, 149, 144
+03
+	bounds: 269, 141, 178, 177
+	offsets: 1, 1, 180, 179
+04
+	bounds: 449, 17, 185, 147
+	offsets: 1, 1, 198, 149
+05
+	bounds: 658, 146, 172, 148
+	offsets: 1, 1, 175, 150
+	rotate: 90
+Anchor
+	bounds: 449, 166, 152, 207
+	rotate: 90
+bg
+	bounds: 2, 53, 265, 265
+	offsets: 1, 1, 267, 267
+weed-one
+	bounds: 374, 73, 37, 66
+weed-three
+	bounds: 374, 49, 22, 59
+	offsets: 0, 0, 23, 59
+	rotate: 90
+weed-two
+	bounds: 636, 124, 20, 40
