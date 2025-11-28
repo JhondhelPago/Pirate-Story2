@@ -1,4 +1,4 @@
-import { Container, Texture, AnimatedSprite, Text } from 'pixi.js';
+import { Container, Texture, AnimatedSprite, Text, Sprite } from 'pixi.js';
 import gsap from 'gsap';
 import { resolveAndKillTweens, registerCustomEase, pauseTweens, resumeTweens } from '../utils/animation';
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
@@ -37,6 +37,17 @@ export class SlotSymbol extends Container {
 
     public textLabel: Text;
 
+
+    /** Test multiplier: 0 = none, 2/3/5 = show sprite */
+    public multiplier: number = 2;
+
+    /** Multiplier sprite */
+    private multiplierSprite: Sprite | null = null;
+
+    /** Tween reference for animation */
+    private multiplierTween?: gsap.core.Tween;
+
+
     constructor() {
         super();
 
@@ -62,11 +73,12 @@ export class SlotSymbol extends Container {
             text: this.type,
             style: {
                 fontSize: 40,
-                fill: '#00ff00ff',
+                fill: '#05e247ff',
                 fontWeight: '800',
             },
         });
         this.addChild(this.textLabel);
+        this.updateMultiplierSprite();
     }
 
     /** Create the explosion animated sprite */
@@ -142,6 +154,10 @@ export class SlotSymbol extends Container {
 
         this.textLabel.text = this.type;
         this.addChild(this.textLabel);
+
+        // Update multiplier after refreshing visuals
+        this.updateMultiplierSprite();
+
 
         this.unlock();
     }
@@ -314,4 +330,74 @@ export class SlotSymbol extends Container {
         }
         super.destroy();
     }
+
+
+
+
+
+
+
+
+
+
+
+    /** Create or update the multiplier sprite */
+    private updateMultiplierSprite() {
+        // Remove old sprite if needed
+        if (this.multiplierSprite) {
+            this.removeChild(this.multiplierSprite);
+            this.multiplierSprite.destroy();
+            this.multiplierSprite = null;
+        }
+
+        // If multiplier = 0 → show nothing
+        if (this.multiplier === 0) return;
+
+        // Pick correct asset based on multiplier value
+        const assetName =
+            this.multiplier === 2 ? '2XMutliplier' :
+            this.multiplier === 3 ? '3XMutliplier' :
+            this.multiplier === 5 ? '5XMutliplier' :
+            null;
+
+        if (!assetName) return;
+
+        // Create sprite
+        this.multiplierSprite = Sprite.from(assetName);
+        this.multiplierSprite.anchor.set(0.5);
+        this.multiplierSprite.scale.set(0.65);
+
+        // Position BELOW the symbol (but still top layer visually)
+        this.multiplierSprite.y = 40; // adjust to your icon height
+        this.multiplierSprite.x = 0;
+
+        // Add to top layer
+        this.addChild(this.multiplierSprite);
+
+        // Floating animation
+        this.applyMultiplierAnimation();
+    }
+
+    /** Apply float animation to multiplier */
+    private applyMultiplierAnimation() {
+        if (!this.multiplierSprite) return;
+
+        // Kill existing tween
+        if (this.multiplierTween) {
+            this.multiplierTween.kill();
+        }
+
+        const target = this.multiplierSprite;
+
+        // Up-down loop animation
+        this.multiplierTween = gsap.to(target, {
+            y: target.y - 10,
+            duration: 0.8,
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: -1,
+        });
+    }
+
+
 }

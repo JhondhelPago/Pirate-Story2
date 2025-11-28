@@ -44,9 +44,18 @@ app.get('/spin', async (req, res) => {
 
     // Generate 5 reels, each with 5 random symbols (1-12)
     const reels = Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => getRandomInt(1, 12)));
+    const bonusReels = reels.map(reel => {
+        const multiplierOptions = [2, 3, 5];
+        const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
+        return reel.map(symbol => (symbol === 5 ? randomMultiplier : 0));
+    })
+
+    console.log('Generated Reels:', reels, bonusReels);
 
     res.json({
-        reels: grandReels,
+        // reels: grandReels,
+        reels: reels,
+        bonusReels: bonusReels,
     });
 });
 

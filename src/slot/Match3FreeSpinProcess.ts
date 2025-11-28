@@ -142,62 +142,51 @@ export class Match3FreeSpinProcess {
     }
 
     /** Fill the grid for a free spin round */
-    public async fillFreeSpinGrid() {
-        const result = await BetAPI.spin('n');
-        this.match3.board.grid = result.reels;
+    /** Fill the entire grid with NEW symbols on every free spin */
+public async fillFreeSpinGrid() {
+    // 1. Ask backend for a FULL 5x5 result
+    const result = await BetAPI.spin('n');
+    this.match3.board.grid = result.reels; // overwrite completely
 
-        // Get all positions from the grid
-        const positions: Match3Position[] = [];
-        for (let col = 0; col < this.match3.board.columns; col++) {
-            for (let row = 0; row < this.match3.board.rows; row++) {
-                if (this.match3.board.grid[col][row] !== 0) {
-                    positions.push({ row, column: col });
-                }
-            }
-        }
+    // 2. Remove all existing pieces from the board
+    for (const p of this.match3.board.pieces) {
+        p.destroy();
+    }
+    this.match3.board.pieces = [];
 
-        // Group pieces by column
-        const piecesByColumn: Record<number, Array<{ piece: SlotSymbol; x: number; y: number }>> = {};
-        const piecesPerColumn: Record<number, number> = {};
+    // 3. Prepare animation tracking
+    const animPromises: Promise<void>[] = [];
 
-        for (const position of positions) {
+    // 4. Build ALL NEW SlotSymbol objects for all 25 cells
+    for (let col = 0; col < this.match3.board.columns; col++) {
+        for (let row = 0; row < this.match3.board.rows; row++) {
+            const position = { row, column: col };
+
+            // Determine piece type from grid
             const pieceType = match3GetPieceType(this.match3.board.grid, position);
+
+            // Create the piece
             const piece = this.match3.board.createPiece(position, pieceType);
 
-            // Count pieces per column so new pieces can be stacked up accordingly
-            if (!piecesPerColumn[piece.column]) {
-                piecesPerColumn[piece.column] = 0;
-                piecesByColumn[piece.column] = [];
-            }
-            piecesPerColumn[piece.column] += 1;
+            // Position it ABOVE the board for falling animation
+            const targetX = piece.x;
+            const targetY = piece.y;
 
-            const x = piece.x;
-            const y = piece.y;
-            const columnCount = piecesPerColumn[piece.column];
-            const height = this.match3.board.getHeight();
-            piece.y = -height * 0.5 - columnCount * this.match3.config.tileSize;
+            const boardHeight = this.match3.board.getHeight();
+            const dropOffset = boardHeight * 0.7 + row * this.match3.config.tileSize;
 
-            piecesByColumn[piece.column].push({ piece, x, y });
+            // Start piece above the screen
+            piece.y = -dropOffset;
+
+            // Animate fall
+            animPromises.push(piece.animateFall(targetX, targetY));
         }
-
-        // Animate each column with a small delay between them
-        const animPromises: Promise<void>[] = [];
-
-        for (const column in piecesByColumn) {
-            const columnPieces = piecesByColumn[column];
-
-            // Start all animations in this column
-            for (const { piece, x, y } of columnPieces) {
-                animPromises.push(piece.animateFall(x, y));
-            }
-
-            // Wait before starting next column
-            await new Promise((resolve) => setTimeout(resolve, 50));
-        }
-
-        // Wait for all animations to complete
-        await Promise.all(animPromises);
     }
+
+    // 5. Wait for all animations to finish
+    await Promise.all(animPromises);
+}
+
 
     /**
      * Sequence of logical steps to evolve the board during free spins, added to the async queue.

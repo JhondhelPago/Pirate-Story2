@@ -3,65 +3,65 @@ import { Block, Jackpot, Paytable } from '../slot/Match3Config';
 // Default fallbacks (keep your existing arrays as fallbacks)
 const defaultBlocks: Block[] = [
     {
-    type: 1,
-    symbol: 'symbol-anchor',
-    name: 'Anchor',
-},
-{
-    type: 2,
-    symbol: 'symbol-apple',
-    name: 'Apple',
-},
-{
-    type: 3,
-    symbol: 'symbol-bomb',
-    name: 'Bomb',
-},
-{
-    type: 4,
-    symbol: 'symbol-canon',
-    name: 'Canon',
-},
-{
-    type: 5,
-    symbol: 'symbol-coin',
-    name: 'Coin',
-},
-{
-    type: 6,
-    symbol: 'symbol-flag',
-    name: 'Flag',
-},
-{
-    type: 7,
-    symbol: 'gold-bar',
-    name: 'Gold-bar',
-},
-{
-    type: 8,
-    symbol: 'symbol-hat',
-    name: 'Hat',
-},
-{
-    type: 9,
-    symbol: 'symbol-mug',
-    name: 'Mug',
-},
-{
-    type: 10,
-    symbol: 'symbol-skull',
-    name: 'Skull',
-},
-{
-    type: 11,
-    symbol: 'symbol-sword',
-    name: 'Sword',
-},
-{
-    type: 12,
-    symbol: 'symbol-treasure',
-    name: 'Treasure',
-},
+        type: 1,
+        symbol: 'symbol-anchor',
+        name: 'Anchor',
+    },
+    {
+        type: 2,
+        symbol: 'symbol-apple',
+        name: 'Apple',
+    },
+    {
+        type: 3,
+        symbol: 'symbol-bomb',
+        name: 'Bomb',
+    },
+    {
+        type: 4,
+        symbol: 'symbol-canon',
+        name: 'Canon',
+    },
+    {
+        type: 5,
+        symbol: 'symbol-coin',
+        name: 'Coin',
+    },
+    {
+        type: 6,
+        symbol: 'symbol-flag',
+        name: 'Flag',
+    },
+    {
+        type: 7,
+        symbol: 'gold-bar',
+        name: 'Gold-bar',
+    },
+    {
+        type: 8,
+        symbol: 'symbol-hat',
+        name: 'Hat',
+    },
+    {
+        type: 9,
+        symbol: 'symbol-mug',
+        name: 'Mug',
+    },
+    {
+        type: 10,
+        symbol: 'symbol-skull',
+        name: 'Skull',
+    },
+    {
+        type: 11,
+        symbol: 'symbol-sword',
+        name: 'Sword',
+    },
+    {
+        type: 12,
+        symbol: 'symbol-treasure',
+        name: 'Treasure',
+    },
 ];
 
 const defaultScatterBlocksTrigger: number = 4;
