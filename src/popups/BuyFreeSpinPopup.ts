@@ -1,26 +1,26 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import gsap from 'gsap';
-import { resolveAndKillTweens } from '../utils/animation';
 import { navigation } from '../utils/navigation';
 
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
     private panel: Container;
 
+    private buyLabel: Sprite;
     private option10: Sprite;
     private option15: Sprite;
     private option20: Sprite;
 
-    private canClickAnywhere = false;
+    private exitButton: Sprite;
 
+    private canClickAnywhere = false;
     private onSelect?: (value: number) => void;
 
-    private screenHeight = 0;
+    private pulseTween?: gsap.core.Tween;
 
     constructor() {
         super();
-
-        this.eventMode = 'static';  // IMPORTANT — allows popup to receive clicks
+        this.eventMode = 'static';
         this.interactiveChildren = true;
 
         // Background overlay
@@ -30,90 +30,192 @@ export class BuyFreeSpinPopup extends Container {
         this.bg.eventMode = 'static';
         this.addChild(this.bg);
 
-        // Panel
+        // Panel container
         this.panel = new Container();
         this.addChild(this.panel);
 
+        // Label
+        this.buyLabel = Sprite.from('buy-free-spin-label');
+        this.buyLabel.anchor.set(0.5);
+        this.panel.addChild(this.buyLabel);
+
+        // Options
         this.option10 = Sprite.from('10-spin-banner');
         this.option15 = Sprite.from('15-spin-banner');
         this.option20 = Sprite.from('20-spin-banner');
 
-        for (const s of [this.option10, this.option15, this.option20]) {
+        const optionList = [this.option10, this.option15, this.option20];
+        for (const s of optionList) {
             s.anchor.set(0.5);
             s.eventMode = 'static';
             s.cursor = 'pointer';
             this.panel.addChild(s);
+
+            // Hover
+            s.on('pointerover', () => {
+                gsap.killTweensOf(s.scale);
+                gsap.to(s.scale, { x: 1.08, y: 1.08, duration: 0.15 });
+            });
+            s.on('pointerout', () => {
+                gsap.killTweensOf(s.scale);
+                gsap.to(s.scale, { x: 1, y: 1, duration: 0.15 });
+            });
+
+            // Tap pop
+            s.on('pointertap', () => {
+                gsap.killTweensOf(s.scale);
+                gsap.to(s.scale, {
+                    x: 1.2,
+                    y: 1.2,
+                    duration: 0.1,
+                    yoyo: true,
+                    repeat: 1,
+                });
+            });
         }
 
-        this.option10.on('pointertap', () => this.handleSelect(10));
-        this.option15.on('pointertap', () => this.handleSelect(15));
-        this.option20.on('pointertap', () => this.handleSelect(20));
-
-        // Clicking background closes popup
+        // Clicking background closes
         this.bg.on('pointertap', () => {
             if (!this.canClickAnywhere) return;
             this.hide();
         });
+
+        // =====================
+        // EXIT BUTTON
+        // =====================
+        this.exitButton = Sprite.from('cancel-button'); // <-- replace with your asset
+        this.exitButton.anchor.set(0.5);
+        this.exitButton.scale.set(1.3);
+        this.exitButton.eventMode = 'static';
+        this.exitButton.cursor = 'pointer';
+        this.addChild(this.exitButton);
+
+        this.exitButton.on('pointerover', () => {
+            gsap.to(this.exitButton.scale, { x: 1.1, y: 1.1, duration: 0.15 });
+        });
+        this.exitButton.on('pointerout', () => {
+            gsap.to(this.exitButton.scale, { x: 1, y: 1, duration: 0.15 });
+        });
+        this.exitButton.on('pointertap', () => {
+            gsap.to(this.exitButton.scale, {
+                x: 1.2,
+                y: 1.2,
+                duration: 0.1,
+                yoyo: true,
+                repeat: 1,
+            });
+            this.hide();
+        });
     }
 
-    private handleSelect(value: number) {
-        if (!this.canClickAnywhere) return;
-        this.onSelect?.(value);
-        this.hide();
+    // ================================
+    // LABEL PULSE
+    // ================================
+    private startLabelPulse() {
+        gsap.killTweensOf(this.buyLabel.scale);
+
+        this.pulseTween = gsap.to(this.buyLabel.scale, {
+            x: 1.05,
+            y: 1.05,
+            duration: 1.2,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut',
+        });
+    }
+
+    private stopLabelPulse() {
+        this.pulseTween?.kill();
+        gsap.to(this.buyLabel.scale, { x: 1, y: 1, duration: 0.2 });
+    }
+
+    // ============================================
+    // ✨ NEW: REAL TOP-DROP ANIMATION (ALWAYS TOP)
+    // ============================================
+    private animateEntrance() {
+        const options = [this.option10, this.option15, this.option20];
+
+        options.forEach((opt, index) => {
+            gsap.killTweensOf(opt);
+
+            const finalY = opt.y;
+            opt.alpha = 0;
+
+            // FORCE start above screen no matter what layout is
+            opt.y = finalY - 900;
+
+            gsap.to(opt, {
+                alpha: 1,
+                y: finalY,
+                duration: 0.7,
+                delay: index * 0.12,
+                ease: "bounce.out",
+            });
+        });
     }
 
     public prepare<T>(data?: T) {
-        // safely extract onSelect if it exists
         const anyData = data as any;
-        if (anyData?.onSelect) {
-            this.onSelect = anyData.onSelect;
-        }
+        if (anyData?.onSelect) this.onSelect = anyData.onSelect;
+
+        this.canClickAnywhere = false;
+
+        this.startLabelPulse();
+        this.animateEntrance();
+
+        setTimeout(() => (this.canClickAnywhere = true), 500);
     }
 
-
+    // ================================
+    // LAYOUT
+    // ================================
     public resize(width: number, height: number) {
         this.bg.width = width;
         this.bg.height = height;
 
-        this.panel.x = width * 0.5;
-        this.panel.y = height * 0.5;
+        const isMobile = height > width;
 
-        const spacing = 380;
+        this.panel.x = width * 0.5;
+        this.panel.y = isMobile ? height * 0.43 : height * 0.45;
+
+        // Exit button top-right
+        this.exitButton.x = width * 0.90;
+        this.exitButton.y = height * 0.12;
+
+        if (isMobile) {
+            const targetWidth = width * 1;
+            const bannersWidth = 500 * 3;
+            const scale = targetWidth / bannersWidth;
+            this.panel.scale.set(scale);
+        } else {
+            this.panel.scale.set(1);
+        }
+
+        this.buyLabel.x = 0;
+        this.buyLabel.y = isMobile ? -320 : -340;
+        this.buyLabel.scale.set(isMobile ? 1.5 : 1);
+
+        const spacing = 500;
+        const bannerY = isMobile ? 80 : 40;
+
         this.option10.x = -spacing;
         this.option15.x = 0;
         this.option20.x = spacing;
 
-        this.screenHeight = height;
+        this.option10.y = bannerY;
+        this.option15.y = bannerY;
+        this.option20.y = bannerY;
     }
 
-    public async show() {
-        resolveAndKillTweens(this.panel);
-        resolveAndKillTweens(this.bg);
-
-        this.bg.alpha = 0;
-        this.panel.alpha = 0;
-        this.panel.scale.set(0.5);
-
-        const tl = gsap.timeline();
-        tl.to(this.bg, { alpha: 0.75, duration: 0.25 });
-        tl.to(this.panel, { alpha: 1, duration: 0.3, ease: 'power2.out' }, 0.05);
-        tl.to(this.panel.scale, { x: 1, y: 1, duration: 0.45, ease: 'back.out(1.8)' }, 0.05);
-
-        await tl;
-
-        this.canClickAnywhere = true;
-    }
-
-    /** When popup closes — use navigation to dismiss */
     public async hide() {
         this.canClickAnywhere = false;
+        this.stopLabelPulse();
 
         const tl = gsap.timeline();
         tl.to(this.panel, { alpha: 0, duration: 0.2 });
         tl.to(this.bg, { alpha: 0, duration: 0.2 }, 0);
 
         await tl;
-
-        await navigation.dismissPopup();  // IMPORTANT
+        await navigation.dismissPopup();
     }
 }
