@@ -4,44 +4,50 @@ import { sfx } from '../utils/audio';
 import { navigation } from '../utils/navigation';
 import { BuyFreeSpinPopup } from '../popups/BuyFreeSpinPopup';
 
-/**
- * Simplified Buy Free Spin button using ONE sprite asset.
- */
 export class BuyFreeSpin extends Container {
-    /** Inner container (type-safe so existing code still works) */
-    private container: Container;
-    /** The only image for the button */
+    private floatWrapper: Container;   // NEW LAYER
+    private container: Container;      // Your original container
     private button: Sprite;
+
+    private floatTimeline?: gsap.core.Timeline;
 
     constructor() {
         super();
 
-        // Keep inner container so structure stays compatible
-        this.container = new Container();
-        this.addChild(this.container);
+        // --------------------------
+        // FLOAT WRAPPER (Moves up/down)
+        // --------------------------
+        this.floatWrapper = new Container();
+        this.addChild(this.floatWrapper);
 
-        // Load your single PNG asset
+        // --------------------------
+        // MAIN UI CONTAINER (Scales on hover)
+        // --------------------------
+        this.container = new Container();
+        this.floatWrapper.addChild(this.container);
+
+        // --------------------------
+        // BUTTON IMAGE
+        // --------------------------
         this.button = Sprite.from('scroll-map');
         this.button.anchor.set(0.5);
         this.container.addChild(this.button);
 
-        // Enable interaction
         this.setupInteractivity();
 
-        // 👉 CLICK TO OPEN POPUP
+        // OPEN POPUP
         this.on('pointertap', () => {
             navigation.presentPopup(BuyFreeSpinPopup, {
                 onSelect: (value: number) => {
                     console.log("Selected Buy Free Spins:", value);
-
-                    // ⭐ place your buy logic here
-                    // you can call API, start free spins, etc.
                 }
             });
         });
     }
 
-    /** Setup hover & press interactions */
+    // -------------------------------
+    // INTERACTION HANDLERS
+    // -------------------------------
     private setupInteractivity() {
         this.eventMode = 'static';
         this.cursor = 'pointer';
@@ -72,12 +78,37 @@ export class BuyFreeSpin extends Container {
         gsap.to(this.container.scale, { x: 1.05, y: 1.05, duration: 0.2, delay: 0.1, ease: 'back.out' });
     }
 
-    /** Show button */
+    // -------------------------------
+    // FLOAT ANIMATION (NOW WORKS 100%)
+    // -------------------------------
+    private startFloating() {
+        if (this.floatTimeline) return; // already running
+
+        this.floatTimeline = gsap.timeline({ repeat: -1, yoyo: true });
+
+        this.floatTimeline.to(this.floatWrapper, {
+            y: -10,
+            duration: 1.6,
+            ease: "sine.inOut",
+        });
+    }
+
+    private stopFloating() {
+        if (this.floatTimeline) {
+            this.floatTimeline.kill();
+            this.floatTimeline = undefined;
+        }
+        this.floatWrapper.y = 0; // reset to original
+    }
+
+    // -------------------------------
+    // SHOW / HIDE WITH FLOATING
+    // -------------------------------
     public async show(animated = true) {
         this.visible = true;
         this.eventMode = 'static';
 
-        gsap.killTweensOf(this.container);
+        this.stopFloating();
 
         if (animated) {
             this.container.alpha = 0;
@@ -89,13 +120,15 @@ export class BuyFreeSpin extends Container {
             this.container.alpha = 1;
             this.container.scale.set(1);
         }
+
+        // ⭐ NOW FLOATS CORRECTLY
+        this.startFloating();
     }
 
-    /** Hide button */
     public async hide(animated = true) {
         this.eventMode = 'none';
 
-        gsap.killTweensOf(this.container);
+        this.stopFloating();
 
         if (animated) {
             gsap.to(this.container, { alpha: 0, duration: 0.3 });

@@ -76,6 +76,8 @@ export class GameScreen extends Container {
 
         this.buyFreeSpin = new BuyFreeSpin();
         this.addChild(this.buyFreeSpin);
+        this.buyFreeSpin.show();
+
 
         // this.roundResult = new RoundResult();
         // this.addChild(this.roundResult);
