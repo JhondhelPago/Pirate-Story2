@@ -1,6 +1,8 @@
 import { Container, Sprite } from 'pixi.js';
 import gsap from 'gsap';
 import { sfx } from '../utils/audio';
+import { navigation } from '../utils/navigation';
+import { BuyFreeSpinPopup } from '../popups/BuyFreeSpinPopup';
 
 /**
  * Simplified Buy Free Spin button using ONE sprite asset.
@@ -19,13 +21,24 @@ export class BuyFreeSpin extends Container {
         this.addChild(this.container);
 
         // Load your single PNG asset
-        // 🔥 Replace 'buy_free_spin_simple' with your actual PNG name
         this.button = Sprite.from('scroll-map');
         this.button.anchor.set(0.5);
         this.container.addChild(this.button);
 
         // Enable interaction
         this.setupInteractivity();
+
+        // 👉 CLICK TO OPEN POPUP
+        this.on('pointertap', () => {
+            navigation.presentPopup(BuyFreeSpinPopup, {
+                onSelect: (value: number) => {
+                    console.log("Selected Buy Free Spins:", value);
+
+                    // ⭐ place your buy logic here
+                    // you can call API, start free spins, etc.
+                }
+            });
+        });
     }
 
     /** Setup hover & press interactions */
@@ -54,6 +67,7 @@ export class BuyFreeSpin extends Container {
         sfx.play('common/sfx-press.wav');
 
         gsap.killTweensOf(this.container.scale);
+
         gsap.to(this.container.scale, { x: 0.95, y: 0.95, duration: 0.1, ease: 'power2.out' });
         gsap.to(this.container.scale, { x: 1.05, y: 1.05, duration: 0.2, delay: 0.1, ease: 'back.out' });
     }
