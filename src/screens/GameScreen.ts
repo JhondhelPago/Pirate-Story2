@@ -293,15 +293,18 @@ export class GameScreen extends Container {
             const divY = 280;
 
             this.gameContainer.x = centerX;
-            this.gameContainer.y = this.gameContainer.height * 0.5;
+            this.gameContainer.y = this.gameContainer.height * 0.78;
 
-            this.buyFreeSpin.scale.set(0.65);
+            this.barrelBoard?.scale.set(1.4);
+            this.match3.scale.set(1.4);
+
+            this.buyFreeSpin.scale.set(1);
             this.buyFreeSpin.x = 220;
-            this.buyFreeSpin.y = height * 0.65 - 20;
+            this.buyFreeSpin.y = height * 0.7;
 
-            this.gameLogo.scale.set(0.75);
-            this.gameLogo.x = 220;
-            this.gameLogo.y = height - this.gameLogo.height - divY;
+            this.gameLogo.scale.set(0.87);
+            this.gameLogo.x = width * 0.5;
+            this.gameLogo.y = 130;
 
             const multiplierTierY = height * 0.6;
             const multiplierScale = 0.75;
@@ -326,8 +329,9 @@ export class GameScreen extends Container {
             // this.roundResult.x = width - this.roundResult.width * 0.5 - 40;
             // this.roundResult.y = height - this.roundResult.height - 320;
 
-            this.goldRoger.x = 160;
-            this.goldRoger.y = centerY - 60;
+            this.goldRoger.x = width - 160;
+            this.goldRoger.y = height - 160;
+            this.goldRoger.scale.set(1.2);
         }
 
         const isMobile = document.documentElement.id === 'isMobile';

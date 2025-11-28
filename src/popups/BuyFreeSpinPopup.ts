@@ -234,7 +234,7 @@ export class BuyFreeSpinPopup extends Container {
         // FIXED LABEL SPACING ON MOBILE
         // ============================
         if (isMobile) {
-            this.buyLabel.y = -380;
+            this.buyLabel.y = -480;
             this.buyLabel.scale.set(1.35);
         } else {
             this.buyLabel.y = -340;
