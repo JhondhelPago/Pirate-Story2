@@ -5,7 +5,7 @@ import { navigation } from "../utils/navigation";
 export interface BuyConfirmData {
     confirmationBoard: string;
     buySpinLabel: string;
-    amountLabel: string;     // text-only PNG (no background)
+    amountLabel: string;
     confirmButton: string;
     cancelButton: string;
 }
@@ -30,11 +30,9 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.interactiveChildren = true;
     }
 
-    /** Build popup content using asset names passed from BuyFreeSpinPopup */
     public prepare<T>(data?: T) {
         const d = data as BuyConfirmData;
 
-        // overlay
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
@@ -43,31 +41,25 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
 
         this.bg.on("pointertap", () => this.hide());
 
-        // PANEL
         this.panel = new Container();
         this.addChild(this.panel);
 
-        // BOARD
         this.board = Sprite.from(d.confirmationBoard);
         this.board.anchor.set(0.5);
         this.panel.addChild(this.board);
 
-        // Buy Label
         this.buyLabel = Sprite.from(d.buySpinLabel);
         this.buyLabel.anchor.set(0.5);
         this.board.addChild(this.buyLabel);
 
-        // ===== Amount Background (Dynamic Rectangle) =====
         this.amtBg = new Graphics();
-        this.amtBg.alpha = 0.75;   // Similar opacity to original PNG background
+        this.amtBg.alpha = 0.75;
         this.board.addChild(this.amtBg);
 
-        // ===== Amount Label (text-only PNG) =====
         this.amtLabel = Sprite.from(d.amountLabel);
         this.amtLabel.anchor.set(0.5);
         this.board.addChild(this.amtLabel);
 
-        // Confirm
         this.btnConfirm = Sprite.from(d.confirmButton);
         this.btnConfirm.anchor.set(0.5);
         this.btnConfirm.eventMode = "static";
@@ -75,7 +67,6 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.board.addChild(this.btnConfirm);
         this.btnConfirm.on("pointertap", () => this.hide());
 
-        // Cancel
         this.btnCancel = Sprite.from(d.cancelButton);
         this.btnCancel.anchor.set(0.5);
         this.btnCancel.eventMode = "static";
@@ -84,10 +75,9 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.btnCancel.on("pointertap", () => this.hide());
 
         this.dropIn();
-        this.startAmountPulse();  // idle animation
+        this.startAmountPulse();
     }
 
-    /** Entrance animation */
     private dropIn() {
         const oy = this.board.y;
         this.board.alpha = 0;
@@ -101,30 +91,30 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         });
     }
 
-    /** Layout */
     public resize(width: number, height: number) {
         const isMobile = height > width;
 
         this.bg.width = width;
         this.bg.height = height;
 
-        // center the panel
         this.panel.x = width * 0.5;
         this.panel.y = height * 0.5;
 
-        // board scale
         this.board.scale.set(isMobile ? 1.2 : 1);
 
         const bw = this.board.width;
         const bh = this.board.height;
 
-        // ========== LABEL POSITION ==========
-        this.buyLabel.y = -bh * 0.3;
+        // ========== LABEL POSITION (FIXED) ==========
+        if (isMobile) {
+            this.buyLabel.y = -bh * 0.25; // CORRECTED - move downward
+        } else {
+            this.buyLabel.y = -bh * 0.30;
+        }
 
-        // ========== AMOUNT POSITION ==========
+        // Amount
         this.amtLabel.y = 0;
 
-        // Draw dynamic background rectangle
         const padX = bw * 0.18;
         const padY = bh * 0.05;
 
@@ -132,7 +122,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         const amtH = this.amtLabel.height + padY;
 
         this.amtBg.clear();
-        this.amtBg.beginFill(0x000000, 0.6);   // semi-transparent black
+        this.amtBg.beginFill(0x000000, 0.6);
         this.amtBg.drawRoundedRect(
             -amtW * 0.5,
             -amtH * 0.5,
@@ -145,17 +135,25 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.amtBg.x = this.amtLabel.x;
         this.amtBg.y = this.amtLabel.y;
 
-        // ========== BUTTONS ==========
-        const buttonY = bh * 0.26;
-        this.btnConfirm.y = buttonY;
-        this.btnCancel.y = buttonY;
+        // Buttons
+        if (isMobile) {
+            this.btnConfirm.y = bh * 0.22;
+            this.btnCancel.y = bh * 0.22;
+        } else {
+            this.btnConfirm.y = bh * 0.26;
+            this.btnCancel.y = bh * 0.26;
+        }
 
-        const buttonOffset = bw * 0.23;
+        let buttonOffset = bw * 0.23;   // desktop default
+
+        if (isMobile) {
+            buttonOffset = bw * 0.17;   // mobile: reduced gap
+        }
+
         this.btnConfirm.x = -buttonOffset;
         this.btnCancel.x = buttonOffset;
     }
 
-    /** Idle pulsing animation for amount label */
     private startAmountPulse() {
         gsap.killTweensOf(this.amtLabel.scale);
 
