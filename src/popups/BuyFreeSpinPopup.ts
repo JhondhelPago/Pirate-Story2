@@ -1,6 +1,7 @@
 import { Container, Sprite, Texture } from 'pixi.js';
 import gsap from 'gsap';
 import { navigation } from '../utils/navigation';
+import { ConfirmationBuyFreeSpinPopup } from './BuyFreeConfirmationPopup';
 
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
@@ -71,6 +72,38 @@ export class BuyFreeSpinPopup extends Container {
                     yoyo: true,
                     repeat: 1,
                 });
+
+                // =====================================================
+                // 🔥 ADD TRIGGER TO OPEN CONFIRMATION POPUP
+                // =====================================================
+                if (s === this.option10) {
+                    navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
+                        confirmationBoard: "buy-spin-confirm-board",
+                        buySpinLabel: "buy-10-label",
+                        amountLabel: "amount-200",
+                        confirmButton: "confirm-button",
+                        cancelButton: "cancel-button"
+                    });
+                }
+                else if (s === this.option15) {
+                    navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
+                        confirmationBoard: "buy-spin-confirm-board",
+                        buySpinLabel: "buy-15-label",
+                        amountLabel: "amount-500",
+                        confirmButton: "confirm-button",
+                        cancelButton: "cancel-button"
+                    });
+                }
+                else if (s === this.option20) {
+                    navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
+                        confirmationBoard: "buy-spin-confirm-board",
+                        buySpinLabel: "buy-20-label",
+                        amountLabel: "amount-1000",
+                        confirmButton: "confirm-button",
+                        cancelButton: "cancel-button"
+                    });
+                }
+                // =====================================================
             });
         }
 
@@ -183,14 +216,11 @@ export class BuyFreeSpinPopup extends Container {
         // FIXED EXIT BUTTON FOR MOBILE
         // ============================
         if (isMobile) {
-            this.exitButton.x = width * 0.88;   // KEEP SAME X POSITION
+            this.exitButton.x = width * 0.88;
 
-            // 🎯 NEW — place exit button closer to label
-            // label is inside panel, so convert panel coords to global
             const panelGlobalY = this.panel.y;
             const labelScreenY = panelGlobalY + this.buyLabel.y * this.panel.scale.y;
 
-            // place exit button 60 px above label
             this.exitButton.y = labelScreenY - 320;
 
             this.exitButton.scale.set(1.5);
@@ -204,7 +234,7 @@ export class BuyFreeSpinPopup extends Container {
         // FIXED LABEL SPACING ON MOBILE
         // ============================
         if (isMobile) {
-            this.buyLabel.y = -380;   // moved HIGHER
+            this.buyLabel.y = -380;
             this.buyLabel.scale.set(1.35);
         } else {
             this.buyLabel.y = -340;
@@ -223,11 +253,9 @@ export class BuyFreeSpinPopup extends Container {
         }
 
         // OPTION POSITIONS
-        // OPTION POSITIONS + MOBILE SCALE BOOST
         const spacing = 550;
         const bannerY = isMobile ? 120 : 40;
 
-        // make options bigger on mobile
         if (isMobile) {
             this.option10.scale.set(1.25);
             this.option15.scale.set(1.25);
@@ -245,9 +273,7 @@ export class BuyFreeSpinPopup extends Container {
         this.option10.y = bannerY;
         this.option15.y = bannerY;
         this.option20.y = bannerY;
-
     }
-
 
     public async hide() {
         this.canClickAnywhere = false;
