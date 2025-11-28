@@ -170,42 +170,71 @@ export class BuyFreeSpinPopup extends Container {
     // LAYOUT
     // ================================
     public resize(width: number, height: number) {
-        this.bg.width = width;
-        this.bg.height = height;
+    this.bg.width = width;
+    this.bg.height = height;
 
-        const isMobile = height > width;
+    const isMobile = height > width;
 
-        this.panel.x = width * 0.5;
-        this.panel.y = isMobile ? height * 0.43 : height * 0.45;
+    // PANEL POSITION
+    this.panel.x = width * 0.5;
+    this.panel.y = isMobile ? height * 0.46 : height * 0.45;
 
-        // Exit button top-right
+    // ============================
+    // FIXED EXIT BUTTON FOR MOBILE
+    // ============================
+    if (isMobile) {
+        this.exitButton.x = width * 0.88;   // KEEP SAME X POSITION
+
+        // 🎯 NEW — place exit button closer to label
+        // label is inside panel, so convert panel coords to global
+        const panelGlobalY = this.panel.y;
+        const labelScreenY = panelGlobalY + this.buyLabel.y * this.panel.scale.y;
+
+        // place exit button 60 px above label
+        this.exitButton.y = labelScreenY - 320;
+
+        this.exitButton.scale.set(1.5);
+    } else {
         this.exitButton.x = width * 0.90;
         this.exitButton.y = height * 0.12;
-
-        if (isMobile) {
-            const targetWidth = width * 1;
-            const bannersWidth = 500 * 3;
-            const scale = targetWidth / bannersWidth;
-            this.panel.scale.set(scale);
-        } else {
-            this.panel.scale.set(1);
-        }
-
-        this.buyLabel.x = 0;
-        this.buyLabel.y = isMobile ? -320 : -340;
-        this.buyLabel.scale.set(isMobile ? 1.5 : 1);
-
-        const spacing = 500;
-        const bannerY = isMobile ? 80 : 40;
-
-        this.option10.x = -spacing;
-        this.option15.x = 0;
-        this.option20.x = spacing;
-
-        this.option10.y = bannerY;
-        this.option15.y = bannerY;
-        this.option20.y = bannerY;
+        this.exitButton.scale.set(1.3);
     }
+
+    // ============================
+    // FIXED LABEL SPACING ON MOBILE
+    // ============================
+    if (isMobile) {
+        this.buyLabel.y = -380;   // moved HIGHER
+        this.buyLabel.scale.set(1.35);
+    } else {
+        this.buyLabel.y = -340;
+        this.buyLabel.scale.set(1);
+    }
+    this.buyLabel.x = 0;
+
+    // PANEL SCALE FOR MOBILE
+    if (isMobile) {
+        const targetWidth = width * 0.95;
+        const bannersWidth = 500 * 3;
+        const scale = targetWidth / bannersWidth;
+        this.panel.scale.set(scale);
+    } else {
+        this.panel.scale.set(1);
+    }
+
+    // OPTION POSITIONS
+    const spacing = 500;
+    const bannerY = isMobile ? 120 : 40; // options slightly lower on mobile
+
+    this.option10.x = -spacing;
+    this.option15.x = 0;
+    this.option20.x = spacing;
+
+    this.option10.y = bannerY;
+    this.option15.y = bannerY;
+    this.option20.y = bannerY;
+}
+
 
     public async hide() {
         this.canClickAnywhere = false;
