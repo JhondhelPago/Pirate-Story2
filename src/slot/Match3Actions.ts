@@ -27,7 +27,6 @@ export class Match3Actions {
         await this.match3.board.fallToBottomGrid();
         this.match3.board.reset();
 
-        await this.match3.board.fillGrid();
         this.match3.process.start();
     }
 

@@ -187,6 +187,8 @@ export class GameScreen extends Container {
         });
 
         this.finished = false;
+        console.log("GameScreen constructed");
+
     }
 
     private updateMultiplierAmounts() {

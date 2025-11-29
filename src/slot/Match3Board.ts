@@ -84,7 +84,7 @@ export class Match3Board {
 
         // Fill up the visual board with piece sprites
         match3ForEach(this.grid, (gridPosition: Match3Position, type: Match3Type) => {
-            this.createPiece(gridPosition, type);
+            this.createPiece(gridPosition, type, 5);
         });
     }
 
@@ -124,63 +124,7 @@ export class Match3Board {
         await Promise.all(animPromises);
     }
 
-    public async fillGrid() {
-        const result = await BetAPI.spin('n');
-        this.match3.board.grid = result.reels;
 
-        // Get all positions from the grid
-        const positions: Match3Position[] = [];
-        for (let col = 0; col < this.match3.board.columns; col++) {
-            for (let row = 0; row < this.match3.board.rows; row++) {
-                if (this.match3.board.grid[col][row] !== 0) {
-                    positions.push({ row, column: col });
-                }
-            }
-        }
-
-        // Group pieces by column
-        const piecesByColumn: Record<number, Array<{ piece: SlotSymbol; x: number; y: number }>> = {};
-        const piecesPerColumn: Record<number, number> = {};
-
-        for (const position of positions) {
-            const pieceType = match3GetPieceType(this.match3.board.grid, position);
-            const multiplier = result.bonusReels[position.column][position.row];
-            const piece = this.match3.board.createPiece(position, pieceType, multiplier);
-
-            // Count pieces per column so new pieces can be stacked up accordingly
-            if (!piecesPerColumn[piece.column]) {
-                piecesPerColumn[piece.column] = 0;
-                piecesByColumn[piece.column] = [];
-            }
-            piecesPerColumn[piece.column] += 1;
-
-            const x = piece.x;
-            const y = piece.y;
-            const columnCount = piecesPerColumn[piece.column];
-            const height = this.match3.board.getHeight();
-            piece.y = -height * 0.5 - columnCount * this.match3.config.tileSize;
-
-            piecesByColumn[piece.column].push({ piece, x, y });
-        }
-
-        // Animate each column with a small delay between them
-        const animPromises: Promise<void>[] = [];
-
-        for (const column in piecesByColumn) {
-            const columnPieces = piecesByColumn[column];
-
-            // Start all animations in this column
-            for (const { piece, x, y } of columnPieces) {
-                animPromises.push(piece.animateFall(x, y));
-            }
-
-            // Wait before starting next column
-            await new Promise((resolve) => setTimeout(resolve, 50));
-        }
-
-        // Wait for all animations to complete
-        await Promise.all(animPromises);
-    }
 
     /**
      * Dispose all pieces and clean up the board
@@ -259,7 +203,7 @@ export class Match3Board {
         if (oldPiece) this.disposePiece(oldPiece);
         match3SetPieceType(this.grid, position, pieceType);
         if (!pieceType) return;
-        const piece = this.createPiece(position, pieceType);
+        const piece = this.createPiece(position, pieceType,2);
         await piece.animateSpawn();
     }
 
