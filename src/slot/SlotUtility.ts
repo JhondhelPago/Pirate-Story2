@@ -19,6 +19,10 @@ export type Match3GlobalPosition = { x: number; y: number };
 /** Orientation for match checks */
 export type Match3Orientation = 'horizontal' | 'vertical';
 
+// multiplier 
+export const multiplierValues = [2, 3, 5];
+export type MultipliersValues = typeof multiplierValues[number];
+
 /**
  * Create a 2D grid matrix filled up with given types
  * Example:
@@ -482,3 +486,9 @@ export function match3StringToPosition(str: string) {
     const split = str.split(':');
     return { row: Number(split[0]), column: Number(split[1]) };
 }
+
+export function getRandomMultiplier(): MultipliersValues {
+  const index = Math.floor(Math.random() * multiplierValues.length);
+  return multiplierValues[index];
+}
+

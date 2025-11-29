@@ -10,6 +10,7 @@ import {
     match3ForEach,
     Match3Grid,
     Match3Type,
+    getRandomMultiplier
 } from './SlotUtility';
 import { SlotSymbol } from './SlotSymbol';
 import { BetAPI } from '../api/betApi';
@@ -82,9 +83,15 @@ export class Match3Board {
         // Create the initial grid state
         this.grid = match3CreateGrid(this.rows, this.columns, this.commonTypes);
 
+        // OLD CODE
         // Fill up the visual board with piece sprites
+        // match3ForEach(this.grid, (gridPosition: Match3Position, type: Match3Type) => {
+        //     this.createPiece(gridPosition, type);
+        // });
+
         match3ForEach(this.grid, (gridPosition: Match3Position, type: Match3Type) => {
-            this.createPiece(gridPosition, type, 5);
+            const multiplier = type === 5 ? getRandomMultiplier() : 0;
+            this.createPiece(gridPosition, type, multiplier);
         });
     }
 
