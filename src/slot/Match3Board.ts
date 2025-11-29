@@ -209,16 +209,20 @@ export class Match3Board {
         const piece = pool.get(SlotSymbol);
         const viewPosition = this.getViewPositionByGridPosition(position);
 
+        // ⭐ Fetch multiplier from your backend result
+        const multiplier = pieceType === 5 ? 2: 0;
+
         piece.setup({
             name,
             type: pieceType,
             size: this.match3.config.tileSize,
             interactive: true,
+            multiplier,       // ⭐ VERY IMPORTANT — add this!
         });
+
         piece.row = position.row;
         piece.column = position.column;
 
-        // Position piece above the grid, accounting for pieces above it
         piece.x = viewPosition.x;
         piece.y = viewPosition.y;
 
@@ -226,6 +230,7 @@ export class Match3Board {
         this.piecesContainer.addChild(piece);
         return piece;
     }
+
 
     /**
      * Dispose a piece, remving it from the board

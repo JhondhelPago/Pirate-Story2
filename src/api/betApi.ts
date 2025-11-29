@@ -4,7 +4,7 @@ export class BetAPI {
      * @param type - The type of spin ('n' for new, 'r' for refill, 'f' for free).
      * @returns {Promise<{reels: number[][]}>} A promise that resolves with the reels data.
      */
-    static async spin(type: 'n' | 'r' | 'f'): Promise<{ reels: number[][] }> {
+    static async spin(type: 'n' | 'r' | 'f'): Promise<{ reels: number[][], bonusReels: number[][] }> {
         try {
             // Define the URL of your Express server endpoint
             const url = 'http://localhost:3000/spin';
@@ -27,7 +27,7 @@ export class BetAPI {
             }
 
             // Parse the JSON response body
-            const data: { reels: number[][] } = await response.json();
+            const data: { reels: number[][], bonusReels: number[][] } = await response.json();
 
             // The 'type' parameter is not used in this fetch call but kept in signature
             console.log(`Spin type: ${type}`);

@@ -162,23 +162,23 @@ public async fillFreeSpinGrid() {
         for (let row = 0; row < this.match3.board.rows; row++) {
             const position = { row, column: col };
 
-            // Determine piece type from grid
             const pieceType = match3GetPieceType(this.match3.board.grid, position);
 
-            // Create the piece
+            // Create piece
             const piece = this.match3.board.createPiece(position, pieceType);
 
-            // Position it ABOVE the board for falling animation
+            // ✅ ASSIGN MULTIPLIER FROM bonusReels
+            const multiplier = result.bonusReels[col][row]; 
+            console.log(`Assigning multiplier ${multiplier} to piece at column ${col}, row ${row}`);
+            piece.multiplier = multiplier;  // <-- ADD THIS
             const targetX = piece.x;
             const targetY = piece.y;
 
             const boardHeight = this.match3.board.getHeight();
             const dropOffset = boardHeight * 0.7 + row * this.match3.config.tileSize;
 
-            // Start piece above the screen
             piece.y = -dropOffset;
 
-            // Animate fall
             animPromises.push(piece.animateFall(targetX, targetY));
         }
     }

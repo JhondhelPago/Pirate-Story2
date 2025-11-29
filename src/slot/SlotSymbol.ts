@@ -9,6 +9,7 @@ const defaultSlotSymbolOptions = {
     type: 0,
     size: 50,
     interactive: false,
+    multiplier: 0,
 };
 
 /** Piece configuration parameters */
@@ -39,7 +40,7 @@ export class SlotSymbol extends Container {
 
 
     /** Test multiplier: 0 = none, 2/3/5 = show sprite */
-    public multiplier: number = 2;
+    public multiplier: number = 0;
 
     /** Multiplier sprite */
     private multiplierSprite: Sprite | null = null;
@@ -78,7 +79,6 @@ export class SlotSymbol extends Container {
             },
         });
         this.addChild(this.textLabel);
-        this.updateMultiplierSprite();
     }
 
     /** Create the explosion animated sprite */
@@ -113,6 +113,7 @@ export class SlotSymbol extends Container {
      */
     public setup(options: Partial<SlotSymbolOptions> = {}) {
         const opts = { ...defaultSlotSymbolOptions, ...options };
+
         this.killTweens();
         this.paused = false;
         this.visible = true;
@@ -122,30 +123,26 @@ export class SlotSymbol extends Container {
         this.name = opts.name;
         this.scale.set(1);
 
+        // ⭐ IMPORTANT — Add this
+        this.multiplier = opts.multiplier ?? 0;
+
         // Remove old spine if exists
         if (this.spine) {
             this.removeChild(this.spine);
             this.spine.destroy();
         }
 
-        // Create new spine animation
         this.spine = Spine.from({
             skeleton: `game/${opts.name}.json`,
             atlas: `game/${opts.name}.atlas`,
         });
 
-        // Center the spine
         this.spine.x = 0;
         this.spine.y = 0;
-
-        // Scale to match size
         this.spine.pivot.set(0.5);
         this.spine.scale.set(0.45);
-
-        // Add spine to display (behind explosion)
         this.addChildAt(this.spine, 0);
 
-        // Size explosion to match piece
         if (this.explosionSprite) {
             this.explosionSprite.width = opts.size;
             this.explosionSprite.height = opts.size;
@@ -153,14 +150,13 @@ export class SlotSymbol extends Container {
         }
 
         this.textLabel.text = this.type;
-        this.addChild(this.textLabel);
 
-        // Update multiplier after refreshing visuals
+        // ⭐ After multiplier is assigned
         this.updateMultiplierSprite();
-
 
         this.unlock();
     }
+
 
     /** Fall to position animation */
     public async animateFall(x: number, y: number, onStart?: () => void, onComplete?: () => void) {
