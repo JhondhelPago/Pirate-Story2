@@ -123,9 +123,6 @@ export class SlotSymbol extends Container {
         this.name = opts.name;
         this.scale.set(1);
 
-        // ⭐ IMPORTANT — Add this
-        this.multiplier = opts.multiplier ?? 0;
-
         // Remove old spine if exists
         if (this.spine) {
             this.removeChild(this.spine);
@@ -150,6 +147,20 @@ export class SlotSymbol extends Container {
         }
 
         this.textLabel.text = this.type;
+
+        // RESET multiplier state before assigning the new one
+        if (this.multiplierSprite) {
+            this.removeChild(this.multiplierSprite);
+            this.multiplierSprite.destroy();
+            this.multiplierSprite = null;
+        }
+        if (this.multiplierTween) {
+            this.multiplierTween.kill();
+            this.multiplierTween = undefined;
+        }
+
+        this.multiplier = opts.multiplier ?? 0;
+
 
         // ⭐ After multiplier is assigned
         this.updateMultiplierSprite();
@@ -318,6 +329,16 @@ export class SlotSymbol extends Container {
 
     /** Clean up */
     public destroy() {
+        if (this.multiplierTween) {
+            this.multiplierTween.kill();
+            this.multiplierTween = undefined;
+        }
+        if (this.multiplierSprite) {
+            this.removeChild(this.multiplierSprite);
+            this.multiplierSprite.destroy();
+            this.multiplierSprite = null;
+        }
+
         if (this.spine) {
             this.spine.destroy();
         }
@@ -326,6 +347,7 @@ export class SlotSymbol extends Container {
         }
         super.destroy();
     }
+
 
 
 

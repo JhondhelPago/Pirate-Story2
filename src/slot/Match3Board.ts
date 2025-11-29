@@ -144,7 +144,8 @@ export class Match3Board {
 
         for (const position of positions) {
             const pieceType = match3GetPieceType(this.match3.board.grid, position);
-            const piece = this.match3.board.createPiece(position, pieceType);
+            const multiplier = result.bonusReels[position.column][position.row];
+            const piece = this.match3.board.createPiece(position, pieceType, multiplier);
 
             // Count pieces per column so new pieces can be stacked up accordingly
             if (!piecesPerColumn[piece.column]) {
@@ -204,20 +205,20 @@ export class Match3Board {
         }
     }
 
-    public createPiece(position: Match3Position, pieceType: Match3Type) {
+    public createPiece(position: Match3Position, pieceType: Match3Type, pieceMultiplier: number = 0) {
         const name = this.typesMap[pieceType];
         const piece = pool.get(SlotSymbol);
         const viewPosition = this.getViewPositionByGridPosition(position);
 
-        // ⭐ Fetch multiplier from your backend result
-        const multiplier = pieceType === 5 ? 2: 0;
+        // ⭐ Use passed multiplier ONLY if type matches
+        const multiplier = pieceType === 5 ? pieceMultiplier : 0;
 
         piece.setup({
             name,
             type: pieceType,
             size: this.match3.config.tileSize,
             interactive: true,
-            multiplier,       // ⭐ VERY IMPORTANT — add this!
+            multiplier,   // ⭐ THIS NOW WORKS
         });
 
         piece.row = position.row;
@@ -230,6 +231,7 @@ export class Match3Board {
         this.piecesContainer.addChild(piece);
         return piece;
     }
+
 
 
     /**

@@ -163,14 +163,11 @@ public async fillFreeSpinGrid() {
             const position = { row, column: col };
 
             const pieceType = match3GetPieceType(this.match3.board.grid, position);
+            const multiplier = result.bonusReels[col][row];
 
             // Create piece
-            const piece = this.match3.board.createPiece(position, pieceType);
+            const piece = this.match3.board.createPiece(position, pieceType, multiplier);
 
-            // ✅ ASSIGN MULTIPLIER FROM bonusReels
-            const multiplier = result.bonusReels[col][row]; 
-            console.log(`Assigning multiplier ${multiplier} to piece at column ${col}, row ${row}`);
-            piece.multiplier = multiplier;  // <-- ADD THIS
             const targetX = piece.x;
             const targetY = piece.y;
 
@@ -303,7 +300,9 @@ public async fillFreeSpinGrid() {
 
         for (const position of newPieces) {
             const pieceType = match3GetPieceType(this.match3.board.grid, position);
-            const piece = this.match3.board.createPiece(position, pieceType);
+            
+            const multiplier = result.bonusReels[position.column][position.row];
+            const piece = this.match3.board.createPiece(position, pieceType, multiplier);
 
             // Count pieces per column so new pieces can be stacked up accordingly
             if (!piecesPerColumn[piece.column]) piecesPerColumn[piece.column] = 0;
