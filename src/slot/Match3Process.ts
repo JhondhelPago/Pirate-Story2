@@ -6,7 +6,7 @@ import { SlotSymbol } from './SlotSymbol';
 /**
  * Slot-style reel spin Match3Process
  * - Spins columns using SlotSymbol (Spine-based)
- * - After spin, backend symbols appear instantly
+ * - At end of spin, backend symbols appear smoothly (no jump)
  */
 export class Match3Process {
     private match3: Match3;
@@ -39,76 +39,59 @@ export class Match3Process {
     }
 
     /**
-     *  SLOT MACHINE SPIN ANIMATION (Spine-based SlotSymbol fakes)
+     *  SLOT MACHINE SPIN LOGIC
      */
     private async spinWithAnimation() {
         const board = this.match3.board;
         const tileSize = board.tileSize;
 
-        // List of available symbol names (from typesMap)
         const symbolNames = Object.values(board.typesMap);
 
-        // STEP 1 — Ask backend for spin result
+        // STEP 1 — Get backend spin result
         const result = await BetAPI.spin("n");
         const reels = result.reels;
-        const bonus = result.bonusReels;
 
         const animPromises: Promise<void>[] = [];
 
-        // STEP 2 — Animate each real symbol with spin effect
+        // STEP 2 — Animate each symbol
         for (const piece of board.pieces) {
+            const r = piece.row;
+            const c = piece.column;
+
+            const backendType = reels[r][c];
+            const backendName = board.typesMap[backendType];
+
             animPromises.push(
                 this.animateColumnSpinLite(
                     piece,
                     symbolNames,
                     tileSize,
-                    board.piecesContainer
+                    board.piecesContainer,
+                    backendName,      // 🔥 send backend real symbol name
+                    backendType       // 🔥 send backend type
                 )
             );
         }
 
-        // Wait until ALL columns finished spinning
+        // Wait for ALL animations
         await Promise.all(animPromises);
-
-        // STEP 3 — Remove old pieces
-        for (const p of board.pieces) {
-            p.destroy();
-        }
-        board.pieces = [];
-
-        // STEP 4 — Put backend symbols instantly
-        board.grid = reels;
-
-        for (let row = 0; row < board.rows; row++) {
-            for (let col = 0; col < board.columns; col++) {
-                const position = { row, column: col };
-                const type = reels[row][col];
-                const mult = bonus[row][col];
-
-                const piece = board.createPiece(position, type, mult);
-                piece.visible = true;
-
-                // Optional bounce
-                gsap.from(piece, {
-                    y: piece.y - 40,
-                    duration: 0.25,
-                    ease: "back.out(1.4)"
-                });
-            }
-        }
     }
 
     /**
-     * Lightweight REEL SPIN for a single symbol
-     * Uses SlotSymbol instead of PNG textures (FIXED)
+     * Reel spin animation for a single REAL grid piece
+     * Fake symbols scroll during spin
+     * At the very end, realPiece is updated to the backend result
      */
     private animateColumnSpinLite(
-        realPiece: any,
+        realPiece: SlotSymbol,
         symbolNames: string[],
         tileSize: number,
-        reelContainer: any
+        reelContainer: any,
+        backendName: string,   // 🔥 backend result (string)
+        backendType: number    // 🔥 backend type (number)
     ): Promise<void> {
 
+        // Hide real piece during spin
         realPiece.visible = false;
 
         const finalX = realPiece.x;
@@ -122,11 +105,11 @@ export class Match3Process {
 
         const fakeSymbols: SlotSymbol[] = [];
 
-        // Build fake reel symbols (USING SLOT SYMBOL)
+        // --- Create fake spin symbols ---
         for (let i = 0; i < fakeCount; i++) {
+            const spr = new SlotSymbol();
             const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
 
-            const spr = new SlotSymbol();
             spr.setup({
                 name: rand,
                 type: 0,
@@ -148,9 +131,21 @@ export class Match3Process {
 
                 const loop = () => {
                     if (elapsed >= spinDuration) {
-                        // Cleanup
-                        fakeSymbols.forEach(s => s.destroy());
+
+                        // --- FINAL MOMENT: APPLY BACKEND SYMBOL ---
+                        realPiece.setup({
+                            name: backendName,
+                            type: backendType,
+                            size: tileSize,
+                            interactive: false,
+                            multiplier: 0
+                        });
+
                         realPiece.visible = true;
+
+                        // remove fakes
+                        fakeSymbols.forEach(s => s.destroy());
+
                         resolve();
                         return;
                     }
@@ -167,9 +162,9 @@ export class Match3Process {
                     );
 
                     Promise.all(moves).then(() => {
-                        // recycle symbols that scrolled out of view
                         fakeSymbols.forEach(sym => {
                             if (sym.y > finalY + tileSize * 3) {
+                                // recycle with random fake
                                 const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
 
                                 sym.setup({
