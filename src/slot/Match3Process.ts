@@ -6,7 +6,7 @@ import { SlotSymbol } from './SlotSymbol';
 /**
  * Slot-style reel spin Match3Process
  * - Spins columns using SlotSymbol (Spine-based)
- * - At end of spin, backend symbols appear smoothly (no jump)
+ * - Smooth transition: real symbols fade + slide before fake scroll starts
  */
 export class Match3Process {
     private match3: Match3;
@@ -44,24 +44,22 @@ export class Match3Process {
     private async spinWithAnimation() {
         const board = this.match3.board;
         const tileSize = board.tileSize;
-
         const symbolNames = Object.values(board.typesMap);
 
-        // STEP 1 — Get backend spin result
+        // STEP 1 — backend result
         const result = await BetAPI.spin("n");
         const reels = result.reels;
-        const bonus = result.bonusReels;  // 🔥 multipliers array
+        const bonus = result.bonusReels;
 
         const animPromises: Promise<void>[] = [];
 
-        // STEP 2 — Animate each symbol
+        // STEP 2 — animate each symbol
         for (const piece of board.pieces) {
             const r = piece.row;
             const c = piece.column;
 
-            const backendType = reels[r][c];          // symbol type
-            const backendMultiplier = bonus[r][c];    // 0,2,3,5
-
+            const backendType = reels[r][c];
+            const backendMultiplier = bonus[r][c];
             const backendName = board.typesMap[backendType];
 
             animPromises.push(
@@ -70,21 +68,18 @@ export class Match3Process {
                     symbolNames,
                     tileSize,
                     board.piecesContainer,
-                    backendName,          // string
-                    backendType,          // numeric type
-                    backendMultiplier     // 🔥 send multiplier
+                    backendName,
+                    backendType,
+                    backendMultiplier
                 )
             );
         }
 
-        // Wait for ALL animations
         await Promise.all(animPromises);
     }
 
     /**
-     * Reel spin animation for a single REAL grid piece
-     * Fake symbols scroll during spin
-     * At the very end, realPiece is updated to the backend result
+     * Smooth spin for each real grid piece
      */
     private animateColumnSpinLite(
         realPiece: SlotSymbol,
@@ -93,11 +88,8 @@ export class Match3Process {
         reelContainer: any,
         backendName: string,
         backendType: number,
-        backendMultiplier: number     // 🔥 new
+        backendMultiplier: number
     ): Promise<void> {
-
-        // Hide real piece during spin
-        realPiece.visible = false;
 
         const finalX = realPiece.x;
         const finalY = realPiece.y;
@@ -110,7 +102,7 @@ export class Match3Process {
 
         const fakeSymbols: SlotSymbol[] = [];
 
-        // --- Create fake spin symbols ---
+        // Pre-create fake symbols (hidden)
         for (let i = 0; i < fakeCount; i++) {
             const spr = new SlotSymbol();
             const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
@@ -125,30 +117,52 @@ export class Match3Process {
 
             spr.x = finalX;
             spr.y = finalY - tileSize * i - tileSize * 4;
+            spr.visible = false;
 
             reelContainer.addChild(spr);
             fakeSymbols.push(spr);
         }
 
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             gsap.delayedCall(stagger, () => {
+
+                // ------------------------------------
+                // 🔥 SMOOTH TRANSITION BEFORE HIDING
+                // ------------------------------------
+                gsap.to(realPiece, {
+                    alpha: 0.4,
+                    y: realPiece.y + 4,
+                    duration: 0.15,
+                    ease: "power1.out",
+                    onComplete: () => {
+                        // hide the real piece ONLY after fade
+                        realPiece.visible = false;
+                        realPiece.alpha = 1;
+                        realPiece.y = finalY;
+                    }
+                });
+
+                // Turn on fake symbols
+                fakeSymbols.forEach(s => s.visible = true);
+
                 let elapsed = 0;
 
                 const loop = () => {
                     if (elapsed >= spinDuration) {
 
-                        // --- FINAL MOMENT: APPLY BACKEND SYMBOL ---
+                        // Place backend symbol at exact location
                         realPiece.setup({
                             name: backendName,
                             type: backendType,
                             size: tileSize,
                             interactive: false,
-                            multiplier: backendMultiplier  // 🔥 apply multiplier
+                            multiplier: backendMultiplier
                         });
 
+                        realPiece.x = finalX;
+                        realPiece.y = finalY;
                         realPiece.visible = true;
 
-                        // remove fakes
                         fakeSymbols.forEach(s => s.destroy());
 
                         resolve();
@@ -169,7 +183,7 @@ export class Match3Process {
                     Promise.all(moves).then(() => {
                         fakeSymbols.forEach(sym => {
                             if (sym.y > finalY + tileSize * 3) {
-                                // recycle with random fake
+
                                 const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
 
                                 sym.setup({
