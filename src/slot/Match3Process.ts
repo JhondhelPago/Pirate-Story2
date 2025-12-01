@@ -50,6 +50,7 @@ export class Match3Process {
         // STEP 1 — Get backend spin result
         const result = await BetAPI.spin("n");
         const reels = result.reels;
+        const bonus = result.bonusReels;  // 🔥 multipliers array
 
         const animPromises: Promise<void>[] = [];
 
@@ -58,7 +59,9 @@ export class Match3Process {
             const r = piece.row;
             const c = piece.column;
 
-            const backendType = reels[r][c];
+            const backendType = reels[r][c];          // symbol type
+            const backendMultiplier = bonus[r][c];    // 0,2,3,5
+
             const backendName = board.typesMap[backendType];
 
             animPromises.push(
@@ -67,8 +70,9 @@ export class Match3Process {
                     symbolNames,
                     tileSize,
                     board.piecesContainer,
-                    backendName,      // 🔥 send backend real symbol name
-                    backendType       // 🔥 send backend type
+                    backendName,          // string
+                    backendType,          // numeric type
+                    backendMultiplier     // 🔥 send multiplier
                 )
             );
         }
@@ -87,8 +91,9 @@ export class Match3Process {
         symbolNames: string[],
         tileSize: number,
         reelContainer: any,
-        backendName: string,   // 🔥 backend result (string)
-        backendType: number    // 🔥 backend type (number)
+        backendName: string,
+        backendType: number,
+        backendMultiplier: number     // 🔥 new
     ): Promise<void> {
 
         // Hide real piece during spin
@@ -138,7 +143,7 @@ export class Match3Process {
                             type: backendType,
                             size: tileSize,
                             interactive: false,
-                            multiplier: 0
+                            multiplier: backendMultiplier  // 🔥 apply multiplier
                         });
 
                         realPiece.visible = true;
