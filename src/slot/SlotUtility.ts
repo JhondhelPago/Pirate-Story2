@@ -35,7 +35,7 @@ export type MultipliersValues = typeof multiplierValues[number];
  * @param types List of types avaliable to fill up slots
  * @returns A 2D array filled up with types
  */
-export function match3CreateGrid(rows = 6, columns = 6, types: Match3Type[]) {
+export function match3CreateGrid(rows = 5, columns = 5, types: Match3Type[]) {
     const grid: Match3Grid = [];
 
     for (let r = 0; r < rows; r++) {

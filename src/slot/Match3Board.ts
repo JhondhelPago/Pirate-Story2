@@ -90,7 +90,7 @@ export class Match3Board {
         // });
 
         match3ForEach(this.grid, (gridPosition: Match3Position, type: Match3Type) => {
-            const multiplier = type === 5 ? getRandomMultiplier() : 0;
+            const multiplier = type === 5 || type === 12 ? getRandomMultiplier() : 0;
             this.createPiece(gridPosition, type, multiplier);
         });
     }
@@ -162,7 +162,7 @@ export class Match3Board {
         const viewPosition = this.getViewPositionByGridPosition(position);
 
         // ⭐ Use passed multiplier ONLY if type matches
-        const multiplier = pieceType === 5 ? pieceMultiplier : 0;
+        const multiplier = pieceMultiplier;
 
         piece.setup({
             name,

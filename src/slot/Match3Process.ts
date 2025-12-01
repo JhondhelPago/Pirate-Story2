@@ -33,8 +33,8 @@ export class Match3Process {
         return this.processing;
     }
 
-    public pause() {}
-    public resume() {}
+    public pause() { }
+    public resume() { }
     public reset() {
         this.processing = false;
     }
@@ -63,7 +63,7 @@ export class Match3Process {
      */
     private async buildSingleGrid() {
         console.log("🟦 buildSingleGrid() — BUILDING NEW 5×5 GRID");
-        
+
         const result = await BetAPI.spin('n');
 
         // Server ALREADY sends row-major (row → col)
@@ -105,6 +105,61 @@ export class Match3Process {
 
         await Promise.all(fallAnims);
     }
+
+    // private async buildSingleGrid() {
+    //     console.log("🟦 buildSingleGrid() — BUILDING NEW 5×5 GRID");
+
+    //     const result = await BetAPI.spin('n');
+
+    //     const reels = result.reels;
+    //     const bonus = result.bonusReels;
+
+    //     this.match3.board.grid = reels;
+
+    //     // Remove old pieces
+    //     for (const piece of this.match3.board.pieces) {
+    //         piece.destroy();
+    //     }
+    //     this.match3.board.pieces = [];
+
+    //     const fallAnims: Promise<void>[] = [];
+    //     const height = this.match3.board.getHeight();
+
+    //     // Build the new 5×5
+    //     for (let row = 0; row < this.match3.board.rows; row++) {
+    //         for (let col = 0; col < this.match3.board.columns; col++) {
+
+    //             const position = { row, column: col };
+
+    //             const type = reels[row][col];
+    //             const multiplier = bonus[row][col];
+
+    //             const piece = this.match3.board.createPiece(position, type, multiplier);
+
+    //             const targetX = piece.x;
+    //             const targetY = piece.y;
+
+    //             // Start above board for fall animation
+    //             piece.y = -height;
+
+    //             fallAnims.push(piece.animateFall(targetX, targetY));
+    //         }
+    //     }
+
+    //     // ⭐ Wait for ALL falls
+    //     await Promise.all(fallAnims);
+
+    //     // ⭐ Then animate ALL symbols at the SAME TIME
+    //     const playAnims: Promise<void>[] = [];
+
+    //     for (const piece of this.match3.board.pieces) {
+    //         playAnims.push(piece.animatePlay());
+    //     }
+
+    //     // ⭐ Wait for all animations to complete (optional)
+    //     await Promise.all(playAnims);
+    // }
+
 
     public async stop() {
         this.processing = false;

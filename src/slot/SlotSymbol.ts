@@ -351,14 +351,6 @@ export class SlotSymbol extends Container {
 
 
 
-
-
-
-
-
-
-
-
     /** Create or update the multiplier sprite */
     private updateMultiplierSprite() {
         // Remove old sprite if needed

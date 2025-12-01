@@ -125,8 +125,8 @@ export class ConfigAPI {
                 // SPECIAL BLOCKS REMOVED (because PNG only)
                 // ------------------------------
                 specialBlocks: [
-                    { type: 5, symbol: 'symbol-coin', name: 'Coin' },
-                    { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
+                    { type: 5, symbol: 'symbol-coin', name: 'Coin' }, //bonus
+                    { type: 12, symbol: 'symbol-treasure', name: 'Treasure' }, //wild
                 ], // ← IMPORTANT fix
             };
         } catch (error: any) {
