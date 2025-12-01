@@ -49,6 +49,7 @@ app.get('/spin', async (req, res) => {
         const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
         return reel.map(symbol => (symbol === 5 ? randomMultiplier : 0));
     })
+    
 
     console.log('Generated Reels:', reels, bonusReels);
 

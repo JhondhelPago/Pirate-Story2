@@ -46,7 +46,7 @@ export class SlotSymbol extends Container {
     private multiplierSprite: Sprite | null = null;
 
     /** Tween reference for animation */
-    private multiplierTween?: gsap.core.Tween;
+    private multiplierTween?: gsap.core.Tween | gsap.core.Timeline;
 
 
     constructor() {
@@ -397,25 +397,44 @@ export class SlotSymbol extends Container {
     }
 
     /** Apply float animation to multiplier */
-    private applyMultiplierAnimation() {
-        if (!this.multiplierSprite) return;
+    /** Apply float + zoom animation to multiplier */
+/** Apply float + zoom animation to multiplier */
+/** Apply fade-in + zoom-in intro and then idle floating animation */
+private applyMultiplierAnimation() {
+    if (!this.multiplierSprite) return;
 
-        // Kill existing tween
-        if (this.multiplierTween) {
-            this.multiplierTween.kill();
-        }
+    // Kill existing animation
+    if (this.multiplierTween) {
+        this.multiplierTween.kill();
+    }
 
-        const target = this.multiplierSprite;
+    const target = this.multiplierSprite;
 
-        // Up-down loop animation
-        this.multiplierTween = gsap.to(target, {
-            y: target.y - 10,
+    // Reset initial state
+    target.alpha = 0;
+    target.scale.set(0.4); // start smaller
+    const baseY = target.y; // remember base Y
+
+    // Timeline
+    this.multiplierTween = gsap.timeline({ repeat: 0 })
+        // ⭐ FADE-IN + ZOOM-IN INTRO
+        .to(target, {
+            alpha: 1,
+            scale: .68,
+            duration: 0.35,
+            ease: "back.out(1.8)",
+        })
+        // ⭐ AFTER intro → start floating idle animation
+        .to(target, {
+            y: baseY - 8,
             duration: 0.8,
-            ease: 'sine.inOut',
+            ease: "sine.inOut",
             yoyo: true,
             repeat: -1,
         });
-    }
+}
+
+
 
 
 }

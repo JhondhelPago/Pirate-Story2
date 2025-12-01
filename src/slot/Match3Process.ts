@@ -42,14 +42,12 @@ export class Match3Process {
     /** ENTRY POINT FOR EVERY SPIN */
     public async start() {
         if (this.processing) {
-        console.warn("🚨 Match3Process.start() BLOCKED — already processing!");
-        return;
+            console.warn("🚨 Match3Process.start() BLOCKED — already processing!");
+            return;
         }
 
         console.log("🟢 Match3Process.start() CALLED");
 
-
-        // if (this.processing) return;
         this.processing = true;
 
         await this.buildSingleGrid();
@@ -66,12 +64,16 @@ export class Match3Process {
     private async buildSingleGrid() {
         console.log("🟦 buildSingleGrid() — BUILDING NEW 5×5 GRID");
         
-        const result = await BetAPI.spin('r');
+        const result = await BetAPI.spin('n');
 
-        // Update the internal numeric grid
-        this.match3.board.grid = result.reels;
+        // Server ALREADY sends row-major (row → col)
+        const reels = result.reels;
+        const bonus = result.bonusReels;
 
-        // REMOVE ALL PREVIOUS SLOT SYMBOLS COMPLETELY
+        // Update internal grid (row-major)
+        this.match3.board.grid = reels;
+
+        // Remove old symbols
         for (const piece of this.match3.board.pieces) {
             piece.destroy();
         }
@@ -80,28 +82,27 @@ export class Match3Process {
         const fallAnims: Promise<void>[] = [];
         const height = this.match3.board.getHeight();
 
-        // CREATE THE NEW 5×5 GRID
-        for (let col = 0; col < this.match3.board.columns; col++) {
-            for (let row = 0; row < this.match3.board.rows; row++) {
+        // CREATE NEW 5×5 GRID (row-major)
+        for (let row = 0; row < this.match3.board.rows; row++) {
+            for (let col = 0; col < this.match3.board.columns; col++) {
 
                 const position = { row, column: col };
-                const type = this.match3.board.grid[col][row];
-                const multiplier = result.bonusReels[col][row];
+
+                const type = reels[row][col];
+                const multiplier = bonus[row][col];
 
                 const piece = this.match3.board.createPiece(position, type, multiplier);
 
-                // Final correct target
                 const targetX = piece.x;
                 const targetY = piece.y;
 
-                // Start above board for animation
+                // Start above board for the "fall" animation
                 piece.y = -height;
 
                 fallAnims.push(piece.animateFall(targetX, targetY));
             }
         }
 
-        // Wait for all fall animations
         await Promise.all(fallAnims);
     }
 
