@@ -178,6 +178,120 @@ export class SlotSymbol extends Container {
         this.unlock();
     }
 
+    /** Reel spin animation — moves down repeatedly then lands on final position */
+    /** Reel spin animation — smooth scrolling with random temporary symbols */
+    /** Reel spin animation — smooth scrolling with random temporary symbols */
+    /** Reel spin animation — smooth scrolling with random temporary symbols */
+public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number): Promise<void> {
+    this.lock();
+    resolveAndKillTweens(this.position);
+
+    const spinDuration = 2;                // total spin time
+    const scrollSpeed = 900;               // pixels per second
+    const stagger = spinIndex * 0.15;      // delay per column
+
+    // ------------------------------
+    // 1. Find reel container safely
+    // ------------------------------
+    //
+    // Your Match3Board creates:
+    // match3
+    //   └── piecesContainer  <--- real pieces
+    //
+    // Reel container MUST be: piecesContainer of Board
+    //
+    const reelContainer = this.parent; // SlotSymbol parent = piecesContainer
+    if (!reelContainer) {
+        console.warn("animateColumnSpin(): Missing reelContainer");
+        this.unlock();
+        return;
+    }
+
+    // board height = mask height
+    const boardHeight = reelContainer.height ?? 600;
+    const symbolHeight = this.height * 1.1;
+
+    // ------------------------------
+    // 2. Build temporary fake symbols
+    // ------------------------------
+    const tempSymbols: SlotSymbol[] = [];
+    const needed = Math.ceil(boardHeight / symbolHeight) + 3;
+
+    for (let i = 0; i < needed; i++) {
+        const fake = new SlotSymbol();   // ✔ safe (no pool)
+        fake.setup({
+            name: this.name,
+            type: this.type,
+            size: this.width,
+            multiplier: 0,
+        });
+
+        fake.x = finalX;
+        fake.y = finalY - symbolHeight * i - 200;
+
+        reelContainer.addChild(fake);     // ✔ safe parent add
+
+        tempSymbols.push(fake);
+    }
+
+    // Hide real symbol while reel spins
+    this.visible = false;
+
+    return new Promise(async (resolve) => {
+        await gsap.delayedCall(stagger, async () => {
+            let elapsed = 0;
+
+            // ------------------------------
+            // 3. Vertical scrolling loop
+            // ------------------------------
+            while (elapsed < spinDuration) {
+                const dist = symbolHeight;
+
+                // scroll down all fake symbols
+                const movs = tempSymbols.map(sym =>
+                    gsap.to(sym, {
+                        y: sym.y + dist,
+                        duration: dist / scrollSpeed,
+                        ease: "none"
+                    })
+                );
+                await Promise.all(movs);
+
+                // wrap to top for seamless scrolling
+                tempSymbols.forEach(sym => {
+                    if (sym.y > boardHeight + 100) {
+                        sym.y -= symbolHeight * needed;
+                    }
+                });
+
+                elapsed += dist / scrollSpeed;
+            }
+
+            // ------------------------------
+            // 4. Cleanup and show real symbol
+            // ------------------------------
+            tempSymbols.forEach(sym => sym.destroy());
+
+            this.x = finalX;
+            this.y = finalY;
+
+            // Fade or bounce real symbol
+            this.visible = true;
+            gsap.fromTo(this, { y: finalY - 50 }, {
+                y: finalY,
+                ease: "back.out(1.8)",
+                duration: 0.25
+            });
+
+            this.unlock();
+            resolve();
+        });
+    });
+}
+
+
+
+
     /** Play animation */
     public async animatePlay(): Promise<void> {
         this.lock();

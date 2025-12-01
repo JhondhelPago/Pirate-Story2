@@ -1,25 +1,12 @@
 import { BetAPI } from '../api/betApi';
-import { AsyncQueue, waitFor } from '../utils/asyncUtils';
-import { gameConfig } from '../utils/gameConfig';
 import { Match3 } from './Match3';
-import {
-    match3GetEmptyPositions,
-    match3ApplyGravity,
-    match3FillUp,
-    match3GetPieceType,
-    match3GridToString,
-    slotGetMatches,
-    slotGetScatterMatches,
-} from './SlotUtility';
+import gsap from 'gsap';
+import { SlotSymbol } from './SlotSymbol';
 
 /**
- * Simplified Match3Process:
- * - No match checking
- * - No pop
- * - No gravity
- * - No refill logic
- * - Every spin replaces the entire 5x5 grid with new data
- * - Ensures ONLY ONE grid update per spin (no double-rendering)
+ * Slot-style reel spin Match3Process
+ * - Spins columns using SlotSymbol (Spine-based)
+ * - After spin, backend symbols appear instantly
  */
 export class Match3Process {
     private match3: Match3;
@@ -32,134 +19,180 @@ export class Match3Process {
     public isProcessing() {
         return this.processing;
     }
-
-    public pause() { }
-    public resume() { }
+    public pause() {}
+    public resume() {}
     public reset() {
         this.processing = false;
     }
 
     /** ENTRY POINT FOR EVERY SPIN */
     public async start() {
-        if (this.processing) {
-            console.warn("🚨 Match3Process.start() BLOCKED — already processing!");
-            return;
-        }
-
-        console.log("🟢 Match3Process.start() CALLED");
+        if (this.processing) return;
 
         this.processing = true;
 
-        await this.buildSingleGrid();
+        await this.spinWithAnimation();
 
         this.processing = false;
+
         this.match3.onProcessComplete?.();
     }
 
     /**
-     * FULL clean 5×5 rebuild
-     * No popping, no gravity, no refill, no multiple rounds.
-     * ONE and ONLY ONE grid update per spin.
+     *  SLOT MACHINE SPIN ANIMATION (Spine-based SlotSymbol fakes)
      */
-    private async buildSingleGrid() {
-        console.log("🟦 buildSingleGrid() — BUILDING NEW 5×5 GRID");
+    private async spinWithAnimation() {
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
 
-        const result = await BetAPI.spin('n');
+        // List of available symbol names (from typesMap)
+        const symbolNames = Object.values(board.typesMap);
 
-        // Server ALREADY sends row-major (row → col)
+        // STEP 1 — Ask backend for spin result
+        const result = await BetAPI.spin("n");
         const reels = result.reels;
         const bonus = result.bonusReels;
 
-        // Update internal grid (row-major)
-        this.match3.board.grid = reels;
+        const animPromises: Promise<void>[] = [];
 
-        // Remove old symbols
-        for (const piece of this.match3.board.pieces) {
-            piece.destroy();
+        // STEP 2 — Animate each real symbol with spin effect
+        for (const piece of board.pieces) {
+            animPromises.push(
+                this.animateColumnSpinLite(
+                    piece,
+                    symbolNames,
+                    tileSize,
+                    board.piecesContainer
+                )
+            );
         }
-        this.match3.board.pieces = [];
 
-        const fallAnims: Promise<void>[] = [];
-        const height = this.match3.board.getHeight();
+        // Wait until ALL columns finished spinning
+        await Promise.all(animPromises);
 
-        // CREATE NEW 5×5 GRID (row-major)
-        for (let row = 0; row < this.match3.board.rows; row++) {
-            for (let col = 0; col < this.match3.board.columns; col++) {
+        // STEP 3 — Remove old pieces
+        for (const p of board.pieces) {
+            p.destroy();
+        }
+        board.pieces = [];
 
+        // STEP 4 — Put backend symbols instantly
+        board.grid = reels;
+
+        for (let row = 0; row < board.rows; row++) {
+            for (let col = 0; col < board.columns; col++) {
                 const position = { row, column: col };
-
                 const type = reels[row][col];
-                const multiplier = bonus[row][col];
+                const mult = bonus[row][col];
 
-                const piece = this.match3.board.createPiece(position, type, multiplier);
+                const piece = board.createPiece(position, type, mult);
+                piece.visible = true;
 
-                const targetX = piece.x;
-                const targetY = piece.y;
-
-                // Start above board for the "fall" animation
-                piece.y = -height;
-
-                fallAnims.push(piece.animateFall(targetX, targetY));
+                // Optional bounce
+                gsap.from(piece, {
+                    y: piece.y - 40,
+                    duration: 0.25,
+                    ease: "back.out(1.4)"
+                });
             }
         }
-
-        await Promise.all(fallAnims);
     }
 
-    // private async buildSingleGrid() {
-    //     console.log("🟦 buildSingleGrid() — BUILDING NEW 5×5 GRID");
+    /**
+     * Lightweight REEL SPIN for a single symbol
+     * Uses SlotSymbol instead of PNG textures (FIXED)
+     */
+    private animateColumnSpinLite(
+        realPiece: any,
+        symbolNames: string[],
+        tileSize: number,
+        reelContainer: any
+    ): Promise<void> {
 
-    //     const result = await BetAPI.spin('n');
+        realPiece.visible = false;
 
-    //     const reels = result.reels;
-    //     const bonus = result.bonusReels;
+        const finalX = realPiece.x;
+        const finalY = realPiece.y;
+        const columnIndex = realPiece.column;
 
-    //     this.match3.board.grid = reels;
+        const spinDuration = 1.5;
+        const stagger = columnIndex * 0.12;
+        const speed = tileSize * 18;
+        const fakeCount = 6;
 
-    //     // Remove old pieces
-    //     for (const piece of this.match3.board.pieces) {
-    //         piece.destroy();
-    //     }
-    //     this.match3.board.pieces = [];
+        const fakeSymbols: SlotSymbol[] = [];
 
-    //     const fallAnims: Promise<void>[] = [];
-    //     const height = this.match3.board.getHeight();
+        // Build fake reel symbols (USING SLOT SYMBOL)
+        for (let i = 0; i < fakeCount; i++) {
+            const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
 
-    //     // Build the new 5×5
-    //     for (let row = 0; row < this.match3.board.rows; row++) {
-    //         for (let col = 0; col < this.match3.board.columns; col++) {
+            const spr = new SlotSymbol();
+            spr.setup({
+                name: rand,
+                type: 0,
+                size: tileSize,
+                interactive: false,
+                multiplier: 0
+            });
 
-    //             const position = { row, column: col };
+            spr.x = finalX;
+            spr.y = finalY - tileSize * i - tileSize * 4;
 
-    //             const type = reels[row][col];
-    //             const multiplier = bonus[row][col];
+            reelContainer.addChild(spr);
+            fakeSymbols.push(spr);
+        }
 
-    //             const piece = this.match3.board.createPiece(position, type, multiplier);
+        return new Promise((resolve) => {
+            gsap.delayedCall(stagger, () => {
+                let elapsed = 0;
 
-    //             const targetX = piece.x;
-    //             const targetY = piece.y;
+                const loop = () => {
+                    if (elapsed >= spinDuration) {
+                        // Cleanup
+                        fakeSymbols.forEach(s => s.destroy());
+                        realPiece.visible = true;
+                        resolve();
+                        return;
+                    }
 
-    //             // Start above board for fall animation
-    //             piece.y = -height;
+                    const dist = tileSize;
+                    const step = dist / speed;
 
-    //             fallAnims.push(piece.animateFall(targetX, targetY));
-    //         }
-    //     }
+                    const moves = fakeSymbols.map(sym =>
+                        gsap.to(sym, {
+                            y: sym.y + dist,
+                            duration: step,
+                            ease: "none"
+                        })
+                    );
 
-    //     // ⭐ Wait for ALL falls
-    //     await Promise.all(fallAnims);
+                    Promise.all(moves).then(() => {
+                        // recycle symbols that scrolled out of view
+                        fakeSymbols.forEach(sym => {
+                            if (sym.y > finalY + tileSize * 3) {
+                                const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
 
-    //     // ⭐ Then animate ALL symbols at the SAME TIME
-    //     const playAnims: Promise<void>[] = [];
+                                sym.setup({
+                                    name: rand,
+                                    type: 0,
+                                    size: tileSize,
+                                    interactive: false,
+                                    multiplier: 0
+                                });
 
-    //     for (const piece of this.match3.board.pieces) {
-    //         playAnims.push(piece.animatePlay());
-    //     }
+                                sym.y -= tileSize * fakeCount;
+                            }
+                        });
 
-    //     // ⭐ Wait for all animations to complete (optional)
-    //     await Promise.all(playAnims);
-    // }
+                        elapsed += step;
+                        loop();
+                    });
+                };
 
+                loop();
+            });
+        });
+    }
 
     public async stop() {
         this.processing = false;
