@@ -540,5 +540,10 @@ private applyMultiplierAnimation() {
         });
 }
 
+public getSpine() {
+    return this.spine;
+}
+
+
 
 }

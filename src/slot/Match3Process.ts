@@ -72,7 +72,6 @@ export class Match3Process {
     private evaluateClusterResults() {
         const grid = this.match3.board.grid;
         const wins = slotEvaluateClusterWins(grid);
-
         console.log("💰 CLUSTER WINS:", wins);
     }
 
@@ -89,6 +88,13 @@ export class Match3Process {
             this.buildReels();
         }
 
+        // ⭐ RESET INTERNAL POSITIONS FIRST
+        this.resetReelsState();
+
+        // ⭐ Remove previous backend symbols
+        this.clearBackendSymbols();
+
+        // ⭐ Add NEW backend symbols
         this.appendBackendReels(reelsResult, bonusResult);
 
         await this.spinReels();
@@ -96,6 +102,16 @@ export class Match3Process {
         this.setFinalGridState(reelsResult);
 
         console.log("🎉 Spin complete with natural landing.");
+    }
+
+    // Reset reel positions to avoid stuck reels
+    private resetReelsState() {
+        for (const reel of this.reels) {
+            reel.position = 0;
+            reel.previousPosition = 0;
+            reel.target = 0;
+            reel.blur.blurY = 0;
+        }
     }
 
     // -----------------------------------------------------
@@ -113,7 +129,6 @@ export class Match3Process {
             reelContainer.x = c * tileSize - offsetX;
             reelContainer.y = -offsetY + tileSize;
 
-            // ⭐ FIX — ensure reel has same mask as board
             reelContainer.mask = board.piecesMask;
 
             board.piecesContainer.addChild(reelContainer);
@@ -128,7 +143,7 @@ export class Match3Process {
             };
 
             reel.blur.blurX = 0;
-            reel.blur.blurY = 0;
+            reel.blur.blurY = 0.7;
             reelContainer.filters = [reel.blur];
 
             const colSymbols = board.pieces.filter(p => p.column === c);
@@ -151,7 +166,7 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // APPEND BACKEND SYMBOLS (TOP→BOTTOM ORDER)
+    // APPEND BACKEND SYMBOLS
     // -----------------------------------------------------
     private appendBackendReels(types: number[][], bonus: number[][]) {
         const board = this.match3.board;
@@ -184,8 +199,6 @@ export class Match3Process {
                 this.reels[c].symbols.push(s);
             }
         }
-
-        console.log("📌 Backend symbols appended.");
     }
 
     // -----------------------------------------------------
@@ -206,7 +219,8 @@ export class Match3Process {
             const totalSymbols = reel.symbols.length;
             const backendStartIndex = totalSymbols - visible;
 
-            const targetPosition = spinCycles * totalSymbols + backendStartIndex;
+            const targetPosition =
+                spinCycles * totalSymbols + backendStartIndex;
 
             reel.target = targetPosition;
 
@@ -235,14 +249,13 @@ export class Match3Process {
         for (let r = 0; r < this.reels.length; r++) {
             const reel = this.reels[r];
 
-            reel.blur.blurY = (reel.position - reel.previousPosition) * 8;
+            reel.blur.blurY = (reel.position - reel.previousPosition) * 4;
             reel.previousPosition = reel.position;
 
             const total = reel.symbols.length;
 
             for (let i = 0; i < total; i++) {
                 const s = reel.symbols[i];
-
                 s.y = ((reel.position + i) % total) * tileSize - tileSize;
             }
         }
@@ -264,7 +277,7 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // NATURAL LANDING TWEEN (NO SNAP)
+    // NATURAL LANDING TWEEN
     // -----------------------------------------------------
     private tweenReelTo(
         reel: Reel,
@@ -302,5 +315,18 @@ export class Match3Process {
 
     public async stop() {
         this.processing = false;
+    }
+
+    /** Remove old backend symbols before adding new ones */
+    private clearBackendSymbols() {
+        const board = this.match3.board;
+        const visible = board.rows;
+
+        for (const reel of this.reels) {
+            while (reel.symbols.length > visible) {
+                const s = reel.symbols.pop()!;
+                s.destroy();
+            }
+        }
     }
 }

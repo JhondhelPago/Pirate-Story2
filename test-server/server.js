@@ -27,7 +27,7 @@ let winReels = [
     [1, 4, 2, 2, 5],
     [6, 2, 2, 2, 10],
     [1, 10, 10, 10, 10],
-    [1, 5, 10, 10, 10],
+    [1, 4, 10, 10, 10],
     [5, 11, 2, 10, 10],
 ];
 
@@ -43,8 +43,8 @@ app.get('/spin', async (req, res) => {
     await utils.waitFor(delay); // 1 sec
 
     // Generate 5 reels, each with 5 random symbols (1-12)
-    // const reels = Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => getRandomInt(1, 12)));
-    const reels = winReels;
+    const reels = Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => getRandomInt(1, 12)));
+    // const reels = winReels;
 
     const bonusReels = reels.map(reel => {
         const multiplierOptions = [2, 3, 5];
