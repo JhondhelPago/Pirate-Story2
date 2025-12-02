@@ -1,17 +1,28 @@
+import { Container, BlurFilter, Ticker } from 'pixi.js';
 import { BetAPI } from '../api/betApi';
 import { Match3 } from './Match3';
-import gsap from 'gsap';
 import { SlotSymbol } from './SlotSymbol';
 
-// NEW IMPORTS
 import {
     slotGetClusters,
     slotEvaluateClusterWins
 } from './SlotUtility';
 
+interface Reel {
+    container: Container;
+    symbols: SlotSymbol[];
+    position: number;
+    target: number;
+    previousPosition: number;
+    blur: BlurFilter;
+}
+
 export class Match3Process {
     private match3: Match3;
     private processing = false;
+
+    private reels: Reel[] = [];
+    private ticker?: Ticker;
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -20,8 +31,8 @@ export class Match3Process {
     public isProcessing() {
         return this.processing;
     }
-    public pause() { }
-    public resume() { }
+    public pause() {}
+    public resume() {}
     public reset() {
         this.processing = false;
     }
@@ -34,245 +45,277 @@ export class Match3Process {
 
         await this.spinWithAnimation();
 
-        // ⭐ NEW — Animate cluster wins BEFORE logging wins
+        // Play win animations
         await this.animateClusterWins();
 
-        // ⭐ AFTER animation, evaluate cluster wins
+        // Evaluate wins after animation
         this.evaluateClusterResults();
 
         this.processing = false;
-
         this.match3.onProcessComplete?.();
     }
 
-    /**
-     *  NEW — Animate cluster results
-     *  Plays GSAP animation on all SlotSymbols in winning clusters
-     */
-    /**
- *  Animate cluster results only (NO POPPING, NO REMOVALS)
- *  Plays GSAP animation on all SlotSymbols in winning clusters
- */
-/**
- * Animate cluster wins using the SlotSymbol’s built-in animatePlay()
- * No pop, no scale pulse, no destruction — PURE animation only.
- */
-private async animateClusterWins() {
-    const grid = this.match3.board.grid;
+    // -------------------------------------------------
+    //  CLUSTER WIN ANIMATION
+    // -------------------------------------------------
+    private async animateClusterWins() {
+        const grid = this.match3.board.grid;
+        const clusters = slotGetClusters(grid);
+        if (!clusters.length) return;
 
-    const clusters = slotGetClusters(grid);
-    if (!clusters.length) return;
+        const animations: Promise<void>[] = [];
 
-    console.log("🎉 ANIMATING CLUSTERS:", clusters);
-
-    const animations: Promise<void>[] = [];
-
-    for (const cluster of clusters) {
-        for (const pos of cluster.positions) {
-            const slotPiece = this.match3.board.getPieceByPosition(pos);
-            if (!slotPiece) continue;
-
-            // ⭐ Play the symbol’s real Spine animation
-            animations.push(slotPiece.animatePlay());
+        for (const cluster of clusters) {
+            for (const pos of cluster.positions) {
+                const piece = this.match3.board.getPieceByPosition(pos);
+                if (!piece) continue;
+                animations.push(piece.animatePlay());
+            }
         }
+        await Promise.all(animations);
     }
 
-    // Wait until all symbol animations finish
-    await Promise.all(animations);
-}
-
-
-
-    /**
-     * Evaluate cluster wins using your new game logic
-     */
     private evaluateClusterResults() {
         const grid = this.match3.board.grid;
 
-        // 1. Get clusters (connected groups >=5)
-        const clusters = slotGetClusters(grid);
-        console.log("🔥 CLUSTERS FOUND:", clusters);
-
-        // 2. Evaluate wins using paytable
         const wins = slotEvaluateClusterWins(grid);
         console.log("💰 CLUSTER WINS:", wins);
 
-        // 3. Detailed log
         for (const win of wins) {
             console.log(
                 `⭐ Cluster Win → Type: ${win.type}, Count: ${win.count}, Pay: ${win.win}`
             );
-            console.log("   Positions:", win.positions);
         }
     }
 
-    /**
-     *  SLOT MACHINE SPIN LOGIC (unchanged except grid update)
-     */
+    // -------------------------------------------------
+    //  MAIN SPIN LOGIC (PIXIS-style reel spin!)
+    // -------------------------------------------------
     private async spinWithAnimation() {
         const board = this.match3.board;
         const tileSize = board.tileSize;
-        const symbolNames = Object.values(board.typesMap);
 
-        // STEP 1 — backend result
+        // 1. Fetch backend result
         const result = await BetAPI.spin("n");
-        const reels = result.reels;
-        const bonus = result.bonusReels;
+        const reelsResult = result.reels;       // matrix [row][col]
+        const bonusResult = result.bonusReels;  // multiplier matrix
 
-        const animPromises: Promise<void>[] = [];
+        // 2. Build reel containers if not built yet
+        if (!this.reels.length) {
+            this.buildReels();
+        }
 
-        // STEP 2 — animate each symbol
-        for (const piece of board.pieces) {
-            const r = piece.row;
-            const c = piece.column;
+        // 3. Animate reels (PIXI style)
+        await this.spinReels(reelsResult, bonusResult);
 
-            const backendType = reels[r][c];
-            const backendMultiplier = bonus[r][c];
-            const backendName = board.typesMap[backendType];
+        // 4. After animation, apply backend results
+        this.applyBackendResults(reelsResult, bonusResult);
+    }
 
-            animPromises.push(
-                this.animateColumnSpinLite(
-                    piece,
-                    symbolNames,
-                    tileSize,
-                    board.piecesContainer,
-                    backendName,
-                    backendType,
-                    backendMultiplier
-                )
+    // -------------------------------------------------
+    // BUILD REELS (run once)
+    // -------------------------------------------------
+    private buildReels() {
+    const board = this.match3.board;
+    const tileSize = board.tileSize;
+
+    // Calculate original grid centering offsets
+    const offsetX = ((board.columns - 1) * tileSize) / 2;
+    const offsetY = ((board.rows - 1) * tileSize) / 2;
+
+    this.reels = [];
+
+    for (let c = 0; c < board.columns; c++) {
+
+        const reelContainer = new Container();
+
+        // 🎯 Align reel EXACTLY where your original grid column was
+        // NOTE: +tileSize is required because PIXI reel formula uses -tileSize internal offset
+        reelContainer.x = c * tileSize - offsetX;
+        reelContainer.y = -offsetY + tileSize;
+
+        board.piecesContainer.addChild(reelContainer);
+
+        const reel: Reel = {
+            container: reelContainer,
+            symbols: [],
+            position: 0,
+            previousPosition: 0,
+            target: 0,
+            blur: new BlurFilter()
+        };
+
+        reel.blur.blurX = 0;
+        reel.blur.blurY = 0;
+        reelContainer.filters = [reel.blur];
+
+        // Get symbols belonging to this column
+        const colSymbols = board.pieces.filter(p => p.column === c);
+        colSymbols.sort((a, b) => a.row - b.row);
+
+        // 👉 Reposition symbols INSIDE reel
+        // PIXI reel math assumes symbols start at y = -tileSize (top overflow)
+        for (let i = 0; i < colSymbols.length; i++) {
+            const s = colSymbols[i];
+
+            s.x = 0;
+            s.y = (i - 1) * tileSize;   // 👈 CRITICAL FIX: shift up one row
+
+            reelContainer.addChild(s);
+            reel.symbols.push(s);
+        }
+
+        this.reels.push(reel);
+    }
+
+    // Start ticker to animate reels
+    this.ticker = new Ticker();
+    this.ticker.add(() => this.updateReels());
+    this.ticker.start();
+}
+
+
+
+    // -------------------------------------------------
+    // SPIN REELS (with tweenTo style animation)
+    // -------------------------------------------------
+    private async spinReels(result: number[][], bonus: number[][]) {
+        const spinPromises: Promise<void>[] = [];
+
+        for (let i = 0; i < this.reels.length; i++) {
+            const reel = this.reels[i];
+
+            const extra = Math.floor(Math.random() * 3);
+            const tilesPerReel = this.match3.board.rows;
+
+            // Target spin position (same logic as PIXI example)
+            reel.target = reel.position + 10 + i * 5 + extra;
+
+            const duration = 2500 + i * 600 + extra * 600;
+
+            spinPromises.push(
+                this.tweenReelTo(reel, "position", reel.target, duration, this.easeBackout(0.5))
             );
         }
 
-        await Promise.all(animPromises);
+        await Promise.all(spinPromises);
     }
 
-    /**
-     * Smooth spin for each real grid piece
-     */
-    private animateColumnSpinLite(
-        realPiece: SlotSymbol,
-        symbolNames: string[],
-        tileSize: number,
-        reelContainer: any,
-        backendName: string,
-        backendType: number,
-        backendMultiplier: number
-    ): Promise<void> {
+    // -------------------------------------------------
+    // UPDATE REELS (ticker)
+    // -------------------------------------------------
+    private updateReels() {
+        const tileSize = this.match3.board.tileSize;
 
-        const finalX = realPiece.x;
-        const finalY = realPiece.y;
-        const columnIndex = realPiece.column;
+        for (let r = 0; r < this.reels.length; r++) {
+            const reel = this.reels[r];
 
-        const spinDuration = 1.5;
-        const stagger = columnIndex * 0.12;
-        const speed = tileSize * 18;
-        const fakeCount = 6;
+            // Blur based on speed
+            reel.blur.blurY = (reel.position - reel.previousPosition) * 8;
+            reel.previousPosition = reel.position;
 
-        const fakeSymbols: SlotSymbol[] = [];
+            // Move symbols based on reel.position
+            const total = reel.symbols.length;
 
-        // Pre-create fake symbols (hidden)
-        for (let i = 0; i < fakeCount; i++) {
-            const spr = new SlotSymbol();
-            const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
+            for (let i = 0; i < total; i++) {
+                const s = reel.symbols[i];
+                const prevY = s.y;
 
-            spr.setup({
-                name: rand,
-                type: 0,
-                size: tileSize,
-                interactive: false,
-                multiplier: 0
-            });
+                s.y = ((reel.position + i) % total) * tileSize - tileSize;
 
-            spr.x = finalX;
-            spr.y = finalY - tileSize * i - tileSize * 4;
-            spr.visible = false;
+                if (s.y < 0 && prevY > tileSize) {
+                    // Wraparound: change to random symbol (temporarily)
+                    const typeKeys = Object.keys(this.match3.board.typesMap);
+                    const randomType = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+                    const name = this.match3.board.typesMap[Number(randomType)];
 
-            reelContainer.addChild(spr);
-            fakeSymbols.push(spr);
+                    s.setup({
+                        name,
+                        type: Number(randomType),
+                        size: tileSize,
+                        multiplier: 0,
+                        interactive: false
+                    });
+                }
+            }
         }
+    }
 
-        return new Promise(resolve => {
-            gsap.delayedCall(stagger, () => {
+    // -------------------------------------------------
+    // APPLY BACKEND RESULT (after spin stops)
+    // -------------------------------------------------
+    private applyBackendResults(types: number[][], bonus: number[][]) {
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
 
-                // Smooth transition
-                gsap.to(realPiece, {
-                    alpha: 0.4,
-                    y: realPiece.y + 4,
-                    duration: 0.15,
-                    ease: "power1.out",
-                    onComplete: () => {
-                        realPiece.visible = false;
-                        realPiece.alpha = 1;
-                        realPiece.y = finalY;
-                    }
+        for (let c = 0; c < this.reels.length; c++) {
+            const reel = this.reels[c];
+
+            // Sort by current visual y to get visible area
+            const sorted = [...reel.symbols].sort((a, b) => a.y - b.y);
+
+            for (let r = 0; r < board.rows; r++) {
+                const s = sorted[r];
+
+                const backendType = types[r][c];
+                const backendMultiplier = bonus[r][c];
+
+                const name = board.typesMap[backendType];
+
+                // Update the symbol to backend result
+                s.setup({
+                    name,
+                    type: backendType,
+                    size: tileSize,
+                    multiplier: backendMultiplier,
+                    interactive: false
                 });
 
-                fakeSymbols.forEach(s => s.visible = true);
+                // Update real grid type
+                board.grid[r][c] = backendType;
 
-                let elapsed = 0;
+                // Fix row, column mapping
+                s.row = r;
+                s.column = c;
+            }
+        }
+    }
 
-                const loop = () => {
-                    if (elapsed >= spinDuration) {
+    // -------------------------------------------------
+    // TWEEN ENGINE (like the PIXI example)
+    // -------------------------------------------------
+    private tweenReelTo(
+        reel: Reel,
+        property: keyof Reel,
+        target: number,
+        time: number,
+        easing: (t: number) => number
+    ): Promise<void> {
+        const start = Date.now();
+        const propertyBegin = reel[property] as number;
 
-                        // 🎯 Place backend symbol
-                        realPiece.setup({
-                            name: backendName,
-                            type: backendType,
-                            size: tileSize,
-                            interactive: false,
-                            multiplier: backendMultiplier
-                        });
+        return new Promise(resolve => {
+            const tick = () => {
+                const now = Date.now();
+                const t = Math.min(1, (now - start) / time);
 
-                        realPiece.x = finalX;
-                        realPiece.y = finalY;
-                        realPiece.visible = true;
+                (reel as any)[property] = propertyBegin + (target - propertyBegin) * easing(t);
 
-                        // ⭐ UPDATE GRID TYPE
-                        this.match3.board.grid[realPiece.row][realPiece.column] = backendType;
+                if (t === 1) {
+                    (reel as any)[property] = target;
+                    resolve();
+                    return;
+                }
 
-                        fakeSymbols.forEach(s => s.destroy());
-
-                        resolve();
-                        return;
-                    }
-
-                    const dist = tileSize;
-                    const step = dist / speed;
-
-                    const moves = fakeSymbols.map(sym =>
-                        gsap.to(sym, {
-                            y: sym.y + dist,
-                            duration: step,
-                            ease: "none"
-                        })
-                    );
-
-                    Promise.all(moves).then(() => {
-
-                        fakeSymbols.forEach(sym => {
-                            if (sym.y > finalY + tileSize * 3) {
-                                const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
-
-                                sym.setup({
-                                    name: rand,
-                                    type: 0,
-                                    size: tileSize,
-                                    interactive: false,
-                                    multiplier: 0
-                                });
-
-                                sym.y -= tileSize * fakeCount;
-                            }
-                        });
-
-                        elapsed += step;
-                        loop();
-                    });
-                };
-
-                loop();
-            });
+                requestAnimationFrame(tick);
+            };
+            tick();
         });
+    }
+
+    private easeBackout(amount: number) {
+        return (t: number) =>
+            --t * t * ((amount + 1) * t + amount) + 1;
     }
 
     public async stop() {
