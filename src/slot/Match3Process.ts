@@ -2,7 +2,6 @@ import { Container, BlurFilter, Ticker } from 'pixi.js';
 import { BetAPI } from '../api/betApi';
 import { Match3 } from './Match3';
 import { SlotSymbol } from './SlotSymbol';
-
 import {
     slotGetClusters,
     slotEvaluateClusterWins
@@ -37,27 +36,22 @@ export class Match3Process {
         this.processing = false;
     }
 
-    /** ENTRY POINT FOR EVERY SPIN */
+    // ENTRY POINT
     public async start() {
         if (this.processing) return;
-
         this.processing = true;
 
         await this.spinWithAnimation();
-
-        // Play win animations
         await this.animateClusterWins();
-
-        // Evaluate wins after animation
         this.evaluateClusterResults();
 
         this.processing = false;
         this.match3.onProcessComplete?.();
     }
 
-    // -------------------------------------------------
-    //  CLUSTER WIN ANIMATION
-    // -------------------------------------------------
+    // -----------------------------------------------------
+    // CLUSTER WIN ANIMATION
+    // -----------------------------------------------------
     private async animateClusterWins() {
         const grid = this.match3.board.grid;
         const clusters = slotGetClusters(grid);
@@ -77,118 +71,130 @@ export class Match3Process {
 
     private evaluateClusterResults() {
         const grid = this.match3.board.grid;
-
         const wins = slotEvaluateClusterWins(grid);
-        console.log("💰 CLUSTER WINS:", wins);
 
-        for (const win of wins) {
-            console.log(
-                `⭐ Cluster Win → Type: ${win.type}, Count: ${win.count}, Pay: ${win.win}`
-            );
-        }
+        console.log("💰 CLUSTER WINS:", wins);
     }
 
-    // -------------------------------------------------
-    //  MAIN SPIN LOGIC (PIXIS-style reel spin!)
-    // -------------------------------------------------
+    // -----------------------------------------------------
+    // MAIN SPIN LOGIC
+    // -----------------------------------------------------
     private async spinWithAnimation() {
-        const board = this.match3.board;
-        const tileSize = board.tileSize;
-
-        // 1. Fetch backend result
         const result = await BetAPI.spin("n");
-        const reelsResult = result.reels;       // matrix [row][col]
-        const bonusResult = result.bonusReels;  // multiplier matrix
 
-        // 2. Build reel containers if not built yet
+        const reelsResult = result.reels;
+        const bonusResult = result.bonusReels;
+
         if (!this.reels.length) {
             this.buildReels();
         }
 
-        // 3. Animate reels (PIXI style)
-        await this.spinReels(reelsResult, bonusResult);
+        this.appendBackendReels(reelsResult, bonusResult);
 
-        // 4. After animation, apply backend results
-        this.applyBackendResults(reelsResult, bonusResult);
+        await this.spinReels();
+
+        this.setFinalGridState(reelsResult);
+
+        console.log("🎉 Spin complete with natural landing.");
     }
 
-    // -------------------------------------------------
-    // BUILD REELS (run once)
-    // -------------------------------------------------
+    // -----------------------------------------------------
+    // BUILD REELS ONLY ONCE
+    // -----------------------------------------------------
     private buildReels() {
-    const board = this.match3.board;
-    const tileSize = board.tileSize;
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
 
-    // Calculate original grid centering offsets
-    const offsetX = ((board.columns - 1) * tileSize) / 2;
-    const offsetY = ((board.rows - 1) * tileSize) / 2;
+        const offsetX = ((board.columns - 1) * tileSize) / 2;
+        const offsetY = ((board.rows - 1) * tileSize) / 2;
 
-    this.reels = [];
+        for (let c = 0; c < board.columns; c++) {
+            const reelContainer = new Container();
+            reelContainer.x = c * tileSize - offsetX;
+            reelContainer.y = -offsetY + tileSize;
 
-    for (let c = 0; c < board.columns; c++) {
+            board.piecesContainer.addChild(reelContainer);
 
-        const reelContainer = new Container();
+            const reel: Reel = {
+                container: reelContainer,
+                symbols: [],
+                position: 0,
+                previousPosition: 0,
+                target: 0,
+                blur: new BlurFilter()
+            };
 
-        // 🎯 Align reel EXACTLY where your original grid column was
-        // NOTE: +tileSize is required because PIXI reel formula uses -tileSize internal offset
-        reelContainer.x = c * tileSize - offsetX;
-        reelContainer.y = -offsetY + tileSize;
+            reel.blur.blurX = 0;
+            reel.blur.blurY = 0;
+            reelContainer.filters = [reel.blur];
 
-        board.piecesContainer.addChild(reelContainer);
+            const colSymbols = board.pieces.filter(p => p.column === c);
+            colSymbols.sort((a, b) => a.row - b.row);
 
-        const reel: Reel = {
-            container: reelContainer,
-            symbols: [],
-            position: 0,
-            previousPosition: 0,
-            target: 0,
-            blur: new BlurFilter()
-        };
+            for (let i = 0; i < colSymbols.length; i++) {
+                const s = colSymbols[i];
+                s.x = 0;
+                s.y = (i - 1) * tileSize;
+                reelContainer.addChild(s);
+                reel.symbols.push(s);
+            }
 
-        reel.blur.blurX = 0;
-        reel.blur.blurY = 0;
-        reelContainer.filters = [reel.blur];
-
-        // Get symbols belonging to this column
-        const colSymbols = board.pieces.filter(p => p.column === c);
-        colSymbols.sort((a, b) => a.row - b.row);
-
-        // 👉 Reposition symbols INSIDE reel
-        // PIXI reel math assumes symbols start at y = -tileSize (top overflow)
-        for (let i = 0; i < colSymbols.length; i++) {
-            const s = colSymbols[i];
-
-            s.x = 0;
-            s.y = (i - 1) * tileSize;   // 👈 CRITICAL FIX: shift up one row
-
-            reelContainer.addChild(s);
-            reel.symbols.push(s);
+            this.reels.push(reel);
         }
 
-        this.reels.push(reel);
+        this.ticker = new Ticker();
+        this.ticker.add(() => this.updateReels());
+        this.ticker.start();
     }
 
-    // Start ticker to animate reels
-    this.ticker = new Ticker();
-    this.ticker.add(() => this.updateReels());
-    this.ticker.start();
-}
+    // -----------------------------------------------------
+    // APPEND BACKEND SYMBOLS (TOP→BOTTOM ORDER)
+    // -----------------------------------------------------
+    private appendBackendReels(types: number[][], bonus: number[][]) {
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
 
+        for (let c = 0; c < this.reels.length; c++) {
+            const backendColumn: SlotSymbol[] = [];
 
+            for (let r = 0; r < board.rows; r++) {
+                const backendType = types[r][c];
+                const backendMult = bonus[r][c];
+                const name = board.typesMap[backendType];
 
-    // -------------------------------------------------
-    // SPIN REELS (with tweenTo style animation)
-    // -------------------------------------------------
-    private async spinReels(result: number[][], bonus: number[][]) {
+                const symbol = new SlotSymbol();
+                symbol.setup({
+                    name,
+                    type: backendType,
+                    size: tileSize,
+                    multiplier: backendMult,
+                });
+
+                symbol.x = 0;
+                symbol.y = (this.reels[c].symbols.length + backendColumn.length - 1) * tileSize;
+
+                backendColumn.push(symbol);
+            }
+
+            for (let s of backendColumn) {
+                this.reels[c].container.addChild(s);
+                this.reels[c].symbols.push(s);
+            }
+        }
+
+        console.log("📌 Backend symbols appended.");
+    }
+
+    // -----------------------------------------------------
+    // SPIN ANIMATION
+    // -----------------------------------------------------
+    private async spinReels() {
         const spinPromises: Promise<void>[] = [];
 
         for (let i = 0; i < this.reels.length; i++) {
             const reel = this.reels[i];
 
             const extra = Math.floor(Math.random() * 3);
-            const tilesPerReel = this.match3.board.rows;
-
-            // Target spin position (same logic as PIXI example)
             reel.target = reel.position + 10 + i * 5 + extra;
 
             const duration = 2500 + i * 600 + extra * 600;
@@ -201,20 +207,18 @@ export class Match3Process {
         await Promise.all(spinPromises);
     }
 
-    // -------------------------------------------------
-    // UPDATE REELS (ticker)
-    // -------------------------------------------------
+    // -----------------------------------------------------
+    // UPDATE REELS DURING SPIN
+    // -----------------------------------------------------
     private updateReels() {
         const tileSize = this.match3.board.tileSize;
 
         for (let r = 0; r < this.reels.length; r++) {
             const reel = this.reels[r];
 
-            // Blur based on speed
             reel.blur.blurY = (reel.position - reel.previousPosition) * 8;
             reel.previousPosition = reel.position;
 
-            // Move symbols based on reel.position
             const total = reel.symbols.length;
 
             for (let i = 0; i < total; i++) {
@@ -223,67 +227,29 @@ export class Match3Process {
 
                 s.y = ((reel.position + i) % total) * tileSize - tileSize;
 
-                if (s.y < 0 && prevY > tileSize) {
-                    // Wraparound: change to random symbol (temporarily)
-                    const typeKeys = Object.keys(this.match3.board.typesMap);
-                    const randomType = typeKeys[Math.floor(Math.random() * typeKeys.length)];
-                    const name = this.match3.board.typesMap[Number(randomType)];
-
-                    s.setup({
-                        name,
-                        type: Number(randomType),
-                        size: tileSize,
-                        multiplier: 0,
-                        interactive: false
-                    });
-                }
+                // backend symbols preserved, no random replace
             }
         }
     }
 
-    // -------------------------------------------------
-    // APPLY BACKEND RESULT (after spin stops)
-    // -------------------------------------------------
-    private applyBackendResults(types: number[][], bonus: number[][]) {
+    // -----------------------------------------------------
+    // UPDATE LOGICAL GRID
+    // -----------------------------------------------------
+    private setFinalGridState(types: number[][]) {
         const board = this.match3.board;
-        const tileSize = board.tileSize;
 
-        for (let c = 0; c < this.reels.length; c++) {
-            const reel = this.reels[c];
-
-            // Sort by current visual y to get visible area
-            const sorted = [...reel.symbols].sort((a, b) => a.y - b.y);
-
-            for (let r = 0; r < board.rows; r++) {
-                const s = sorted[r];
-
-                const backendType = types[r][c];
-                const backendMultiplier = bonus[r][c];
-
-                const name = board.typesMap[backendType];
-
-                // Update the symbol to backend result
-                s.setup({
-                    name,
-                    type: backendType,
-                    size: tileSize,
-                    multiplier: backendMultiplier,
-                    interactive: false
-                });
-
-                // Update real grid type
-                board.grid[r][c] = backendType;
-
-                // Fix row, column mapping
-                s.row = r;
-                s.column = c;
+        for (let r = 0; r < board.rows; r++) {
+            for (let c = 0; c < board.columns; c++) {
+                board.grid[r][c] = types[r][c];
             }
         }
+
+        console.log("🧩 Logical grid updated.");
     }
 
-    // -------------------------------------------------
-    // TWEEN ENGINE (like the PIXI example)
-    // -------------------------------------------------
+    // -----------------------------------------------------
+    // TWEEN ENGINE + PERFECT LANDING FIX
+    // -----------------------------------------------------
     private tweenReelTo(
         reel: Reel,
         property: keyof Reel,
@@ -292,21 +258,28 @@ export class Match3Process {
         easing: (t: number) => number
     ): Promise<void> {
         const start = Date.now();
-        const propertyBegin = reel[property] as number;
+        const begin = reel[property] as number;
 
         return new Promise(resolve => {
             const tick = () => {
                 const now = Date.now();
                 const t = Math.min(1, (now - start) / time);
 
-                (reel as any)[property] = propertyBegin + (target - propertyBegin) * easing(t);
+                (reel as any)[property] = begin + (target - begin) * easing(t);
 
                 if (t === 1) {
-                    (reel as any)[property] = target;
+                    const total = reel.symbols.length;
+                    const visible = this.match3.board.rows;
+                    const fakeCount = total - visible;
+
+                    // -------------------------------------------------
+                    // 🎯 FINAL CORRECT LANDING (NO ROW SHIFT)
+                    // -------------------------------------------------
+                    (reel as any)[property] = fakeCount;
+
                     resolve();
                     return;
                 }
-
                 requestAnimationFrame(tick);
             };
             tick();
