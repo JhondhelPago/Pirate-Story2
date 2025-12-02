@@ -3,11 +3,12 @@ import { Match3 } from './Match3';
 import gsap from 'gsap';
 import { SlotSymbol } from './SlotSymbol';
 
-/**
- * Slot-style reel spin Match3Process
- * - Spins columns using SlotSymbol (Spine-based)
- * - Smooth transition: real symbols fade + slide before fake scroll starts
- */
+// NEW IMPORTS
+import {
+    slotGetClusters,
+    slotEvaluateClusterWins
+} from './SlotUtility';
+
 export class Match3Process {
     private match3: Match3;
     private processing = false;
@@ -19,8 +20,8 @@ export class Match3Process {
     public isProcessing() {
         return this.processing;
     }
-    public pause() {}
-    public resume() {}
+    public pause() { }
+    public resume() { }
     public reset() {
         this.processing = false;
     }
@@ -33,13 +34,39 @@ export class Match3Process {
 
         await this.spinWithAnimation();
 
+        // ✅ AFTER animation, evaluate cluster wins
+        this.evaluateClusterResults();
+
         this.processing = false;
 
         this.match3.onProcessComplete?.();
     }
 
     /**
-     *  SLOT MACHINE SPIN LOGIC
+     * Evaluate cluster wins using your new game logic
+     */
+    private evaluateClusterResults() {
+        const grid = this.match3.board.grid;
+
+        // 1. Get clusters (connected groups >=5)
+        const clusters = slotGetClusters(grid);
+        console.log("🔥 CLUSTERS FOUND:", clusters);
+
+        // 2. Evaluate wins using paytable
+        const wins = slotEvaluateClusterWins(grid);
+        console.log("💰 CLUSTER WINS:", wins);
+
+        // 3. Detailed log
+        for (const win of wins) {
+            console.log(
+                `⭐ Cluster Win → Type: ${win.type}, Count: ${win.count}, Pay: ${win.win}`
+            );
+            console.log("   Positions:", win.positions);
+        }
+    }
+
+    /**
+     *  SLOT MACHINE SPIN LOGIC (unchanged)
      */
     private async spinWithAnimation() {
         const board = this.match3.board;
@@ -79,7 +106,7 @@ export class Match3Process {
     }
 
     /**
-     * Smooth spin for each real grid piece
+     * Smooth spin for each real grid piece (unchanged)
      */
     private animateColumnSpinLite(
         realPiece: SlotSymbol,
@@ -126,23 +153,19 @@ export class Match3Process {
         return new Promise(resolve => {
             gsap.delayedCall(stagger, () => {
 
-                // ------------------------------------
-                // 🔥 SMOOTH TRANSITION BEFORE HIDING
-                // ------------------------------------
+                // Smooth transition
                 gsap.to(realPiece, {
                     alpha: 0.4,
                     y: realPiece.y + 4,
                     duration: 0.15,
                     ease: "power1.out",
                     onComplete: () => {
-                        // hide the real piece ONLY after fade
                         realPiece.visible = false;
                         realPiece.alpha = 1;
                         realPiece.y = finalY;
                     }
                 });
 
-                // Turn on fake symbols
                 fakeSymbols.forEach(s => s.visible = true);
 
                 let elapsed = 0;
@@ -150,7 +173,7 @@ export class Match3Process {
                 const loop = () => {
                     if (elapsed >= spinDuration) {
 
-                        // Place backend symbol at exact location
+                        // ⭐ Update visible symbol
                         realPiece.setup({
                             name: backendName,
                             type: backendType,
@@ -163,6 +186,10 @@ export class Match3Process {
                         realPiece.y = finalY;
                         realPiece.visible = true;
 
+                        // ⭐ ⭐ MOST IMPORTANT PATCH: Update actual grid
+                        this.match3.board.grid[realPiece.row][realPiece.column] = backendType;
+
+                        // Clean up fake symbols
                         fakeSymbols.forEach(s => s.destroy());
 
                         resolve();
@@ -181,9 +208,9 @@ export class Match3Process {
                     );
 
                     Promise.all(moves).then(() => {
+
                         fakeSymbols.forEach(sym => {
                             if (sym.y > finalY + tileSize * 3) {
-
                                 const rand = symbolNames[Math.floor(Math.random() * symbolNames.length)];
 
                                 sym.setup({
@@ -207,6 +234,7 @@ export class Match3Process {
             });
         });
     }
+
 
     public async stop() {
         this.processing = false;

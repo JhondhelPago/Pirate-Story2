@@ -492,3 +492,115 @@ export function getRandomMultiplier(): MultipliersValues {
   return multiplierValues[index];
 }
 
+
+/* ===========================================================
+   NEW GAMEPLAY: CLUSTER-BASED MATCH RULES (≥5 connected tiles)
+   Does not modify or replace any old logic.
+   Works side-by-side with original slotGetMatches().
+=========================================================== */
+
+/** Directions for cluster checking */
+const CLUSTER_DIRS = [
+    { row: 1, column: 0 },   // down
+    { row: -1, column: 0 },  // up
+    { row: 0, column: 1 },   // right
+    { row: 0, column: -1 },  // left
+];
+
+/**
+ * Internal flood-fill used to detect connected groups
+ */
+function floodFillCluster(
+    grid: Match3Grid,
+    start: Match3Position,
+    visited: boolean[][]
+): Match3Position[] {
+    const type = grid[start.row][start.column];
+    const stack: Match3Position[] = [start];
+    const cluster: Match3Position[] = [];
+
+    visited[start.row][start.column] = true;
+
+    while (stack.length > 0) {
+        const pos = stack.pop()!;
+        cluster.push(pos);
+
+        for (const dir of CLUSTER_DIRS) {
+            const next = { row: pos.row + dir.row, column: pos.column + dir.column };
+
+            if (
+                match3IsValidPosition(grid, next) &&
+                !visited[next.row][next.column] &&
+                grid[next.row][next.column] === type
+            ) {
+                visited[next.row][next.column] = true;
+                stack.push(next);
+            }
+        }
+    }
+
+    return cluster;
+}
+
+/**
+ * Finds all connected clusters of size >= 5.
+ * Option 1 rule: multiple clusters allowed per type.
+ */
+export function slotGetClusters(grid: Match3Grid) {
+    const visited = grid.map(row => row.map(() => false));
+    const clusters: { type: Match3Type; positions: Match3Position[] }[] = [];
+
+    for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+            if (!visited[r][c]) {
+                const cluster = floodFillCluster(grid, { row: r, column: c }, visited);
+
+                if (cluster.length >= 5) {
+                    clusters.push({
+                        type: grid[r][c],
+                        positions: cluster,
+                    });
+                }
+            }
+        }
+    }
+
+    return clusters;
+}
+
+/**
+ * Evaluate cluster wins using paytable rules
+ */
+export function slotEvaluateClusterWins(grid: Match3Grid) {
+    const clusters = slotGetClusters(grid);
+    const paytable = gameConfig.getPaytables();
+
+    const results: {
+        type: Match3Type;
+        count: number;
+        win: number;
+        positions: Match3Position[];
+    }[] = [];
+
+    for (const cluster of clusters) {
+        const entry = paytable.find(p => p.type === cluster.type);
+        if (!entry) continue;
+
+        const count = cluster.positions.length;
+
+        // Find matching paytable pattern
+        const pattern = entry.patterns.find(p => count >= p.min && count <= p.max);
+        if (!pattern || pattern.win <= 0) continue;
+
+        results.push({
+            type: cluster.type,
+            count,
+            win: pattern.win,
+            positions: cluster.positions,
+        });
+    }
+
+    return results;
+}
+
+
