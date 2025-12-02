@@ -113,6 +113,9 @@ export class Match3Process {
             reelContainer.x = c * tileSize - offsetX;
             reelContainer.y = -offsetY + tileSize;
 
+            // ⭐ FIX — ensure reel has same mask as board
+            reelContainer.mask = board.piecesMask;
+
             board.piecesContainer.addChild(reelContainer);
 
             const reel: Reel = {

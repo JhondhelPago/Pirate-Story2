@@ -541,6 +541,4 @@ private applyMultiplierAnimation() {
 }
 
 
-
-
 }

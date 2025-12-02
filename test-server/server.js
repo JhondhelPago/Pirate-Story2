@@ -27,8 +27,8 @@ let winReels = [
     [1, 4, 2, 2, 5],
     [6, 2, 2, 2, 10],
     [1, 10, 10, 10, 10],
-    [1, 12, 10, 10, 10],
-    [11, 11, 2, 10, 10],
+    [1, 5, 10, 10, 10],
+    [5, 11, 2, 10, 10],
 ];
 
 let grandReels = [
@@ -49,7 +49,7 @@ app.get('/spin', async (req, res) => {
     const bonusReels = reels.map(reel => {
         const multiplierOptions = [2, 3, 5];
         const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
-        return reel.map(symbol => (symbol === 11 || symbol === 12 ? randomMultiplier : 0));
+        return reel.map(symbol => (symbol === 11 || symbol === 12 || symbol === 5 ? randomMultiplier : 0));
     })
     
 

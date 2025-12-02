@@ -73,9 +73,10 @@ export class Match3Board {
 
         this.piecesMask.clear();
         this.piecesMask
-            .beginFill(0xffffff, 1)
+            .beginFill(0xffffff, 0)  // ⬅ FIX HERE: transparent mask
             .drawRect(-w / 2, -h / 2, w, h)
             .endFill();
+
     }
 
     public reset() {
