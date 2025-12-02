@@ -1,4 +1,4 @@
-import { Block, Jackpot, Paytable } from '../slot/Match3Config';
+import { Block, Paytable } from '../slot/Match3Config';
 
 // Default fallbacks (keep your existing arrays as fallbacks)
 const defaultBlocks: Block[] = [
@@ -64,73 +64,6 @@ const defaultBlocks: Block[] = [
     },
 ];
 
-const defaultScatterBlocksTrigger: number = 4;
-
-const defaultScatterBlocks: Block[] = [
-    {
-        type: 8,
-        symbol: 'symbol-scatter',
-        name: 'Scatter',
-    },
-];
-
-const defaultSpecialBlocks: Block[] = [
-    {
-        type: 9,
-        symbol: 'symbol-grand',
-        name: 'Grand',
-    },
-    {
-        type: 10,
-        symbol: 'symbol-angelic',
-        name: 'Angelic',
-    },
-    {
-        type: 11,
-        symbol: 'symbol-blessed',
-        name: 'Blessed',
-    },
-    {
-        type: 12,
-        symbol: 'symbol-divine',
-        name: 'Divine',
-    },
-];
-
-const defaultJackpot: Jackpot[] = [
-    {
-        id: 'divine',
-        name: 'DIVINE',
-        type: 12,
-        multiplier: 100,
-        requiredSymbols: 5,
-        order: 2,
-    },
-    {
-        id: 'blessed',
-        name: 'BLESSED',
-        type: 11,
-        multiplier: 50,
-        requiredSymbols: 4,
-        order: 3,
-    },
-    {
-        id: 'angelic',
-        name: 'ANGELIC',
-        type: 10,
-        multiplier: 20.0,
-        requiredSymbols: 3,
-        order: 4,
-    },
-    {
-        id: 'grand',
-        name: 'GRAND',
-        type: 9,
-        multiplier: 10.0,
-        requiredSymbols: 2,
-        order: 5,
-    },
-];
 
 const defaultPaytable: Paytable[] = [
     {
@@ -214,11 +147,7 @@ const defaultPaytable: Paytable[] = [
 class GameConfig {
     // Configuration data
     private blocks: Block[] = defaultBlocks;
-    private specialBlocks: Block[] = defaultSpecialBlocks;
-    private scatterBlocksTrigger: number = defaultScatterBlocksTrigger;
-    private scatterBlocks: Block[] = defaultScatterBlocks;
     private paytable: Paytable[] = defaultPaytable;
-    private jackpots: Jackpot[] = defaultJackpot;
 
     public constructor() {}
 
@@ -227,57 +156,23 @@ class GameConfig {
         this.blocks = blocks;
     }
 
-    // setSpecialBlocks(blocks: Block[]) {
-    //     this.specialBlocks = blocks;
-    // }
-
-    // setScatterBlocksTrigger(count: number) {
-    //     this.scatterBlocksTrigger = count;
-    // }
-
-    // setScatterBlocks(blocks: Block[]) {
-    //     this.scatterBlocks = blocks;
-    // }
-
     setPaytables(paytable: Paytable[]) {
         this.paytable = paytable;
     }
-
-    // setJackpots(jackpots: Jackpot[]) {
-    //     this.jackpots = jackpots;
-    // }
 
     // Getters
     getBlocks(): Block[] {
         return this.blocks;
     }
 
-    // getSpecialBlocks(): Block[] {
-    //     return this.specialBlocks;
-    // }
-
-    // getScatterBlocksTrigger() {
-    //     return this.scatterBlocksTrigger;
-    // }
-
-    // getScatterBlocks(): Block[] {
-    //     return this.scatterBlocks;
-    // }
-
     getPaytables(): Paytable[] {
         return this.paytable;
     }
-
-    // getJackpots(): Jackpot[] {
-    //     return this.jackpots;
-    // }
 
     // Useful for debugging
     reset(): void {
         this.blocks = defaultBlocks;
         this.paytable = defaultPaytable;
-        this.scatterBlocks = defaultScatterBlocks;
-        this.specialBlocks = defaultSpecialBlocks;
     }
 }
 

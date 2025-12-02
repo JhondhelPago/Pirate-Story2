@@ -1,7 +1,7 @@
 import { Container } from 'pixi.js';
 import { Match3Actions } from './Match3Actions';
 import { Match3Board } from './Match3Board';
-import { Jackpot, Match3Config, slotGetConfig } from './Match3Config';
+import { Match3Config, slotGetConfig } from './Match3Config';
 import { Match3Process } from './Match3Process';
 import { Match3Stats } from './Match3Stats';
 import { Match3FreeSpinProcess } from './Match3FreeSpinProcess';
@@ -25,8 +25,7 @@ export interface SlotOnJackpotMatchData {
 
 /** Interface for onMatch event data */
 export interface SlotOnJackpotTriggerData {
-    /** List of all jackpot matches detected in the grid */
-    jackpot: Jackpot;
+    /** List of all jackpot matches detected in the grid *
     /** Occurance */
     times: number;
 }

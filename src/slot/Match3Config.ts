@@ -34,18 +34,6 @@ export function slotGetBlocks(): Block[] {
     return gameConfig.getBlocks();
 }
 
-/** Default special block tier configuration */
-const defaultJackpot = {
-    id: 'grand',
-    name: 'GRAND',
-    type: 9,
-    multiplier: 100,
-    requiredSymbols: 5,
-    order: 2,
-};
-
-export type Jackpot = typeof defaultJackpot;
-
 /** Default pattern configuration */
 
 export type Pattern = {

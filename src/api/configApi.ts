@@ -12,44 +12,6 @@ export class ConfigAPI {
                 },
 
                 // ------------------------------
-                // JACKPOTS (still using types 9–12, no issue)
-                // ------------------------------
-                jackpots: [
-                    {
-                        id: 'divine',
-                        name: 'DIVINE',
-                        type: 12,
-                        multiplier: 100,
-                        requiredSymbols: 5,
-                        order: 2,
-                    },
-                    {
-                        id: 'blessed',
-                        name: 'BLESSED',
-                        type: 11,
-                        multiplier: 50,
-                        requiredSymbols: 4,
-                        order: 3,
-                    },
-                    {
-                        id: 'angelic',
-                        name: 'ANGELIC',
-                        type: 10,
-                        multiplier: 20.0,
-                        requiredSymbols: 3,
-                        order: 4,
-                    },
-                    {
-                        id: 'grand',
-                        name: 'GRAND',
-                        type: 9,
-                        multiplier: 10.0,
-                        requiredSymbols: 2,
-                        order: 5,
-                    },
-                ],
-
-                // ------------------------------
                 // PAYTABLE
                 // ------------------------------
                 paytable: [
@@ -112,22 +74,12 @@ export class ConfigAPI {
                     { type: 11, symbol: 'symbol-sword',    name: 'Sword' },
                     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
                 ],
+                
 
-                // ------------------------------
-                // SCATTER (works fine)
-                // ------------------------------
-                scatterBlocksTrigger: 4,
-                scatterBlocks: [
-                    { type: 8, symbol: 'symbol-scatter', name: 'Scatter' },
-                ],
-
-                // ------------------------------
-                // SPECIAL BLOCKS REMOVED (because PNG only)
-                // ------------------------------
                 specialBlocks: [
                     { type: 5, symbol: 'symbol-coin', name: 'Coin' }, //bonus
                     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' }, //wild
-                ], // ← IMPORTANT fix
+                ],
             };
         } catch (error: any) {
             const message = error?.response?.data?.message || 'Failed loading game configuration';
