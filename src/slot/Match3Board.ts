@@ -61,7 +61,7 @@ export class Match3Board {
 
         /** Create visible real symbols */
         match3ForEach(this.grid, (pos, type) => {
-            const multiplier = (type === 5 || type === 12) ? getRandomMultiplier() : 0;
+            const multiplier = (type === 11 || type === 12) ? getRandomMultiplier() : 0;
             this.createPiece(pos, type, multiplier);
         });
     }

@@ -39,7 +39,7 @@ export function slotGetBlocks(): Block[] {
 export type Pattern = {
     min: number;
     max: number;
-    multiplier: number;
+    win: number;
 };
 
 const defaultPaytable = {

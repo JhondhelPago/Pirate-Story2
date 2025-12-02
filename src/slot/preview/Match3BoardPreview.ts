@@ -81,7 +81,7 @@ export class Match3BoardPreview {
         this.grid = match3CreateGrid(this.rows, this.columns, this.commonTypes);
         // Fill up the visual board with piece sprites
         match3ForEach(this.grid, (gridPosition: Match3Position, type: Match3Type) => {
-            const multiplier = type === 5 ? getRandomMultiplier() : 0;
+            const multiplier = (type === 11 || type === 12) ? getRandomMultiplier() : 0;
             this.createPiece(gridPosition, type, multiplier);
         });
     }
@@ -113,7 +113,7 @@ export class Match3BoardPreview {
         const piece = pool.get(SlotSymbol);
         const viewPosition = this.getViewPositionByGridPosition(position);
 
-        const multiplier = pieceType === 5 ? pieceMultiplier : 0;
+        const multiplier = pieceMultiplier;
 
         piece.setup({
             name,
