@@ -227,50 +227,50 @@ class GameConfig {
         this.blocks = blocks;
     }
 
-    setSpecialBlocks(blocks: Block[]) {
-        this.specialBlocks = blocks;
-    }
+    // setSpecialBlocks(blocks: Block[]) {
+    //     this.specialBlocks = blocks;
+    // }
 
-    setScatterBlocksTrigger(count: number) {
-        this.scatterBlocksTrigger = count;
-    }
+    // setScatterBlocksTrigger(count: number) {
+    //     this.scatterBlocksTrigger = count;
+    // }
 
-    setScatterBlocks(blocks: Block[]) {
-        this.scatterBlocks = blocks;
-    }
+    // setScatterBlocks(blocks: Block[]) {
+    //     this.scatterBlocks = blocks;
+    // }
 
     setPaytables(paytable: Paytable[]) {
         this.paytable = paytable;
     }
 
-    setJackpots(jackpots: Jackpot[]) {
-        this.jackpots = jackpots;
-    }
+    // setJackpots(jackpots: Jackpot[]) {
+    //     this.jackpots = jackpots;
+    // }
 
     // Getters
     getBlocks(): Block[] {
         return this.blocks;
     }
 
-    getSpecialBlocks(): Block[] {
-        return this.specialBlocks;
-    }
+    // getSpecialBlocks(): Block[] {
+    //     return this.specialBlocks;
+    // }
 
-    getScatterBlocksTrigger() {
-        return this.scatterBlocksTrigger;
-    }
+    // getScatterBlocksTrigger() {
+    //     return this.scatterBlocksTrigger;
+    // }
 
-    getScatterBlocks(): Block[] {
-        return this.scatterBlocks;
-    }
+    // getScatterBlocks(): Block[] {
+    //     return this.scatterBlocks;
+    // }
 
     getPaytables(): Paytable[] {
         return this.paytable;
     }
 
-    getJackpots(): Jackpot[] {
-        return this.jackpots;
-    }
+    // getJackpots(): Jackpot[] {
+    //     return this.jackpots;
+    // }
 
     // Useful for debugging
     reset(): void {

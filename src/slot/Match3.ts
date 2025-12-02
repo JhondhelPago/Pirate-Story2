@@ -54,7 +54,7 @@ export class Match3 extends Container {
     /** Process matches and fills up the grid */
     public freeSpinProcess: Match3FreeSpinProcess;
     /** Handles pieces with special powers */
-    public jackpot: Match3Jackpot;
+    // public jackpot: Match3Jackpot;
 
     /** Firew when a spin started, regardless of the spin type */
     public onSpinStart?: () => void;
@@ -90,7 +90,7 @@ export class Match3 extends Container {
         this.board = new Match3Board(this);
         this.actions = new Match3Actions(this);
         this.process = new Match3Process(this);
-        this.jackpot = new Match3Jackpot(this);
+        // this.jackpot = new Match3Jackpot(this);
         this.freeSpinProcess = new Match3FreeSpinProcess(this);
     }
 
@@ -99,13 +99,16 @@ export class Match3 extends Container {
      * @param config The config object in which the game will be based on
      */
     public setup(config: Match3Config) {
-        const jackpotConfig = gameConfig.getJackpots();
         this.config = config;
         this.reset();
 
-        this.jackpot.setup(jackpotConfig);
+        // Jackpot is not used anymore
+        // const jackpotConfig = gameConfig.getJackpots();
+        // this.jackpot.setup(jackpotConfig);
+
         this.board.setup(config);
     }
+
 
     /** Fully reset the game */
     public reset() {
@@ -114,7 +117,7 @@ export class Match3 extends Container {
         this.board.reset();
         this.process.reset();
         this.freeSpinProcess.reset();
-        this.jackpot.reset();
+        // this.jackpot.reset();
     }
 
     /** Start the spin and disable interaction */
