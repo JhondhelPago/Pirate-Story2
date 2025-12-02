@@ -186,21 +186,37 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // SPIN ANIMATION
+    // SPIN ANIMATION (NATURAL LANDING)
     // -----------------------------------------------------
     private async spinReels() {
+        const board = this.match3.board;
+        const visible = board.rows;
+
         const spinPromises: Promise<void>[] = [];
 
         for (let i = 0; i < this.reels.length; i++) {
             const reel = this.reels[i];
 
             const extra = Math.floor(Math.random() * 3);
-            reel.target = reel.position + 10 + i * 5 + extra;
+            const spinCycles = 10 + i * 5 + extra;
+
+            const totalSymbols = reel.symbols.length;
+            const backendStartIndex = totalSymbols - visible;
+
+            const targetPosition = spinCycles * totalSymbols + backendStartIndex;
+
+            reel.target = targetPosition;
 
             const duration = 2500 + i * 600 + extra * 600;
 
             spinPromises.push(
-                this.tweenReelTo(reel, "position", reel.target, duration, this.easeBackout(0.5))
+                this.tweenReelTo(
+                    reel,
+                    "position",
+                    targetPosition,
+                    duration,
+                    this.easeBackout(0.5)
+                )
             );
         }
 
@@ -223,11 +239,8 @@ export class Match3Process {
 
             for (let i = 0; i < total; i++) {
                 const s = reel.symbols[i];
-                const prevY = s.y;
 
                 s.y = ((reel.position + i) % total) * tileSize - tileSize;
-
-                // backend symbols preserved, no random replace
             }
         }
     }
@@ -248,7 +261,7 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // TWEEN ENGINE + PERFECT LANDING FIX
+    // NATURAL LANDING TWEEN (NO SNAP)
     // -----------------------------------------------------
     private tweenReelTo(
         reel: Reel,
@@ -265,21 +278,14 @@ export class Match3Process {
                 const now = Date.now();
                 const t = Math.min(1, (now - start) / time);
 
-                (reel as any)[property] = begin + (target - begin) * easing(t);
+                (reel as any)[property] =
+                    begin + (target - begin) * easing(t);
 
                 if (t === 1) {
-                    const total = reel.symbols.length;
-                    const visible = this.match3.board.rows;
-                    const fakeCount = total - visible;
-
-                    // -------------------------------------------------
-                    // 🎯 FINAL CORRECT LANDING (NO ROW SHIFT)
-                    // -------------------------------------------------
-                    (reel as any)[property] = fakeCount;
-
                     resolve();
                     return;
                 }
+
                 requestAnimationFrame(tick);
             };
             tick();
