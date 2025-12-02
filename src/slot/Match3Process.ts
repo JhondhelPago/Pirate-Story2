@@ -34,13 +34,54 @@ export class Match3Process {
 
         await this.spinWithAnimation();
 
-        // ✅ AFTER animation, evaluate cluster wins
+        // ⭐ NEW — Animate cluster wins BEFORE logging wins
+        await this.animateClusterWins();
+
+        // ⭐ AFTER animation, evaluate cluster wins
         this.evaluateClusterResults();
 
         this.processing = false;
 
         this.match3.onProcessComplete?.();
     }
+
+    /**
+     *  NEW — Animate cluster results
+     *  Plays GSAP animation on all SlotSymbols in winning clusters
+     */
+    /**
+ *  Animate cluster results only (NO POPPING, NO REMOVALS)
+ *  Plays GSAP animation on all SlotSymbols in winning clusters
+ */
+/**
+ * Animate cluster wins using the SlotSymbol’s built-in animatePlay()
+ * No pop, no scale pulse, no destruction — PURE animation only.
+ */
+private async animateClusterWins() {
+    const grid = this.match3.board.grid;
+
+    const clusters = slotGetClusters(grid);
+    if (!clusters.length) return;
+
+    console.log("🎉 ANIMATING CLUSTERS:", clusters);
+
+    const animations: Promise<void>[] = [];
+
+    for (const cluster of clusters) {
+        for (const pos of cluster.positions) {
+            const slotPiece = this.match3.board.getPieceByPosition(pos);
+            if (!slotPiece) continue;
+
+            // ⭐ Play the symbol’s real Spine animation
+            animations.push(slotPiece.animatePlay());
+        }
+    }
+
+    // Wait until all symbol animations finish
+    await Promise.all(animations);
+}
+
+
 
     /**
      * Evaluate cluster wins using your new game logic
@@ -66,7 +107,7 @@ export class Match3Process {
     }
 
     /**
-     *  SLOT MACHINE SPIN LOGIC (unchanged)
+     *  SLOT MACHINE SPIN LOGIC (unchanged except grid update)
      */
     private async spinWithAnimation() {
         const board = this.match3.board;
@@ -106,7 +147,7 @@ export class Match3Process {
     }
 
     /**
-     * Smooth spin for each real grid piece (unchanged)
+     * Smooth spin for each real grid piece
      */
     private animateColumnSpinLite(
         realPiece: SlotSymbol,
@@ -173,7 +214,7 @@ export class Match3Process {
                 const loop = () => {
                     if (elapsed >= spinDuration) {
 
-                        // ⭐ Update visible symbol
+                        // 🎯 Place backend symbol
                         realPiece.setup({
                             name: backendName,
                             type: backendType,
@@ -186,10 +227,9 @@ export class Match3Process {
                         realPiece.y = finalY;
                         realPiece.visible = true;
 
-                        // ⭐ ⭐ MOST IMPORTANT PATCH: Update actual grid
+                        // ⭐ UPDATE GRID TYPE
                         this.match3.board.grid[realPiece.row][realPiece.column] = backendType;
 
-                        // Clean up fake symbols
                         fakeSymbols.forEach(s => s.destroy());
 
                         resolve();
@@ -234,7 +274,6 @@ export class Match3Process {
             });
         });
     }
-
 
     public async stop() {
         this.processing = false;
