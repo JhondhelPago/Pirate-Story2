@@ -87,10 +87,10 @@ async function loadGameConfig() {
     // Game configuration from server
     gameConfig.setBlocks(result.blocks);
     gameConfig.setPaytables(result.paytable);
-    gameConfig.setSpecialBlocks(result.specialBlocks);
-    gameConfig.setScatterBlocks(result.scatterBlocks);
-    gameConfig.setScatterBlocksTrigger(result.scatterBlocksTrigger);
-    gameConfig.setJackpots(result.jackpots);
+    // gameConfig.setSpecialBlocks(result.specialBlocks);
+    // gameConfig.setScatterBlocks(result.scatterBlocks);
+    // gameConfig.setScatterBlocksTrigger(result.scatterBlocksTrigger);
+    // gameConfig.setJackpots(result.jackpots);
 }
 
 /** Setup app and initialise assets */
