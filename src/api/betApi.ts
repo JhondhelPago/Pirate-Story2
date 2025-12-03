@@ -7,7 +7,7 @@ export class BetAPI {
     static async spin(type: 'n' | 'r' | 'f'): Promise<{ reels: number[][], bonusReels: number[][] }> {
         try {
             // Define the URL of your Express server endpoint
-            const url = 'http://localhost:3000/spin';
+            const url = 'http://192.168.68.128:3000/spin';
 
             // Make a GET request to the Express server
             const response = await fetch(url, {

@@ -1,4 +1,4 @@
-    import { Container, Ticker } from 'pixi.js';
+import { Container, Ticker } from 'pixi.js';
 import { BetAPI } from '../api/betApi';
 import { Match3 } from './Match3';
 import { SlotSymbol } from './SlotSymbol';
@@ -45,37 +45,72 @@ export class Match3Process {
         this.processing = true;
 
         await this.spinWithAnimation();
-        
-        await this.animateAllSymbols();
 
-        await this.animateClusterWins();
+        // Update the landing pieces before cluster animation
+        this.updateBoardPiecesFromReels();
+
+        // ⭐ Animate clusters dynamically (NEW)
+        await this.animateAllWinCluster();
+
         this.evaluateClusterResults();
 
         this.processing = false;
         this.match3.onProcessComplete?.();
     }
 
-    private async animateClusterWins() {
-        const grid = this.match3.board.grid;
-        const clusters = slotGetClusters(grid);
-        if (!clusters.length) return;
-
-        const animations: Promise<void>[] = [];
-
-        for (const cluster of clusters) {
-            for (const pos of cluster.positions) {
-                const piece = this.match3.board.getPieceByPosition(pos);
-                if (!piece) continue;
-                animations.push(piece.animatePlay());
-            }
-        }
-        await Promise.all(animations);
-    }
-
     private evaluateClusterResults() {
         const grid = this.match3.board.grid;
         const wins = slotEvaluateClusterWins(grid);
         console.log("💰 CLUSTER WINS:", wins);
+        return wins;
+    }
+
+    // -----------------------------------------------------
+    // ⭐ DYNAMIC CLUSTER WIN ANIMATION (NEW)
+    // -----------------------------------------------------
+    private async animateAllWinCluster() {
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
+
+        const visibleTop = tileSize * 1;
+        const visibleBottom = tileSize * (board.rows + 1);
+
+        const animations: Promise<void>[] = [];
+
+        // 🔍 1. Read clusters from current grid
+        const wins = slotEvaluateClusterWins(board.grid);
+
+        // ⭐ 2. Build target coordinate set
+        const targetSet = new Set<string>();
+
+        for (const w of wins) {
+            for (const p of w.positions) {
+                targetSet.add(`${p.row},${p.column}`);
+            }
+        }
+
+        if (targetSet.size === 0) return; // no wins, no animation
+
+        // 🔥 3. Animate only winning positions
+        for (let c = 0; c < this.reels.length; c++) {
+            const reel = this.reels[c];
+
+            for (let i = 0; i < reel.symbols.length; i++) {
+                const symbol = reel.symbols[i];
+
+                // Only animate visible 5×5 area
+                if (symbol.y >= visibleTop && symbol.y < visibleBottom) {
+
+                    const rowIndex = Math.floor(symbol.y / tileSize) - 1;
+
+                    if (targetSet.has(`${rowIndex},${c}`)) {
+                        animations.push(symbol.animatePlay());
+                    }
+                }
+            }
+        }
+
+        await Promise.all(animations);
     }
 
     // -----------------------------------------------------
@@ -110,9 +145,6 @@ export class Match3Process {
         }
     }
 
-    // -----------------------------------------------------
-    // RANDOM DUMMY SYMBOL FOR TOP/BOTTOM OVERFLOW
-    // -----------------------------------------------------
     private createRandomDummySymbol(column: number): SlotSymbol {
         const board = this.match3.board;
         const tileSize = board.tileSize;
@@ -135,7 +167,7 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // BUILD REELS (ONCE)
+    // BUILD REELS
     // -----------------------------------------------------
     private buildReels() {
         const board = this.match3.board;
@@ -147,10 +179,7 @@ export class Match3Process {
         for (let c = 0; c < board.columns; c++) {
             const reelContainer = new Container();
             reelContainer.x = c * tileSize - offsetX;
-
-            // FIX: do NOT subtract -tileSize (this was causing the missing row)
             reelContainer.y = -offsetY + (-1 * tileSize);
-
             reelContainer.mask = board.piecesMask;
             board.piecesContainer.addChild(reelContainer);
 
@@ -162,19 +191,14 @@ export class Match3Process {
                 target: 0
             };
 
-            // REAL visible symbols
             const colSymbols = board.pieces.filter(p => p.column === c);
             colSymbols.sort((a, b) => a.row - b.row);
 
-            // -----------------------------------------------------
-            // FIX: ADD TOP DUMMY ROW (hidden above mask)
-            // -----------------------------------------------------
             const topDummy = this.createRandomDummySymbol(c);
             topDummy.y = -tileSize;
             reelContainer.addChild(topDummy);
             reel.symbols.push(topDummy);
 
-            // REAL backend symbols from board
             for (let i = 0; i < colSymbols.length; i++) {
                 const s = colSymbols[i];
                 s.x = 0;
@@ -183,9 +207,6 @@ export class Match3Process {
                 reel.symbols.push(s);
             }
 
-            // -----------------------------------------------------
-            // FIX: ADD BOTTOM DUMMY ROW
-            // -----------------------------------------------------
             const bottomDummy = this.createRandomDummySymbol(c);
             bottomDummy.y = colSymbols.length * tileSize;
             reelContainer.addChild(bottomDummy);
@@ -194,14 +215,13 @@ export class Match3Process {
             this.reels.push(reel);
         }
 
-        // start looping animation
         this.ticker = new Ticker();
         this.ticker.add(() => this.updateReels());
         this.ticker.start();
     }
 
     // -----------------------------------------------------
-    // APPEND BACKEND SYMBOLS AT BOTTOM
+    // APPEND BACKEND SYMBOLS
     // -----------------------------------------------------
     private appendBackendReels(types: number[][], bonus: number[][]) {
         const board = this.match3.board;
@@ -226,8 +246,6 @@ export class Match3Process {
 
                 symbol.alpha = 1;
                 symbol.x = 0;
-
-                // append AFTER dummy + real row count
                 symbol.y = reel.symbols.length * tileSize;
 
                 backendColumn.push(symbol);
@@ -256,7 +274,7 @@ export class Match3Process {
             const spinCycles = 10 + i * 5 + extra;
 
             const totalSymbols = reel.symbols.length;
-            const backendStartIndex = totalSymbols - visible - 1; // -1 because of dummy row
+            const backendStartIndex = totalSymbols - visible - 1;
 
             const targetPosition =
                 spinCycles * totalSymbols + backendStartIndex;
@@ -294,6 +312,9 @@ export class Match3Process {
         }
     }
 
+    // -----------------------------------------------------
+    // FINAL GRID WRITE
+    // -----------------------------------------------------
     private setFinalGridState(types: number[][]) {
         const board = this.match3.board;
 
@@ -304,6 +325,33 @@ export class Match3Process {
         }
 
         console.log("🧩 Logical grid updated.");
+    }
+
+    // -----------------------------------------------------
+    // UPDATE BOARD PIECES
+    // -----------------------------------------------------
+    private updateBoardPiecesFromReels() {
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
+
+        board.pieces = [];
+
+        for (let c = 0; c < this.reels.length; c++) {
+            const reel = this.reels[c];
+
+            for (let r = 0; r < board.rows; r++) {
+                const symbol = reel.symbols[r + 1];
+
+                symbol.row = r;
+                symbol.column = c;
+                symbol.x = 0;
+                symbol.y = r * tileSize;
+
+                board.pieces.push(symbol);
+            }
+        }
+
+        console.log("🔄 board.pieces updated from reels.");
     }
 
     private tweenReelTo(
@@ -341,16 +389,13 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // CLEAR SYMBOLS APPENDED FROM BACKEND
-    // Keep 2 dummy symbols!
+    // CLEAR BACKEND SYMBOLS
     // -----------------------------------------------------
     private clearBackendSymbols() {
         const board = this.match3.board;
         const visible = board.rows;
 
         for (const reel of this.reels) {
-
-            // FIX: keep 2 dummy rows
             while (reel.symbols.length > visible + 2) {
                 const s = reel.symbols.pop()!;
                 gsap.to(s, {
@@ -368,36 +413,4 @@ export class Match3Process {
     public async stop() {
         this.processing = false;
     }
-
-    /** 
-     * Trigger animation for ALL visible symbols.
-     * Call after spin finishes and grid is updated.
-     */
-
-    private async animateAllSymbols() {
-    const board = this.match3.board;
-    const tileSize = board.tileSize;
-
-    // board is shifted down by 1 row:
-    const visibleTop = tileSize * 1;
-    const visibleBottom = tileSize * (board.rows + 1); // +1 because shifted down
-
-    const animations: Promise<void>[] = [];
-
-    for (const reel of this.reels) {
-        for (let i = 0; i < reel.symbols.length; i++) {
-            const symbol = reel.symbols[i];
-
-            // new visibility check based on shifted reelContainer.y
-            if (symbol.y >= visibleTop && symbol.y < visibleBottom) {
-                animations.push(symbol.animatePlay());
-            }
-        }
-    }
-
-    await Promise.all(animations);
-}
-
-
-
 }
