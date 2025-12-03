@@ -22,6 +22,7 @@ export class Match3Process {
 
     private reels: Reel[] = [];
     private ticker?: Ticker;
+    private clusterAnimating = false;
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -44,6 +45,8 @@ export class Match3Process {
 
         this.processing = true;
 
+        this.stopAllSymbolAnimations();
+
         await this.spinWithAnimation();
 
         // Update the landing pieces before cluster animation
@@ -65,9 +68,6 @@ export class Match3Process {
         return wins;
     }
 
-    // -----------------------------------------------------
-    // ⭐ DYNAMIC CLUSTER WIN ANIMATION (NEW)
-    // -----------------------------------------------------
     private async animateAllWinCluster() {
         const board = this.match3.board;
         const tileSize = board.tileSize;
@@ -75,12 +75,11 @@ export class Match3Process {
         const visibleTop = tileSize * 1;
         const visibleBottom = tileSize * (board.rows + 1);
 
-        const animations: Promise<void>[] = [];
+        // Cancel previous cluster animations
+        this.clusterAnimating = false;
 
-        // 🔍 1. Read clusters from current grid
+        // If no wins, stop
         const wins = slotEvaluateClusterWins(board.grid);
-
-        // ⭐ 2. Build target coordinate set
         const targetSet = new Set<string>();
 
         for (const w of wins) {
@@ -89,33 +88,57 @@ export class Match3Process {
             }
         }
 
-        if (targetSet.size === 0) return; // no wins, no animation
+        if (targetSet.size === 0) return;
 
-        // 🔥 3. Animate only winning positions
-        for (let c = 0; c < this.reels.length; c++) {
-            const reel = this.reels[c];
+        // Start new loop
+        this.clusterAnimating = true;
 
-            for (let i = 0; i < reel.symbols.length; i++) {
-                const symbol = reel.symbols[i];
+        // Loop forever until spin() sets clusterAnimating = false
+        const animateLoop = () => {
+            if (!this.clusterAnimating) return;
 
-                // Only animate visible 5×5 area
-                if (symbol.y >= visibleTop && symbol.y < visibleBottom) {
+            for (let c = 0; c < this.reels.length; c++) {
+                const reel = this.reels[c];
 
-                    const rowIndex = Math.floor(symbol.y / tileSize) - 1;
+                for (let i = 0; i < reel.symbols.length; i++) {
+                    const symbol = reel.symbols[i];
 
-                    if (targetSet.has(`${rowIndex},${c}`)) {
-                        animations.push(symbol.animatePlay());
+                    if (symbol.y >= visibleTop && symbol.y < visibleBottom) {
+                        const rowIndex = Math.floor(symbol.y / tileSize) - 1;
+
+                        if (targetSet.has(`${rowIndex},${c}`)) {
+                            symbol.animatePlay(true); // true = allow internal loop
+                        }
                     }
                 }
             }
-        }
 
-        await Promise.all(animations);
+            // re-loop after delay
+            setTimeout(animateLoop, 800);
+        };
+
+        animateLoop();
     }
 
-    // -----------------------------------------------------
-    // SPIN LOGIC
-    // -----------------------------------------------------
+    private stopAllSymbolAnimations() {
+        this.clusterAnimating = false;
+
+        for (let c = 0; c < this.reels.length; c++) {
+            const reel = this.reels[c];
+
+            for (let symbol of reel.symbols) {
+                if (!symbol) continue;
+
+                symbol._isLooping = false; // hard stop loop flag
+
+                symbol.stopAnimationImmediately(); // stop spine
+            }
+        }
+    }
+
+
+
+
     private async spinWithAnimation() {
         const result = await BetAPI.spin("n");
 
@@ -195,6 +218,7 @@ export class Match3Process {
             colSymbols.sort((a, b) => a.row - b.row);
 
             const topDummy = this.createRandomDummySymbol(c);
+            (topDummy as any).__match3ProcessRef = this;
             topDummy.y = -tileSize;
             reelContainer.addChild(topDummy);
             reel.symbols.push(topDummy);
@@ -208,6 +232,7 @@ export class Match3Process {
             }
 
             const bottomDummy = this.createRandomDummySymbol(c);
+            (bottomDummy as any).__match3ProcessRef = this;
             bottomDummy.y = colSymbols.length * tileSize;
             reelContainer.addChild(bottomDummy);
             reel.symbols.push(bottomDummy);
@@ -237,6 +262,7 @@ export class Match3Process {
                 const name = board.typesMap[backendType];
 
                 const symbol = new SlotSymbol();
+                (symbol as any).__match3ProcessRef = this;
                 symbol.setup({
                     name,
                     type: backendType,

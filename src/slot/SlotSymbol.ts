@@ -48,6 +48,10 @@ export class SlotSymbol extends Container {
     /** Tween reference for animation */
     private multiplierTween?: gsap.core.Tween | gsap.core.Timeline;
 
+    public _isLooping: boolean = false;
+    public __match3ProcessRef: any = null;
+
+
 
     constructor() {
         super();
@@ -182,132 +186,161 @@ export class SlotSymbol extends Container {
     /** Reel spin animation — smooth scrolling with random temporary symbols */
     /** Reel spin animation — smooth scrolling with random temporary symbols */
     /** Reel spin animation — smooth scrolling with random temporary symbols */
-public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number): Promise<void> {
-    this.lock();
-    resolveAndKillTweens(this.position);
+    public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number): Promise<void> {
+        this.lock();
+        resolveAndKillTweens(this.position);
 
-    const spinDuration = 2;                // total spin time
-    const scrollSpeed = 900;               // pixels per second
-    const stagger = spinIndex * 0.15;      // delay per column
+        const spinDuration = 2;                // total spin time
+        const scrollSpeed = 900;               // pixels per second
+        const stagger = spinIndex * 0.15;      // delay per column
 
-    // ------------------------------
-    // 1. Find reel container safely
-    // ------------------------------
-    //
-    // Your Match3Board creates:
-    // match3
-    //   └── piecesContainer  <--- real pieces
-    //
-    // Reel container MUST be: piecesContainer of Board
-    //
-    const reelContainer = this.parent; // SlotSymbol parent = piecesContainer
-    if (!reelContainer) {
-        console.warn("animateColumnSpin(): Missing reelContainer");
-        this.unlock();
-        return;
-    }
+        // ------------------------------
+        // 1. Find reel container safely
+        // ------------------------------
+        //
+        // Your Match3Board creates:
+        // match3
+        //   └── piecesContainer  <--- real pieces
+        //
+        // Reel container MUST be: piecesContainer of Board
+        //
+        const reelContainer = this.parent; // SlotSymbol parent = piecesContainer
+        if (!reelContainer) {
+            console.warn("animateColumnSpin(): Missing reelContainer");
+            this.unlock();
+            return;
+        }
 
-    // board height = mask height
-    const boardHeight = reelContainer.height ?? 600;
-    const symbolHeight = this.height * 1.1;
+        // board height = mask height
+        const boardHeight = reelContainer.height ?? 600;
+        const symbolHeight = this.height * 1.1;
 
-    // ------------------------------
-    // 2. Build temporary fake symbols
-    // ------------------------------
-    const tempSymbols: SlotSymbol[] = [];
-    const needed = Math.ceil(boardHeight / symbolHeight) + 3;
+        // ------------------------------
+        // 2. Build temporary fake symbols
+        // ------------------------------
+        const tempSymbols: SlotSymbol[] = [];
+        const needed = Math.ceil(boardHeight / symbolHeight) + 3;
 
-    for (let i = 0; i < needed; i++) {
-        const fake = new SlotSymbol();   // ✔ safe (no pool)
-        fake.setup({
-            name: this.name,
-            type: this.type,
-            size: this.width,
-            multiplier: 0,
-        });
-
-        fake.x = finalX;
-        fake.y = finalY - symbolHeight * i - 200;
-
-        reelContainer.addChild(fake);     // ✔ safe parent add
-
-        tempSymbols.push(fake);
-    }
-
-    // Hide real symbol while reel spins
-    this.visible = false;
-
-    return new Promise(async (resolve) => {
-        await gsap.delayedCall(stagger, async () => {
-            let elapsed = 0;
-
-            // ------------------------------
-            // 3. Vertical scrolling loop
-            // ------------------------------
-            while (elapsed < spinDuration) {
-                const dist = symbolHeight;
-
-                // scroll down all fake symbols
-                const movs = tempSymbols.map(sym =>
-                    gsap.to(sym, {
-                        y: sym.y + dist,
-                        duration: dist / scrollSpeed,
-                        ease: "none"
-                    })
-                );
-                await Promise.all(movs);
-
-                // wrap to top for seamless scrolling
-                tempSymbols.forEach(sym => {
-                    if (sym.y > boardHeight + 100) {
-                        sym.y -= symbolHeight * needed;
-                    }
-                });
-
-                elapsed += dist / scrollSpeed;
-            }
-
-            // ------------------------------
-            // 4. Cleanup and show real symbol
-            // ------------------------------
-            tempSymbols.forEach(sym => sym.destroy());
-
-            this.x = finalX;
-            this.y = finalY;
-
-            // Fade or bounce real symbol
-            this.visible = true;
-            gsap.fromTo(this, { y: finalY - 50 }, {
-                y: finalY,
-                ease: "back.out(1.8)",
-                duration: 0.25
+        for (let i = 0; i < needed; i++) {
+            const fake = new SlotSymbol();   // ✔ safe (no pool)
+            fake.setup({
+                name: this.name,
+                type: this.type,
+                size: this.width,
+                multiplier: 0,
             });
 
-            this.unlock();
-            resolve();
-        });
-    });
-}
+            fake.x = finalX;
+            fake.y = finalY - symbolHeight * i - 200;
 
+            reelContainer.addChild(fake);     // ✔ safe parent add
 
+            tempSymbols.push(fake);
+        }
 
+        // Hide real symbol while reel spins
+        this.visible = false;
 
-    /** Play animation */
-    public async animatePlay(): Promise<void> {
-        this.lock();
+        return new Promise(async (resolve) => {
+            await gsap.delayedCall(stagger, async () => {
+                let elapsed = 0;
 
-        return new Promise((resolve) => {
-            const listener = {
-                complete: () => {
-                    this.spine.state.removeListener(listener);
-                    resolve();
-                },
-            };
+                // ------------------------------
+                // 3. Vertical scrolling loop
+                // ------------------------------
+                while (elapsed < spinDuration) {
+                    const dist = symbolHeight;
 
-            this.spine.state.addListener(listener);
-            this.spine.state.setAnimation(0, 'animation', false);
+                    // scroll down all fake symbols
+                    const movs = tempSymbols.map(sym =>
+                        gsap.to(sym, {
+                            y: sym.y + dist,
+                            duration: dist / scrollSpeed,
+                            ease: "none"
+                        })
+                    );
+                    await Promise.all(movs);
+
+                    // wrap to top for seamless scrolling
+                    tempSymbols.forEach(sym => {
+                        if (sym.y > boardHeight + 100) {
+                            sym.y -= symbolHeight * needed;
+                        }
+                    });
+
+                    elapsed += dist / scrollSpeed;
+                }
+
+                // ------------------------------
+                // 4. Cleanup and show real symbol
+                // ------------------------------
+                tempSymbols.forEach(sym => sym.destroy());
+
+                this.x = finalX;
+                this.y = finalY;
+
+                // Fade or bounce real symbol
+                this.visible = true;
+                gsap.fromTo(this, { y: finalY - 50 }, {
+                    y: finalY,
+                    ease: "back.out(1.8)",
+                    duration: 0.25
+                });
+
+                this.unlock();
+                resolve();
+            });
         });
     }
+
+    /** Play animation */
+    public animatePlay(loop: boolean = false): Promise<void> {
+
+        return new Promise((resolve) => {
+
+            const process = (((this.parent as any)?.parent) as any)?.__match3ProcessRef;
+
+            // Prevent infinite invalid loops
+            if (loop && this._isLooping) {
+                if (!process || process.clusterAnimating === false) {
+                    this._isLooping = false;
+                    return resolve();
+                }
+            }
+
+            // Mark as looping
+            if (loop) this._isLooping = true;
+
+            const playOnce = () => {
+
+                // Stop immediately if clustering stopped
+                if (loop && process && process.clusterAnimating === false) {
+                    this._isLooping = false;
+                    resolve();
+                    return;
+                }
+
+                const listener = {
+                    complete: () => {
+                        this.spine.state.removeListener(listener);
+
+                        if (loop && this._isLooping) {
+                            playOnce();              // keep looping
+                        } else {
+                            this._isLooping = false;  // stop permanently
+                            resolve();
+                        }
+                    },
+                };
+
+                this.spine.state.addListener(listener);
+                this.spine.state.setAnimation(0, 'animation', false);
+            };
+
+            playOnce();
+        });
+    }
+
 
     /** Play animation */
     public async animateSpecialPlay(): Promise<void> {
@@ -480,9 +513,9 @@ public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number
         // Pick correct asset based on multiplier value
         const assetName =
             this.multiplier === 2 ? '2XMutliplier' :
-            this.multiplier === 3 ? '3XMutliplier' :
-            this.multiplier === 5 ? '5XMutliplier' :
-            null;
+                this.multiplier === 3 ? '3XMutliplier' :
+                    this.multiplier === 5 ? '5XMutliplier' :
+                        null;
 
         if (!assetName) return;
 
@@ -502,47 +535,58 @@ public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number
         this.applyMultiplierAnimation();
     }
 
-    /** Apply float animation to multiplier */
     /** Apply float + zoom animation to multiplier */
-/** Apply float + zoom animation to multiplier */
-/** Apply fade-in + zoom-in intro and then idle floating animation */
-private applyMultiplierAnimation() {
-    if (!this.multiplierSprite) return;
+    /** Apply fade-in + zoom-in intro and then idle floating animation */
+    private applyMultiplierAnimation() {
+        if (!this.multiplierSprite) return;
 
-    // Kill existing animation
-    if (this.multiplierTween) {
-        this.multiplierTween.kill();
+        // Kill existing animation
+        if (this.multiplierTween) {
+            this.multiplierTween.kill();
+        }
+
+        const target = this.multiplierSprite;
+
+        // Reset initial state
+        target.alpha = 0;
+        target.scale.set(0.4); // start smaller
+        const baseY = target.y; // remember base Y
+
+        // Timeline
+        this.multiplierTween = gsap.timeline({ repeat: 0 })
+            // ⭐ FADE-IN + ZOOM-IN INTRO
+            .to(target, {
+                alpha: 1,
+                scale: .68,
+                duration: 0.35,
+                ease: "back.out(1.8)",
+            })
+            // ⭐ AFTER intro → start floating idle animation
+            .to(target, {
+                y: baseY - 8,
+                duration: 0.8,
+                ease: "sine.inOut",
+                yoyo: true,
+                repeat: -1,
+            });
     }
 
-    const target = this.multiplierSprite;
+    public getSpine() {
+        return this.spine;
+    }
 
-    // Reset initial state
-    target.alpha = 0;
-    target.scale.set(0.4); // start smaller
-    const baseY = target.y; // remember base Y
 
-    // Timeline
-    this.multiplierTween = gsap.timeline({ repeat: 0 })
-        // ⭐ FADE-IN + ZOOM-IN INTRO
-        .to(target, {
-            alpha: 1,
-            scale: .68,
-            duration: 0.35,
-            ease: "back.out(1.8)",
-        })
-        // ⭐ AFTER intro → start floating idle animation
-        .to(target, {
-            y: baseY - 8,
-            duration: 0.8,
-            ease: "sine.inOut",
-            yoyo: true,
-            repeat: -1,
-        });
-}
+    public stopAnimationImmediately() {
+        this._isLooping = false;
 
-public getSpine() {
-    return this.spine;
-}
+        if (this.spine) {
+            this.spine.state.clearTracks();        // remove all animations immediately
+            this.spine.state.setEmptyAnimation(0, 0); // reset animation track
+        }
+
+    }
+
+
 
 
 
