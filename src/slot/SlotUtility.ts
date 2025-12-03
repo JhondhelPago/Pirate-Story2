@@ -498,53 +498,96 @@ export function getRandomMultiplier(): MultipliersValues {
    Does not modify or replace any old logic.
    Works side-by-side with original slotGetMatches().
 =========================================================== */
-
-/** Directions for cluster checking */
-const CLUSTER_DIRS = [
-    { row: 1, column: 0 },   // down
-    { row: -1, column: 0 },  // up
-    { row: 0, column: 1 },   // right
-    { row: 0, column: -1 },  // left
-];
+const WILD = 12;
 
 /**
- * Internal flood-fill used to detect connected groups
+ * Flood fill region where:
+ * - Wilds are always allowed (WILD propagates everywhere)
+ * - Once we encounter a real type, that type becomes the regionType
+ * - Only tiles matching regionType OR wilds are allowed
+ *
+ * This allows wilds to connect unlimited tiles but prevents crossing into another type family.
  */
-function floodFillCluster(
+function floodFillRegion(
     grid: Match3Grid,
     start: Match3Position,
     visited: boolean[][]
 ): Match3Position[] {
-    const type = grid[start.row][start.column];
+    const region: Match3Position[] = [];
     const stack: Match3Position[] = [start];
-    const cluster: Match3Position[] = [];
 
-    visited[start.row][start.column] = true;
+    // Region type is initially unknown (null)
+    let regionType: number | null = null;
 
     while (stack.length > 0) {
         const pos = stack.pop()!;
-        cluster.push(pos);
+        const { row, column } = pos;
 
-        for (const dir of CLUSTER_DIRS) {
-            const next = { row: pos.row + dir.row, column: pos.column + dir.column };
+        if (visited[row][column]) continue;
+        const tileType = grid[row][column];
+
+        // If tile is REAL TYPE (not wild), pick regionType if not selected yet
+        if (tileType !== WILD) {
+            if (regionType === null) {
+                regionType = tileType;
+            }
+        }
+
+        // If regionType is known and tile is NOT that type or wild → stop
+        if (regionType !== null && tileType !== WILD && tileType !== regionType) {
+            continue;
+        }
+
+        visited[row][column] = true;
+        region.push(pos);
+
+        // explore neighbors
+        const dirs = [
+            { r: 1, c: 0 },
+            { r: -1, c: 0 },
+            { r: 0, c: 1 },
+            { r: 0, c: -1 },
+        ];
+
+        for (const d of dirs) {
+            const nr = row + d.r;
+            const nc = column + d.c;
 
             if (
-                match3IsValidPosition(grid, next) &&
-                !visited[next.row][next.column] &&
-                grid[next.row][next.column] === type
+                nr >= 0 && nr < grid.length &&
+                nc >= 0 && nc < grid[0].length &&
+                !visited[nr][nc]
             ) {
-                visited[next.row][next.column] = true;
-                stack.push(next);
+                const nt = grid[nr][nc];
+
+                // Always allow wilds
+                if (nt === WILD) {
+                    stack.push({ row: nr, column: nc });
+                    continue;
+                }
+
+                // If regionType still undetermined → allow exploring
+                if (regionType === null) {
+                    stack.push({ row: nr, column: nc });
+                    continue;
+                }
+
+                // If regionType is determined → only same type allowed
+                if (nt === regionType) {
+                    stack.push({ row: nr, column: nc });
+                }
             }
         }
     }
 
-    return cluster;
+    return region;
 }
 
 /**
- * Finds all connected clusters of size >= 5.
- * Option 1 rule: multiple clusters allowed per type.
+ * NEW cluster logic:
+ * - Build a "region" (realType + all wilds reachable)
+ * - Count each real type inside the region
+ * - A cluster exists when: realCount(type) + wildCount >= 5
  */
 export function slotGetClusters(grid: Match3Grid) {
     const visited = grid.map(row => row.map(() => false));
@@ -553,13 +596,38 @@ export function slotGetClusters(grid: Match3Grid) {
     for (let r = 0; r < grid.length; r++) {
         for (let c = 0; c < grid[r].length; c++) {
             if (!visited[r][c]) {
-                const cluster = floodFillCluster(grid, { row: r, column: c }, visited);
+                const region = floodFillRegion(grid, { row: r, column: c }, visited);
 
-                if (cluster.length >= 5) {
-                    clusters.push({
-                        type: grid[r][c],
-                        positions: cluster,
-                    });
+                // Count wilds + real types
+                let wildCount = 0;
+                const typeCounts: Record<number, number> = {};
+
+                for (const pos of region) {
+                    const t = grid[pos.row][pos.column];
+                    if (t === WILD) {
+                        wildCount++;
+                    } else {
+                        typeCounts[t] = (typeCounts[t] || 0) + 1;
+                    }
+                }
+
+                // For each real type, check if cluster is valid
+                for (const typeStr in typeCounts) {
+                    const type = Number(typeStr);
+                    const total = typeCounts[type] + wildCount;
+
+                    if (total >= 5) {
+                        // Build final cluster positions (type + wilds)
+                        const clusterPositions = region.filter(pos => {
+                            const t = grid[pos.row][pos.column];
+                            return t === type || t === WILD;
+                        });
+
+                        clusters.push({
+                            type,
+                            positions: clusterPositions,
+                        });
+                    }
                 }
             }
         }
@@ -569,11 +637,11 @@ export function slotGetClusters(grid: Match3Grid) {
 }
 
 /**
- * Evaluate cluster wins using paytable rules
+ * Evaluate paytable results.
  */
 export function slotEvaluateClusterWins(grid: Match3Grid) {
     const clusters = slotGetClusters(grid);
-    const paytable = gameConfig.getPaytables();
+    const paytable = gameConfig.getPaytables(); // keep your existing config
 
     const results: {
         type: Match3Type;
@@ -588,8 +656,9 @@ export function slotEvaluateClusterWins(grid: Match3Grid) {
 
         const count = cluster.positions.length;
 
-        // Find matching paytable pattern
-        const pattern = entry.patterns.find(p => count >= p.min && count <= p.max);
+        const pattern = entry.patterns.find(
+            p => count >= p.min && count <= p.max
+        );
         if (!pattern || pattern.win <= 0) continue;
 
         results.push({
@@ -602,5 +671,3 @@ export function slotEvaluateClusterWins(grid: Match3Grid) {
 
     return results;
 }
-
-
