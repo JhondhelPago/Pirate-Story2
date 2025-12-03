@@ -45,6 +45,9 @@ export class Match3Process {
         this.processing = true;
 
         await this.spinWithAnimation();
+        
+        await this.animateAllSymbols();
+
         await this.animateClusterWins();
         this.evaluateClusterResults();
 
@@ -365,4 +368,36 @@ export class Match3Process {
     public async stop() {
         this.processing = false;
     }
+
+    /** 
+     * Trigger animation for ALL visible symbols.
+     * Call after spin finishes and grid is updated.
+     */
+
+    private async animateAllSymbols() {
+    const board = this.match3.board;
+    const tileSize = board.tileSize;
+
+    // board is shifted down by 1 row:
+    const visibleTop = tileSize * 1;
+    const visibleBottom = tileSize * (board.rows + 1); // +1 because shifted down
+
+    const animations: Promise<void>[] = [];
+
+    for (const reel of this.reels) {
+        for (let i = 0; i < reel.symbols.length; i++) {
+            const symbol = reel.symbols[i];
+
+            // new visibility check based on shifted reelContainer.y
+            if (symbol.y >= visibleTop && symbol.y < visibleBottom) {
+                animations.push(symbol.animatePlay());
+            }
+        }
+    }
+
+    await Promise.all(animations);
+}
+
+
+
 }
