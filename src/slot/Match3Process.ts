@@ -1,4 +1,4 @@
-import { Container, Ticker } from 'pixi.js';
+    import { Container, Ticker } from 'pixi.js';
 import { BetAPI } from '../api/betApi';
 import { Match3 } from './Match3';
 import { SlotSymbol } from './SlotSymbol';
@@ -6,6 +6,7 @@ import {
     slotGetClusters,
     slotEvaluateClusterWins
 } from './SlotUtility';
+import gsap from 'gsap';
 
 interface Reel {
     container: Container;
@@ -35,9 +36,12 @@ export class Match3Process {
         this.processing = false;
     }
 
+    // -----------------------------------------------------
     // ENTRY POINT
+    // -----------------------------------------------------
     public async start() {
         if (this.processing) return;
+
         this.processing = true;
 
         await this.spinWithAnimation();
@@ -48,9 +52,6 @@ export class Match3Process {
         this.match3.onProcessComplete?.();
     }
 
-    // -----------------------------------------------------
-    // CLUSTER WIN ANIMATION
-    // -----------------------------------------------------
     private async animateClusterWins() {
         const grid = this.match3.board.grid;
         const clusters = slotGetClusters(grid);
@@ -75,7 +76,7 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // MAIN SPIN LOGIC
+    // SPIN LOGIC
     // -----------------------------------------------------
     private async spinWithAnimation() {
         const result = await BetAPI.spin("n");
@@ -87,13 +88,8 @@ export class Match3Process {
             this.buildReels();
         }
 
-        // ⭐ RESET INTERNAL POSITIONS FIRST
         this.resetReelsState();
-
-        // ⭐ Remove previous backend symbols
         this.clearBackendSymbols();
-
-        // ⭐ Add NEW backend symbols
         this.appendBackendReels(reelsResult, bonusResult);
 
         await this.spinReels();
@@ -103,7 +99,6 @@ export class Match3Process {
         console.log("🎉 Spin complete with natural landing.");
     }
 
-    // Reset reel positions to avoid stuck reels
     private resetReelsState() {
         for (const reel of this.reels) {
             reel.position = 0;
@@ -113,7 +108,31 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // BUILD REELS ONLY ONCE
+    // RANDOM DUMMY SYMBOL FOR TOP/BOTTOM OVERFLOW
+    // -----------------------------------------------------
+    private createRandomDummySymbol(column: number): SlotSymbol {
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
+
+        const typeKeys = Object.keys(board.typesMap).map(Number);
+        const randType = typeKeys[Math.floor(Math.random() * typeKeys.length)];
+        const name = board.typesMap[randType];
+
+        const s = new SlotSymbol();
+        s.setup({
+            name,
+            type: randType,
+            size: tileSize,
+            multiplier: 0,
+        });
+
+        s.alpha = 1;
+        s.x = 0;
+        return s;
+    }
+
+    // -----------------------------------------------------
+    // BUILD REELS (ONCE)
     // -----------------------------------------------------
     private buildReels() {
         const board = this.match3.board;
@@ -125,10 +144,11 @@ export class Match3Process {
         for (let c = 0; c < board.columns; c++) {
             const reelContainer = new Container();
             reelContainer.x = c * tileSize - offsetX;
-            reelContainer.y = -offsetY + tileSize;
+
+            // FIX: do NOT subtract -tileSize (this was causing the missing row)
+            reelContainer.y = -offsetY + (-1 * tileSize);
 
             reelContainer.mask = board.piecesMask;
-
             board.piecesContainer.addChild(reelContainer);
 
             const reel: Reel = {
@@ -139,33 +159,53 @@ export class Match3Process {
                 target: 0
             };
 
+            // REAL visible symbols
             const colSymbols = board.pieces.filter(p => p.column === c);
             colSymbols.sort((a, b) => a.row - b.row);
 
+            // -----------------------------------------------------
+            // FIX: ADD TOP DUMMY ROW (hidden above mask)
+            // -----------------------------------------------------
+            const topDummy = this.createRandomDummySymbol(c);
+            topDummy.y = -tileSize;
+            reelContainer.addChild(topDummy);
+            reel.symbols.push(topDummy);
+
+            // REAL backend symbols from board
             for (let i = 0; i < colSymbols.length; i++) {
                 const s = colSymbols[i];
                 s.x = 0;
-                s.y = (i - 1) * tileSize;
+                s.y = i * tileSize;
                 reelContainer.addChild(s);
                 reel.symbols.push(s);
             }
 
+            // -----------------------------------------------------
+            // FIX: ADD BOTTOM DUMMY ROW
+            // -----------------------------------------------------
+            const bottomDummy = this.createRandomDummySymbol(c);
+            bottomDummy.y = colSymbols.length * tileSize;
+            reelContainer.addChild(bottomDummy);
+            reel.symbols.push(bottomDummy);
+
             this.reels.push(reel);
         }
 
+        // start looping animation
         this.ticker = new Ticker();
         this.ticker.add(() => this.updateReels());
         this.ticker.start();
     }
 
     // -----------------------------------------------------
-    // APPEND BACKEND SYMBOLS
+    // APPEND BACKEND SYMBOLS AT BOTTOM
     // -----------------------------------------------------
     private appendBackendReels(types: number[][], bonus: number[][]) {
         const board = this.match3.board;
         const tileSize = board.tileSize;
 
         for (let c = 0; c < this.reels.length; c++) {
+            const reel = this.reels[c];
             const backendColumn: SlotSymbol[] = [];
 
             for (let r = 0; r < board.rows; r++) {
@@ -181,27 +221,30 @@ export class Match3Process {
                     multiplier: backendMult,
                 });
 
+                symbol.alpha = 1;
                 symbol.x = 0;
-                symbol.y = (this.reels[c].symbols.length + backendColumn.length - 1) * tileSize;
+
+                // append AFTER dummy + real row count
+                symbol.y = reel.symbols.length * tileSize;
 
                 backendColumn.push(symbol);
             }
 
             for (let s of backendColumn) {
-                this.reels[c].container.addChild(s);
-                this.reels[c].symbols.push(s);
+                reel.container.addChild(s);
+                reel.symbols.push(s);
             }
         }
     }
 
     // -----------------------------------------------------
-    // SPIN ANIMATION (NATURAL LANDING)
+    // SPIN TWEENING
     // -----------------------------------------------------
     private async spinReels() {
         const board = this.match3.board;
         const visible = board.rows;
 
-        const spinPromises: Promise<void>[] = [];
+        const promises: Promise<void>[] = [];
 
         for (let i = 0; i < this.reels.length; i++) {
             const reel = this.reels[i];
@@ -210,7 +253,7 @@ export class Match3Process {
             const spinCycles = 10 + i * 5 + extra;
 
             const totalSymbols = reel.symbols.length;
-            const backendStartIndex = totalSymbols - visible;
+            const backendStartIndex = totalSymbols - visible - 1; // -1 because of dummy row
 
             const targetPosition =
                 spinCycles * totalSymbols + backendStartIndex;
@@ -219,7 +262,7 @@ export class Match3Process {
 
             const duration = 2500 + i * 600 + extra * 600;
 
-            spinPromises.push(
+            promises.push(
                 this.tweenReelTo(
                     reel,
                     "position",
@@ -230,32 +273,24 @@ export class Match3Process {
             );
         }
 
-        await Promise.all(spinPromises);
+        await Promise.all(promises);
     }
 
-    // -----------------------------------------------------
-    // UPDATE REELS DURING SPIN
-    // -----------------------------------------------------
     private updateReels() {
         const tileSize = this.match3.board.tileSize;
 
-        for (let r = 0; r < this.reels.length; r++) {
-            const reel = this.reels[r];
-
+        for (const reel of this.reels) {
             reel.previousPosition = reel.position;
-
             const total = reel.symbols.length;
 
             for (let i = 0; i < total; i++) {
                 const s = reel.symbols[i];
-                s.y = ((reel.position + i) % total) * tileSize - tileSize;
+                const localIndex = (reel.position + i) % total;
+                s.y = localIndex * tileSize;
             }
         }
     }
 
-    // -----------------------------------------------------
-    // UPDATE LOGICAL GRID
-    // -----------------------------------------------------
     private setFinalGridState(types: number[][]) {
         const board = this.match3.board;
 
@@ -268,9 +303,6 @@ export class Match3Process {
         console.log("🧩 Logical grid updated.");
     }
 
-    // -----------------------------------------------------
-    // NATURAL LANDING TWEEN
-    // -----------------------------------------------------
     private tweenReelTo(
         reel: Reel,
         property: keyof Reel,
@@ -305,20 +337,32 @@ export class Match3Process {
             --t * t * ((amount + 1) * t + amount) + 1;
     }
 
-    public async stop() {
-        this.processing = false;
-    }
-
-    /** Remove old backend symbols before adding new ones */
+    // -----------------------------------------------------
+    // CLEAR SYMBOLS APPENDED FROM BACKEND
+    // Keep 2 dummy symbols!
+    // -----------------------------------------------------
     private clearBackendSymbols() {
         const board = this.match3.board;
         const visible = board.rows;
 
         for (const reel of this.reels) {
-            while (reel.symbols.length > visible) {
+
+            // FIX: keep 2 dummy rows
+            while (reel.symbols.length > visible + 2) {
                 const s = reel.symbols.pop()!;
-                s.destroy();
+                gsap.to(s, {
+                    alpha: 0,
+                    duration: 0.15,
+                    onComplete: () => {
+                        reel.container.removeChild(s);
+                        s.destroy();
+                    }
+                });
             }
         }
+    }
+
+    public async stop() {
+        this.processing = false;
     }
 }

@@ -28,18 +28,20 @@ export class Match3Board {
     constructor(match3: Match3) {
         this.match3 = match3;
 
-        /** Container where ALL spins and fake symbols will appear */
+        /** All visible + spinning symbols live here */
         this.piecesContainer = new Container();
+        this.piecesContainer.sortableChildren = true;
         this.match3.addChild(this.piecesContainer);
 
-        /** FIXED MASK — Now dynamic based on board size */
+        /** Mask (must be inside piecesContainer to align correctly) */
         this.piecesMask = new Graphics();
-        this.match3.addChild(this.piecesMask);
+        this.piecesContainer.addChild(this.piecesMask);
 
+        /** Apply mask to everything inside */
         this.piecesContainer.mask = this.piecesMask;
     }
 
-    /** Setup board and FIX mask */
+    /** Setup board and redraw mask */
     public setup(config: Match3Config) {
         this.rows = config.rows;
         this.columns = config.columns;
@@ -57,26 +59,39 @@ export class Match3Board {
         }
 
         /** Create grid */
-        this.grid = match3CreateGrid(this.rows, this.columns, Object.keys(this.typesMap).map(Number));
+        this.grid = match3CreateGrid(
+            this.rows,
+            this.columns,
+            Object.keys(this.typesMap).map(Number)
+        );
 
-        /** Create visible real symbols */
+        /** Create the initial real symbols */
         match3ForEach(this.grid, (pos, type) => {
-            const multiplier = (type === 11 || type === 12) ? getRandomMultiplier() : 0;
+            const multiplier = (type === 11 || type === 12)
+                ? getRandomMultiplier()
+                : 0;
+
             this.createPiece(pos, type, multiplier);
         });
     }
 
-    /** 🔥 FIX: Proper mask redrawn every time */
+    /** PERFECTLY aligned 5x5 mask */
     private refreshMask() {
-        const w = this.getWidth();
-        const h = this.getHeight();
+        const w = this.columns * this.tileSize;
+        const h = this.rows * this.tileSize;
+
+        const offsetX = ((this.columns - 1) * this.tileSize) / 2;
+        const offsetY = ((this.rows - 1) * this.tileSize) / 2;
 
         this.piecesMask.clear();
-        this.piecesMask
-            .beginFill(0xffffff, 0)  // ⬅ FIX HERE: transparent mask
-            .drawRect(-w / 2, -h / 2, w, h)
-            .endFill();
-
+        this.piecesMask.beginFill(0xffffff, 0.0001); // transparent mask
+        this.piecesMask.drawRect(
+            -offsetX - this.tileSize / 2,
+            -offsetY - this.tileSize / 2,
+            w,
+            h
+        );
+        this.piecesMask.endFill();
     }
 
     public reset() {
@@ -92,8 +107,8 @@ export class Match3Board {
         }
     }
 
-    /** Create a visual piece */
-    public createPiece(position: Match3Position, type: Match3Type, multiplier: number = 0) {
+    /** Create a visible piece in correct screen position */
+    public createPiece(position: Match3Position, type: Match3Type, multiplier = 0) {
         const name = this.typesMap[type];
         const piece = pool.get(SlotSymbol);
         const view = this.getViewPositionByGridPosition(position);
@@ -125,11 +140,11 @@ export class Match3Board {
         match3SetPieceType(this.grid, position, type);
 
         if (!type) return;
-
         this.createPiece(position, type);
     }
 
     public async playPiece() { return; }
+
     public async popPiece(position: Match3Position) {
         const p = this.getPieceByPosition(position);
         if (p) this.disposePiece(p);
@@ -150,7 +165,9 @@ export class Match3Board {
     }
 
     public getPieceByPosition(pos: Match3Position) {
-        return this.pieces.find(p => p.row === pos.row && p.column === pos.column) || null;
+        return this.pieces.find(p =>
+            p.row === pos.row && p.column === pos.column
+        ) || null;
     }
 
     public getViewPositionByGridPosition(position: Match3Position) {
@@ -171,10 +188,10 @@ export class Match3Board {
         return this.tileSize * this.rows;
     }
 
-    public pause() {}
-    public resume() {}
-
     public bringToFront(piece: SlotSymbol) {
         this.piecesContainer.addChild(piece);
     }
+
+    public pause() {}
+    public resume() {}
 }
