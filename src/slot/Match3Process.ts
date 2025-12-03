@@ -1,4 +1,4 @@
-import { Container, BlurFilter, Ticker } from 'pixi.js';
+import { Container, Ticker } from 'pixi.js';
 import { BetAPI } from '../api/betApi';
 import { Match3 } from './Match3';
 import { SlotSymbol } from './SlotSymbol';
@@ -13,7 +13,6 @@ interface Reel {
     position: number;
     target: number;
     previousPosition: number;
-    blur: BlurFilter;
 }
 
 export class Match3Process {
@@ -110,7 +109,6 @@ export class Match3Process {
             reel.position = 0;
             reel.previousPosition = 0;
             reel.target = 0;
-            reel.blur.blurY = 0;
         }
     }
 
@@ -138,13 +136,8 @@ export class Match3Process {
                 symbols: [],
                 position: 0,
                 previousPosition: 0,
-                target: 0,
-                blur: new BlurFilter()
+                target: 0
             };
-
-            reel.blur.blurX = 0;
-            reel.blur.blurY = 0.7;
-            reelContainer.filters = [reel.blur];
 
             const colSymbols = board.pieces.filter(p => p.column === c);
             colSymbols.sort((a, b) => a.row - b.row);
@@ -249,7 +242,6 @@ export class Match3Process {
         for (let r = 0; r < this.reels.length; r++) {
             const reel = this.reels[r];
 
-            reel.blur.blurY = (reel.position - reel.previousPosition) * 4;
             reel.previousPosition = reel.position;
 
             const total = reel.symbols.length;
