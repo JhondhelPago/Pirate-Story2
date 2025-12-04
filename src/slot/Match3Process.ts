@@ -24,6 +24,10 @@ export class Match3Process {
     private ticker?: Ticker;
     private clusterAnimating = false;
 
+    // ⭐ Internal temp spin helper vars
+    private _isTempSpinning: boolean = false;
+    private _tempSpinSpeed: number = 0;
+
     constructor(match3: Match3) {
         this.match3 = match3;
     }
@@ -93,7 +97,6 @@ export class Match3Process {
 
         // ❗ If NO wins → exit immediately, no flash, no animation loop
         if (targetSet.size === 0) {
-            // Ensure nothing animates
             this.stopAllSymbolAnimations();
             return;
         }
@@ -110,12 +113,10 @@ export class Match3Process {
                 for (let i = 0; i < reel.symbols.length; i++) {
                     const symbol = reel.symbols[i];
 
-                    // Ensure symbol is inside visible viewport
                     if (symbol.y < visibleTop || symbol.y >= visibleBottom) continue;
 
                     const rowIndex = Math.floor(symbol.y / tileSize) - 1;
 
-                    // Only animate winning pieces
                     if (targetSet.has(`${rowIndex},${c}`)) {
                         symbol.animatePlay(true);
                     }
@@ -145,11 +146,105 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // SPIN
+    // ⭐ NEW: TEMPORARY SPIN - START IMMEDIATELY
+    // -----------------------------------------------------
+    private startImmediateSpin() {
+        if (!this.ticker) return;
+
+        this._tempSpinSpeed = 0.55; // adjustable
+        this._isTempSpinning = true;
+
+        const tick = () => {
+            if (!this._isTempSpinning) return;
+
+            for (let r = 0; r < this.reels.length; r++) {
+                const reel = this.reels[r];
+                reel.position += this._tempSpinSpeed;
+            }
+
+            requestAnimationFrame(tick);
+        };
+        tick();
+    }
+
+    // -----------------------------------------------------
+    // ⭐ NEW: STOP TEMP SPIN SMOOTHLY
+    // -----------------------------------------------------
+    private stopImmediateSpin() {
+        if (!this._isTempSpinning) return;
+
+        this._isTempSpinning = false;
+
+        gsap.to(this, {
+            _tempSpinSpeed: 0,
+            duration: 0.25,
+            ease: "power2.out"
+        });
+    }
+
+    // -----------------------------------------------------
+    // ⭐ Fallback stopping when API is offline or timeout
+    // -----------------------------------------------------
+    private async forceStopReelsFallback() {
+        // Stop temp spin immediately
+        this._isTempSpinning = false;
+
+        return new Promise(resolve => {
+            gsap.to(this, {
+                _tempSpinSpeed: 0,
+                duration: 0.35,
+                ease: "power2.out",
+                onComplete: () => {
+                    console.log("🛑 Reels stopped safely (fallback due to offline API).");
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+
+    // -----------------------------------------------------
+    // SPIN (TEMP SPIN → BACKEND → FINAL SPIN)
     // -----------------------------------------------------
     private async spinWithAnimation() {
-        const result = await BetAPI.spin("n");
 
+        this.startImmediateSpin();
+
+        // ------------------------------------------------------
+        // ⭐ SAFE API CALL WITH TIMEOUT
+        // ------------------------------------------------------
+        let result: any; // <-- allow TS to treat result as an object later
+        let apiSuccess = true;
+
+        try {
+            result = await Promise.race([
+                BetAPI.spin("n"),
+                new Promise((_, reject) => setTimeout(() => reject("timeout"), 5000))
+            ]);
+        } catch (err) {
+            console.warn("⚠️ Spin API offline or timeout:", err);
+            apiSuccess = false;
+        }
+
+        // ⭐ Always stop temp spin
+        this.stopImmediateSpin();
+
+        // ------------------------------------------------------
+        // ⭐ OFFLINE OR FAILURE → SAFE EXIT
+        // ------------------------------------------------------
+        if (!apiSuccess) {
+
+            await this.forceStopReelsFallback();
+
+            this.processing = false;
+            console.warn("Spin aborted safely due to network error.");
+
+            return;
+        }
+
+        // ------------------------------------------------------
+        // ⭐ API SUCCESS — result is guaranteed valid now
+        // ------------------------------------------------------
         const reelsResult = result.reels;
         const bonusResult = result.bonusReels;
 
@@ -159,18 +254,19 @@ export class Match3Process {
 
         this.resetReelsState();
 
-        // ⭐ NEW — REGENERATE DUMMY ROWS EVERY SPIN
         this.refreshDummySymbols();
-
         this.clearBackendSymbols();
         this.appendBackendReels(reelsResult, bonusResult);
 
+        // ⭐ 3. FINAL LANDING SPIN
         await this.spinReels();
 
         this.setFinalGridState(reelsResult, bonusResult);
 
         console.log("🎉 Spin complete with natural landing.");
     }
+
+
 
     private resetReelsState() {
         for (const reel of this.reels) {
@@ -211,7 +307,6 @@ export class Match3Process {
         for (let c = 0; c < this.reels.length; c++) {
             const reel = this.reels[c];
 
-            // Remove existing top + bottom dummy
             const oldTop = reel.symbols[0];
             const oldBottom = reel.symbols[reel.symbols.length - 1];
 
@@ -220,14 +315,12 @@ export class Match3Process {
             oldTop.destroy();
             oldBottom.destroy();
 
-            // Create NEW randomized dummy symbols
             const newTop = this.createRandomDummySymbol(c);
             newTop.y = -tileSize;
 
             const newBottom = this.createRandomDummySymbol(c);
             newBottom.y = (this.match3.board.rows) * tileSize;
 
-            // Replace in array
             reel.symbols[0] = newTop;
             reel.symbols[reel.symbols.length - 1] = newBottom;
 
@@ -241,7 +334,7 @@ export class Match3Process {
     // -----------------------------------------------------
     private buildReels() {
         const board = this.match3.board;
-        const tileSize = board.tileSize;
+               const tileSize = board.tileSize;
 
         const offsetX = ((board.columns - 1) * tileSize) / 2;
         const offsetY = ((board.rows - 1) * tileSize) / 2;

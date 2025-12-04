@@ -6,6 +6,8 @@ export class BetAPI {
      */
     static async spin(type: 'n' | 'r' | 'f'): Promise<{ reels: number[][], bonusReels: number[][] }> {
         try {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
             // Define the URL of your Express server endpoint
             const url = 'http://192.168.68.129:3000/spin';
 
@@ -14,14 +16,11 @@ export class BetAPI {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    // You might add an authorization header here if needed:
-                    // 'Authorization': 'Bearer your_token_here',
                 },
             });
 
             // Check if the network request was successful
             if (!response.ok) {
-                // If the server responded with an error status (e.g., 404, 500)
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Server error occurred during spin');
             }
@@ -29,12 +28,10 @@ export class BetAPI {
             // Parse the JSON response body
             const data: { reels: number[][], bonusReels: number[][] } = await response.json();
 
-            // The 'type' parameter is not used in this fetch call but kept in signature
             console.log(`Spin type: ${type}`);
 
             return data;
         } catch (error: any) {
-            // Log the original error for debugging
             console.error('Bet API spin failed:', error);
 
             const message = error?.message || 'Bet normal spin failed';
