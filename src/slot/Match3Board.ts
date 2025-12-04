@@ -17,6 +17,7 @@ import { SlotSymbol } from './SlotSymbol';
 export class Match3Board {
     public match3: Match3;
     public grid: Match3Grid = [];
+    public multiplierGrid: Match3Grid = [];
     public pieces: SlotSymbol[] = [];
     public piecesMask: Graphics;
     public piecesContainer: Container;

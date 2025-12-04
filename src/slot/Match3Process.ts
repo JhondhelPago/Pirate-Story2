@@ -63,13 +63,15 @@ export class Match3Process {
 
     private evaluateClusterResults() {
         const grid = this.match3.board.grid;
-        const wins = slotEvaluateClusterWins(grid);
+        const bonusGrid = this.match3.board.multiplierGrid;
+        const wins = slotEvaluateClusterWins(grid, bonusGrid);
         console.log("💰 CLUSTER WINS:", wins);
         return wins;
     }
 
     private async animateAllWinCluster() {
         const board = this.match3.board;
+        const bonusGrid = board.multiplierGrid;
         const tileSize = board.tileSize;
 
         const visibleTop = tileSize * 1;
@@ -79,7 +81,7 @@ export class Match3Process {
         this.clusterAnimating = false;
 
         // If no wins, stop
-        const wins = slotEvaluateClusterWins(board.grid);
+        const wins = slotEvaluateClusterWins(board.grid, bonusGrid);
         const targetSet = new Set<string>();
 
         for (const w of wins) {
@@ -155,7 +157,7 @@ export class Match3Process {
 
         await this.spinReels();
 
-        this.setFinalGridState(reelsResult);
+        this.setFinalGridState(reelsResult, bonusResult);
 
         console.log("🎉 Spin complete with natural landing.");
     }
@@ -341,17 +343,16 @@ export class Match3Process {
     // -----------------------------------------------------
     // FINAL GRID WRITE
     // -----------------------------------------------------
-    private setFinalGridState(types: number[][]) {
+    private setFinalGridState(types: number[][], multipliers: number[][]) {
         const board = this.match3.board;
 
-        for (let r = 0; r < board.rows; r++) {
-            for (let c = 0; c < board.columns; c++) {
-                board.grid[r][c] = types[r][c];
-            }
-        }
+        // Deep copy the backend arrays
+        board.grid = types.map(row => [...row]);
+        board.multiplierGrid = multipliers.map(row => [...row]);
 
-        console.log("🧩 Logical grid updated.");
+        console.log("🧩 Logical grid + multiplier grid updated.");
     }
+
 
     // -----------------------------------------------------
     // UPDATE BOARD PIECES

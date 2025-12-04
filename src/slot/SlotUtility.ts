@@ -495,43 +495,17 @@ export function getRandomMultiplier(): MultipliersValues {
 
 
 // ======================================================
-//  PIRATE STORY PATTERN RECOGNITION AND REWARD SYSTEM
+//  PIRATE STORY PATTERN RECOGNITION + MULTIPLIER SYSTEM
 // ======================================================
 
-// Definition of the WILD tile type
 export const WILD = 12;
 
 /**
- * floodFillCluster()
- * -------------------
- * Performs a flood-fill to collect a PHYSICALLY CONNECTED cluster.
- *
- * Connectivity rules:
- *  - Wild tiles ALWAYS connect (WILD = universal connector).
- *  - Real tiles only connect to:
- *        • Same real type, OR
- *        • Wild
- *  - Real tiles NEVER connect to a different real type.
- *
- * Purpose:
- *  This ensures clusters consist ONLY of tiles that are
- *  physically linked (up/down/left/right), preventing
- *  separate, unconnected tiles from merging into a cluster.
- *
- * Supports:
- *  - Wild extending clusters.
- *  - Wild bridging two separate real-type segments.
- *  - Reusable wild tiles (used in multiple clusters).
- *
- * Does NOT:
- *  - Count diagonal connections.
- *  - Allow non-connected pieces of the same type to merge.
- *
- * Returns:
- *  - An array of grid positions belonging to a single
- *    physically connected cluster for the given baseType.
+ * Flood-fill physically connected cluster:
+ * - Same type connects
+ * - Wild connects to all
+ * - No merging unrelated groups
  */
-
 function floodFillCluster(
     grid: Match3Grid,
     start: Match3Position,
@@ -568,10 +542,7 @@ function floodFillCluster(
 
             const nt = grid[nr][nc];
 
-            // wild always connects
             if (nt === WILD) stack.push({ row: nr, column: nc });
-
-            // same type connects
             else if (nt === baseType) stack.push({ row: nr, column: nc });
         }
     }
@@ -580,39 +551,8 @@ function floodFillCluster(
 }
 
 /**
- * slotGetClusters()
- * ------------------
- * Detects ALL valid clusters on the board.
- *
- * Cluster Rules:
- *  - A cluster is composed of:
- *        • Connected tiles of the same type
- *        • PLUS any connected wild tiles
- *  - Must reach a MINIMUM SIZE of 5:
- *        (realCount + wildCount >= 5)
- *  - Wild tiles may be reused across multiple clusters.
- *  - Only horizontal/vertical connectivity counts.
- *
- * How It Works:
- *  1. Loops through each tile.
- *  2. Skips tiles already processed for that type.
- *  3. Performs a flood-fill (wild-aware) to collect the
- *     full physically connected region for that type.
- *  4. Counts real + wild inside the region.
- *  5. If total >= 5 → adds to cluster results.
- *
- * Important Notes:
- *  - Uses a LOCAL visited map per type, preventing
- *    wild tiles from disabling connectivity for other types.
- *  - Ensures unconnected same-type pieces are NEVER merged.
- *  - Exactly matches "3 real + 2 wild = cluster" rule,
- *    but ONLY when actually connected.
- *
- * Returns:
- *  - Array of clusters, where each entry contains:
- *        type, positions[]
+ * Detect all clusters ≥5 based on connectivity
  */
-
 export function slotGetClusters(grid: Match3Grid) {
     const processed: boolean[][] = grid.map(r => r.map(() => false));
     const clusters: { type: number; positions: Match3Position[] }[] = [];
@@ -624,13 +564,11 @@ export function slotGetClusters(grid: Match3Grid) {
 
             const baseType = grid[r][c];
 
-            // do not consider wild as its own cluster
             if (baseType === WILD) {
                 processed[r][c] = true;
                 continue;
             }
 
-            // local visited for this type only
             const localVisited = grid.map(row => row.map(() => false));
 
             const region = floodFillCluster(
@@ -640,7 +578,6 @@ export function slotGetClusters(grid: Match3Grid) {
                 localVisited
             );
 
-            // count real + wild
             let real = 0;
             let wild = 0;
 
@@ -649,7 +586,6 @@ export function slotGetClusters(grid: Match3Grid) {
                 if (t === baseType) real++;
                 else if (t === WILD) wild++;
 
-                // mark processed so we don't double count same region
                 processed[pos.row][pos.column] = true;
             }
 
@@ -668,40 +604,26 @@ export function slotGetClusters(grid: Match3Grid) {
 }
 
 /**
- * slotEvaluateClusterWins()
- * --------------------------
- * Takes the detected clusters and calculates payouts using
- * the paytable configuration.
+ * Evaluate wins INCLUDING wild multipliers.
  *
- * Process:
- *  - Calls slotGetClusters() to obtain all valid clusters.
- *  - For each cluster:
- *       1. Finds matching paytable entry for its type.
- *       2. Selects a payout pattern where:
- *             min <= cluster.size <= max
- *       3. Produces a final win result.
- *
- * It Does:
- *  - Handle multiple clusters of different types.
- *  - Calculate individual wins for each cluster.
- *
- * It Does NOT:
- *  - Merge clusters.
- *  - Alter cluster shapes/sizes.
- *
- * Returns:
- *  - Array of win objects:
- *        { type, count, win, positions[] }
+ * RULE:
+ * - totalMultiplier = sum of all wild multipliers inside cluster
+ * - If sum = 0 → totalMultiplier = 1 (neutral)
+ * - No extra +1 added
  */
-
-export function slotEvaluateClusterWins(grid: Match3Grid) {
+export function slotEvaluateClusterWins(
+    grid: Match3Grid,
+    bonusGrid: number[][]
+) {
     const clusters = slotGetClusters(grid);
     const paytable = gameConfig.getPaytables();
 
     const results: {
-        type: Match3Type;
+        type: number;
         count: number;
-        win: number;
+        baseWin: number;
+        multiplier: number;
+        finalWin: number;
         positions: Match3Position[];
     }[] = [];
 
@@ -716,12 +638,31 @@ export function slotEvaluateClusterWins(grid: Match3Grid) {
         );
         if (!pattern || pattern.win <= 0) continue;
 
+        // -------- MULTIPLIER EXTRACTION (FIXED) --------
+        let sum = 0;
+
+        for (const pos of cluster.positions) {
+            const t = grid[pos.row][pos.column];
+            if (t === WILD) {
+                const m = bonusGrid[pos.row][pos.column] || 0;
+                if (m > 0) sum += m;
+            }
+        }
+
+        const totalMultiplier = sum > 0 ? sum : 1;
+
+        // -------- FINAL WIN CALCULATION --------
+        const baseWin = pattern.win;
+        const finalWin = baseWin * totalMultiplier;
+
         results.push({
             type: cluster.type,
             count,
-            win: pattern.win,
-            positions: cluster.positions
-        }); 
+            baseWin,
+            multiplier: totalMultiplier,
+            finalWin,
+            positions: cluster.positions,
+        });
     }
 
     return results;
