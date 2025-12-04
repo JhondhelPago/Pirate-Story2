@@ -495,20 +495,43 @@ export function getRandomMultiplier(): MultipliersValues {
 
 
 // ======================================================
-//  CLUSTER LOGIC (FINAL VERSION — PHYSICALLY CONNECTED)
+//  PIRATE STORY PATTERN RECOGNITION AND REWARD SYSTEM
 // ======================================================
 
+// Definition of the WILD tile type
 export const WILD = 12;
 
 /**
- * Flood-fill a PHYSICALLY CONNECTED cluster:
- * - Always allow wild
- * - Allow same-type chaining
- * - Do NOT allow different type (except via wild)
+ * floodFillCluster()
+ * -------------------
+ * Performs a flood-fill to collect a PHYSICALLY CONNECTED cluster.
  *
- * This ensures wilds can extend OR link two same-type groups,
- * but does NOT allow merging non-connected tiles.
+ * Connectivity rules:
+ *  - Wild tiles ALWAYS connect (WILD = universal connector).
+ *  - Real tiles only connect to:
+ *        • Same real type, OR
+ *        • Wild
+ *  - Real tiles NEVER connect to a different real type.
+ *
+ * Purpose:
+ *  This ensures clusters consist ONLY of tiles that are
+ *  physically linked (up/down/left/right), preventing
+ *  separate, unconnected tiles from merging into a cluster.
+ *
+ * Supports:
+ *  - Wild extending clusters.
+ *  - Wild bridging two separate real-type segments.
+ *  - Reusable wild tiles (used in multiple clusters).
+ *
+ * Does NOT:
+ *  - Count diagonal connections.
+ *  - Allow non-connected pieces of the same type to merge.
+ *
+ * Returns:
+ *  - An array of grid positions belonging to a single
+ *    physically connected cluster for the given baseType.
  */
+
 function floodFillCluster(
     grid: Match3Grid,
     start: Match3Position,
@@ -557,12 +580,39 @@ function floodFillCluster(
 }
 
 /**
- * Detect all clusters in grid:
- * A cluster exists when:
- *  - connected real-type + connected wilds >= 5
- *  - wild may be reused in multiple clusters
- *  - connectivity is strictly PHYISCAL (no global merging)
+ * slotGetClusters()
+ * ------------------
+ * Detects ALL valid clusters on the board.
+ *
+ * Cluster Rules:
+ *  - A cluster is composed of:
+ *        • Connected tiles of the same type
+ *        • PLUS any connected wild tiles
+ *  - Must reach a MINIMUM SIZE of 5:
+ *        (realCount + wildCount >= 5)
+ *  - Wild tiles may be reused across multiple clusters.
+ *  - Only horizontal/vertical connectivity counts.
+ *
+ * How It Works:
+ *  1. Loops through each tile.
+ *  2. Skips tiles already processed for that type.
+ *  3. Performs a flood-fill (wild-aware) to collect the
+ *     full physically connected region for that type.
+ *  4. Counts real + wild inside the region.
+ *  5. If total >= 5 → adds to cluster results.
+ *
+ * Important Notes:
+ *  - Uses a LOCAL visited map per type, preventing
+ *    wild tiles from disabling connectivity for other types.
+ *  - Ensures unconnected same-type pieces are NEVER merged.
+ *  - Exactly matches "3 real + 2 wild = cluster" rule,
+ *    but ONLY when actually connected.
+ *
+ * Returns:
+ *  - Array of clusters, where each entry contains:
+ *        type, positions[]
  */
+
 export function slotGetClusters(grid: Match3Grid) {
     const processed: boolean[][] = grid.map(r => r.map(() => false));
     const clusters: { type: number; positions: Match3Position[] }[] = [];
@@ -618,9 +668,32 @@ export function slotGetClusters(grid: Match3Grid) {
 }
 
 /**
- * Evaluate cluster wins using paytables.
- * No logic changes required — uses the improved clusters.
+ * slotEvaluateClusterWins()
+ * --------------------------
+ * Takes the detected clusters and calculates payouts using
+ * the paytable configuration.
+ *
+ * Process:
+ *  - Calls slotGetClusters() to obtain all valid clusters.
+ *  - For each cluster:
+ *       1. Finds matching paytable entry for its type.
+ *       2. Selects a payout pattern where:
+ *             min <= cluster.size <= max
+ *       3. Produces a final win result.
+ *
+ * It Does:
+ *  - Handle multiple clusters of different types.
+ *  - Calculate individual wins for each cluster.
+ *
+ * It Does NOT:
+ *  - Merge clusters.
+ *  - Alter cluster shapes/sizes.
+ *
+ * Returns:
+ *  - Array of win objects:
+ *        { type, count, win, positions[] }
  */
+
 export function slotEvaluateClusterWins(grid: Match3Grid) {
     const clusters = slotGetClusters(grid);
     const paytable = gameConfig.getPaytables();
