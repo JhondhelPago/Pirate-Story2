@@ -77,25 +77,30 @@ export class Match3Process {
         const visibleTop = tileSize * 1;
         const visibleBottom = tileSize * (board.rows + 1);
 
-        // Cancel previous cluster animations
+        // Cancel any previous animations
         this.clusterAnimating = false;
 
-        // If no wins, stop
+        // Evaluate cluster wins ONCE
         const wins = slotEvaluateClusterWins(board.grid, bonusGrid);
-        const targetSet = new Set<string>();
 
+        // Build target set
+        const targetSet = new Set<string>();
         for (const w of wins) {
             for (const p of w.positions) {
                 targetSet.add(`${p.row},${p.column}`);
             }
         }
 
-        if (targetSet.size === 0) return;
+        // ❗ If NO wins → exit immediately, no flash, no animation loop
+        if (targetSet.size === 0) {
+            // Ensure nothing animates
+            this.stopAllSymbolAnimations();
+            return;
+        }
 
-        // Start new loop
+        // Now we know animation is needed
         this.clusterAnimating = true;
 
-        // Loop forever until spin() sets clusterAnimating = false
         const animateLoop = () => {
             if (!this.clusterAnimating) return;
 
@@ -105,22 +110,24 @@ export class Match3Process {
                 for (let i = 0; i < reel.symbols.length; i++) {
                     const symbol = reel.symbols[i];
 
-                    if (symbol.y >= visibleTop && symbol.y < visibleBottom) {
-                        const rowIndex = Math.floor(symbol.y / tileSize) - 1;
+                    // Ensure symbol is inside visible viewport
+                    if (symbol.y < visibleTop || symbol.y >= visibleBottom) continue;
 
-                        if (targetSet.has(`${rowIndex},${c}`)) {
-                            symbol.animatePlay(true); // true = allow internal loop
-                        }
+                    const rowIndex = Math.floor(symbol.y / tileSize) - 1;
+
+                    // Only animate winning pieces
+                    if (targetSet.has(`${rowIndex},${c}`)) {
+                        symbol.animatePlay(true);
                     }
                 }
             }
 
-            // re-loop after delay
             setTimeout(animateLoop, 800);
         };
 
         animateLoop();
     }
+
 
     private stopAllSymbolAnimations() {
         this.clusterAnimating = false;
@@ -131,16 +138,15 @@ export class Match3Process {
             for (let symbol of reel.symbols) {
                 if (!symbol) continue;
 
-                symbol._isLooping = false; // hard stop loop flag
-
-                symbol.stopAnimationImmediately(); // stop spine
+                symbol._isLooping = false;
+                symbol.stopAnimationImmediately();
             }
         }
     }
 
-
-
-
+    // -----------------------------------------------------
+    // SPIN
+    // -----------------------------------------------------
     private async spinWithAnimation() {
         const result = await BetAPI.spin("n");
 
@@ -152,6 +158,10 @@ export class Match3Process {
         }
 
         this.resetReelsState();
+
+        // ⭐ NEW — REGENERATE DUMMY ROWS EVERY SPIN
+        this.refreshDummySymbols();
+
         this.clearBackendSymbols();
         this.appendBackendReels(reelsResult, bonusResult);
 
@@ -192,6 +202,41 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
+    // ⭐ FIX: REGENERATE DUMMY ROWS EVERY SPIN
+    // -----------------------------------------------------
+    private refreshDummySymbols() {
+        const board = this.match3.board;
+        const tileSize = board.tileSize;
+
+        for (let c = 0; c < this.reels.length; c++) {
+            const reel = this.reels[c];
+
+            // Remove existing top + bottom dummy
+            const oldTop = reel.symbols[0];
+            const oldBottom = reel.symbols[reel.symbols.length - 1];
+
+            reel.container.removeChild(oldTop);
+            reel.container.removeChild(oldBottom);
+            oldTop.destroy();
+            oldBottom.destroy();
+
+            // Create NEW randomized dummy symbols
+            const newTop = this.createRandomDummySymbol(c);
+            newTop.y = -tileSize;
+
+            const newBottom = this.createRandomDummySymbol(c);
+            newBottom.y = (this.match3.board.rows) * tileSize;
+
+            // Replace in array
+            reel.symbols[0] = newTop;
+            reel.symbols[reel.symbols.length - 1] = newBottom;
+
+            reel.container.addChild(newTop);
+            reel.container.addChild(newBottom);
+        }
+    }
+
+    // -----------------------------------------------------
     // BUILD REELS
     // -----------------------------------------------------
     private buildReels() {
@@ -220,7 +265,6 @@ export class Match3Process {
             colSymbols.sort((a, b) => a.row - b.row);
 
             const topDummy = this.createRandomDummySymbol(c);
-            (topDummy as any).__match3ProcessRef = this;
             topDummy.y = -tileSize;
             reelContainer.addChild(topDummy);
             reel.symbols.push(topDummy);
@@ -234,7 +278,6 @@ export class Match3Process {
             }
 
             const bottomDummy = this.createRandomDummySymbol(c);
-            (bottomDummy as any).__match3ProcessRef = this;
             bottomDummy.y = colSymbols.length * tileSize;
             reelContainer.addChild(bottomDummy);
             reel.symbols.push(bottomDummy);
@@ -264,7 +307,6 @@ export class Match3Process {
                 const name = board.typesMap[backendType];
 
                 const symbol = new SlotSymbol();
-                (symbol as any).__match3ProcessRef = this;
                 symbol.setup({
                     name,
                     type: backendType,
@@ -346,13 +388,11 @@ export class Match3Process {
     private setFinalGridState(types: number[][], multipliers: number[][]) {
         const board = this.match3.board;
 
-        // Deep copy the backend arrays
-        board.grid = types.map(row => [...row]);
+        board.grid = types.map(row => [...row]);  
         board.multiplierGrid = multipliers.map(row => [...row]);
 
         console.log("🧩 Logical grid + multiplier grid updated.");
     }
-
 
     // -----------------------------------------------------
     // UPDATE BOARD PIECES
