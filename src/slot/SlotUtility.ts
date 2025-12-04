@@ -493,55 +493,42 @@ export function getRandomMultiplier(): MultipliersValues {
 }
 
 
-/* ===========================================================
-   NEW GAMEPLAY: CLUSTER-BASED MATCH RULES (≥5 connected tiles)
-   Does not modify or replace any old logic.
-   Works side-by-side with original slotGetMatches().
-=========================================================== */
-const WILD = 12;
+
+// ======================================================
+//  CLUSTER LOGIC (FINAL VERSION — PHYSICALLY CONNECTED)
+// ======================================================
+
+export const WILD = 12;
 
 /**
- * Flood fill region where:
- * - Wilds are always allowed (WILD propagates everywhere)
- * - Once we encounter a real type, that type becomes the regionType
- * - Only tiles matching regionType OR wilds are allowed
+ * Flood-fill a PHYSICALLY CONNECTED cluster:
+ * - Always allow wild
+ * - Allow same-type chaining
+ * - Do NOT allow different type (except via wild)
  *
- * This allows wilds to connect unlimited tiles but prevents crossing into another type family.
+ * This ensures wilds can extend OR link two same-type groups,
+ * but does NOT allow merging non-connected tiles.
  */
-function floodFillRegion(
+function floodFillCluster(
     grid: Match3Grid,
     start: Match3Position,
-    visited: boolean[][]
+    baseType: number,
+    localVisited: boolean[][]
 ): Match3Position[] {
-    const region: Match3Position[] = [];
-    const stack: Match3Position[] = [start];
 
-    // Region type is initially unknown (null)
-    let regionType: number | null = null;
+    const stack = [start];
+    const region: Match3Position[] = [];
 
     while (stack.length > 0) {
         const pos = stack.pop()!;
         const { row, column } = pos;
 
-        if (visited[row][column]) continue;
-        const tileType = grid[row][column];
+        if (localVisited[row][column]) continue;
+        localVisited[row][column] = true;
 
-        // If tile is REAL TYPE (not wild), pick regionType if not selected yet
-        if (tileType !== WILD) {
-            if (regionType === null) {
-                regionType = tileType;
-            }
-        }
-
-        // If regionType is known and tile is NOT that type or wild → stop
-        if (regionType !== null && tileType !== WILD && tileType !== regionType) {
-            continue;
-        }
-
-        visited[row][column] = true;
+        const t = grid[row][column];
         region.push(pos);
 
-        // explore neighbors
         const dirs = [
             { r: 1, c: 0 },
             { r: -1, c: 0 },
@@ -553,30 +540,16 @@ function floodFillRegion(
             const nr = row + d.r;
             const nc = column + d.c;
 
-            if (
-                nr >= 0 && nr < grid.length &&
-                nc >= 0 && nc < grid[0].length &&
-                !visited[nr][nc]
-            ) {
-                const nt = grid[nr][nc];
+            if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid[0].length)
+                continue;
 
-                // Always allow wilds
-                if (nt === WILD) {
-                    stack.push({ row: nr, column: nc });
-                    continue;
-                }
+            const nt = grid[nr][nc];
 
-                // If regionType still undetermined → allow exploring
-                if (regionType === null) {
-                    stack.push({ row: nr, column: nc });
-                    continue;
-                }
+            // wild always connects
+            if (nt === WILD) stack.push({ row: nr, column: nc });
 
-                // If regionType is determined → only same type allowed
-                if (nt === regionType) {
-                    stack.push({ row: nr, column: nc });
-                }
-            }
+            // same type connects
+            else if (nt === baseType) stack.push({ row: nr, column: nc });
         }
     }
 
@@ -584,51 +557,59 @@ function floodFillRegion(
 }
 
 /**
- * NEW cluster logic:
- * - Build a "region" (realType + all wilds reachable)
- * - Count each real type inside the region
- * - A cluster exists when: realCount(type) + wildCount >= 5
+ * Detect all clusters in grid:
+ * A cluster exists when:
+ *  - connected real-type + connected wilds >= 5
+ *  - wild may be reused in multiple clusters
+ *  - connectivity is strictly PHYISCAL (no global merging)
  */
 export function slotGetClusters(grid: Match3Grid) {
-    const visited = grid.map(row => row.map(() => false));
-    const clusters: { type: Match3Type; positions: Match3Position[] }[] = [];
+    const processed: boolean[][] = grid.map(r => r.map(() => false));
+    const clusters: { type: number; positions: Match3Position[] }[] = [];
 
     for (let r = 0; r < grid.length; r++) {
         for (let c = 0; c < grid[r].length; c++) {
-            if (!visited[r][c]) {
-                const region = floodFillRegion(grid, { row: r, column: c }, visited);
 
-                // Count wilds + real types
-                let wildCount = 0;
-                const typeCounts: Record<number, number> = {};
+            if (processed[r][c]) continue;
 
-                for (const pos of region) {
-                    const t = grid[pos.row][pos.column];
-                    if (t === WILD) {
-                        wildCount++;
-                    } else {
-                        typeCounts[t] = (typeCounts[t] || 0) + 1;
-                    }
-                }
+            const baseType = grid[r][c];
 
-                // For each real type, check if cluster is valid
-                for (const typeStr in typeCounts) {
-                    const type = Number(typeStr);
-                    const total = typeCounts[type] + wildCount;
+            // do not consider wild as its own cluster
+            if (baseType === WILD) {
+                processed[r][c] = true;
+                continue;
+            }
 
-                    if (total >= 5) {
-                        // Build final cluster positions (type + wilds)
-                        const clusterPositions = region.filter(pos => {
-                            const t = grid[pos.row][pos.column];
-                            return t === type || t === WILD;
-                        });
+            // local visited for this type only
+            const localVisited = grid.map(row => row.map(() => false));
 
-                        clusters.push({
-                            type,
-                            positions: clusterPositions,
-                        });
-                    }
-                }
+            const region = floodFillCluster(
+                grid,
+                { row: r, column: c },
+                baseType,
+                localVisited
+            );
+
+            // count real + wild
+            let real = 0;
+            let wild = 0;
+
+            for (const pos of region) {
+                const t = grid[pos.row][pos.column];
+                if (t === baseType) real++;
+                else if (t === WILD) wild++;
+
+                // mark processed so we don't double count same region
+                processed[pos.row][pos.column] = true;
+            }
+
+            const total = real + wild;
+
+            if (total >= 5) {
+                clusters.push({
+                    type: baseType,
+                    positions: region,
+                });
             }
         }
     }
@@ -637,11 +618,12 @@ export function slotGetClusters(grid: Match3Grid) {
 }
 
 /**
- * Evaluate paytable results.
+ * Evaluate cluster wins using paytables.
+ * No logic changes required — uses the improved clusters.
  */
 export function slotEvaluateClusterWins(grid: Match3Grid) {
     const clusters = slotGetClusters(grid);
-    const paytable = gameConfig.getPaytables(); // keep your existing config
+    const paytable = gameConfig.getPaytables();
 
     const results: {
         type: Match3Type;
@@ -665,8 +647,8 @@ export function slotEvaluateClusterWins(grid: Match3Grid) {
             type: cluster.type,
             count,
             win: pattern.win,
-            positions: cluster.positions,
-        });
+            positions: cluster.positions
+        }); 
     }
 
     return results;
