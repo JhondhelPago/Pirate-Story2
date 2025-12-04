@@ -33,8 +33,8 @@ let scatterReels = [
 
 let winReels = [
     [1, 4, 3, 2, 5],
-    [6, 12, 2, 2, 12],
-    [1, 4, 12, 4, 1],
+    [6, 6, 2, 2, 12],
+    [4, 12, 4, 12, 4],
     [1, 3, 12, 1, 10],
     [5, 11, 12, 2, 10],
 ];
@@ -52,12 +52,25 @@ app.get('/spin', async (req, res) => {
 
     // Generate 5 reels, each with 5 random symbols (1-12)
     //const reels = Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => getRandomInt(1, 12)));
-    const reels = winReels;
+    const reels = Array.from({ length: 5 }, () =>
+    Array.from({ length: 5 }, () => {
+        let n = getRandomInt(1, 12);  // now includes 12
+        while (n === 11) {
+        n = getRandomInt(1, 12);
+        }
+        return n;
+    })
+    );
+
+
+    
+    //const reels = winReels;
 
     const bonusReels = reels.map(reel => {
         const multiplierOptions = [2, 3, 5];
         const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
-        return reel.map(symbol => (symbol === 11 || symbol === 12 || symbol === 5 ? randomMultiplier : 0));
+        // return reel.map(symbol => (symbol === 11 || symbol === 12 ? randomMultiplier : 0)); // type shoild only be generetedby the initail spin, configure by the server
+        return reel.map(symbol => (symbol === 12 ? randomMultiplier : 0));
     })
     
 
