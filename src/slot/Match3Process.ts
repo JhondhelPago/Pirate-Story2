@@ -353,17 +353,28 @@ export class Match3Process {
         this._clusterAnimating = true;
 
         // 4. Animate all cluster symbols infinitely
+        // ⭐ Collect unique SlotSymbols
+        const uniqueSymbols = new Set<SlotSymbol>();
+
         for (const cluster of clusters) {
             for (const pos of cluster.positions) {
                 const sym = grid[pos.row][pos.column];
                 if (!sym) continue;
-
-                sym.__match3ProcessRef = this;
-
-                // Loop forever until next spin
-                sym.animatePlay(true);
+                uniqueSymbols.add(sym);
             }
         }
+
+        // ⭐ Now animate each symbol ONLY ONCE
+        for (const sym of uniqueSymbols) {
+            sym.__match3ProcessRef = this;
+
+            // Reset looping state FIRST
+            sym._isLooping = false;
+
+            // Start infinite animation loop
+            sym.animatePlay(true);
+        }
+
     }
 
 }
