@@ -195,4 +195,24 @@ export class Match3Board {
 
     public pause() {}
     public resume() {}
+
+    public removeInitialPiecesOnly() {
+        for (const child of [...this.piecesContainer.children]) {
+            // Keep mask
+            if (child === this.piecesMask) continue;
+
+            // Keep blurLayer & realLayer (detect by name or instanceof)
+            if ((child as any).isReelLayer) continue;
+
+            // Remove SlotSymbol object
+            if (child instanceof SlotSymbol) {
+                this.piecesContainer.removeChild(child);
+                child.destroy();
+            }
+        }
+
+        this.pieces = [];
+    }
+
+
 }

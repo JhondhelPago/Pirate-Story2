@@ -1,40 +1,55 @@
-import { Container, Ticker } from 'pixi.js';
-import { BetAPI } from '../api/betApi';
-import { Match3 } from './Match3';
-import { SlotSymbol } from './SlotSymbol';
-import {
-    slotGetClusters,
-    slotEvaluateClusterWins
-} from './SlotUtility';
-import gsap from 'gsap';
+import { Container, Ticker } from "pixi.js";
+import { BetAPI } from "../api/betApi";
+import { Match3 } from "./Match3";
+import { BlurSymbol } from "../ui/BlurSymbol";
+import gsap from "gsap";
+import { SlotSymbol } from "./SlotSymbol";
 
-interface Reel {
+interface ReelColumn {
     container: Container;
-    symbols: SlotSymbol[];
+    symbols: (BlurSymbol | SlotSymbol)[];
     position: number;
-    target: number;
-    previousPosition: number;
 }
 
 export class Match3Process {
     private match3: Match3;
     private processing = false;
 
-    private reels: Reel[] = [];
-    private ticker?: Ticker;
-    private clusterAnimating = false;
+    // Two layers
+    private blurLayer: Container;
+    private realLayer: Container;
 
-    // ⭐ Internal temp spin helper vars
-    private _isTempSpinning: boolean = false;
-    private _tempSpinSpeed: number = 0;
+    // Reels for blur + real layers
+    private blurReels: ReelColumn[] = [];
+    private realReels: ReelColumn[] = [];
+
+    private ticker?: Ticker;
 
     constructor(match3: Match3) {
         this.match3 = match3;
+
+        const mask = this.match3.board.piecesMask;
+
+        // 🌟 Create two vertically stacked layers
+        this.blurLayer = new Container();
+        this.realLayer = new Container();
+
+        this.blurLayer.mask = mask;
+        this.realLayer.mask = mask;
+
+        // Mark layers so Match3Board will NOT delete them
+        (this.blurLayer as any).isReelLayer = true;
+        (this.realLayer as any).isReelLayer = true;
+
+        // Add both layers into board container
+        this.match3.board.piecesContainer.addChild(this.blurLayer);
+        this.match3.board.piecesContainer.addChild(this.realLayer);
     }
 
     public isProcessing() {
         return this.processing;
     }
+
     public pause() {}
     public resume() {}
     public reset() {
@@ -49,528 +64,209 @@ export class Match3Process {
 
         this.processing = true;
 
-        this.stopAllSymbolAnimations();
+        // ⭐ Remove initial 5x5 SlotSymbols cleanly using the NEW METHOD
+        this.match3.board.removeInitialPiecesOnly();
 
-        await this.spinWithAnimation();
-
-        // Update the landing pieces before cluster animation
-        this.updateBoardPiecesFromReels();
-
-        // ⭐ Animate clusters dynamically (NEW)
-        await this.animateAllWinCluster();
-
-        this.evaluateClusterResults();
+        await this.spinSequence();
 
         this.processing = false;
         this.match3.onProcessComplete?.();
     }
 
-    private evaluateClusterResults() {
-        const grid = this.match3.board.grid;
-        const bonusGrid = this.match3.board.multiplierGrid;
-        const wins = slotEvaluateClusterWins(grid, bonusGrid);
-        console.log("💰 CLUSTER WINS:", wins);
-        return wins;
-    }
-
-    private async animateAllWinCluster() {
-        const board = this.match3.board;
-        const bonusGrid = board.multiplierGrid;
-        const tileSize = board.tileSize;
-
-        const visibleTop = tileSize * 1;
-        const visibleBottom = tileSize * (board.rows + 1);
-
-        // Cancel any previous animations
-        this.clusterAnimating = false;
-
-        // Evaluate cluster wins ONCE
-        const wins = slotEvaluateClusterWins(board.grid, bonusGrid);
-
-        // Build target set
-        const targetSet = new Set<string>();
-        for (const w of wins) {
-            for (const p of w.positions) {
-                targetSet.add(`${p.row},${p.column}`);
-            }
-        }
-
-        // ❗ If NO wins → exit immediately, no flash, no animation loop
-        if (targetSet.size === 0) {
-            this.stopAllSymbolAnimations();
-            return;
-        }
-
-        // Now we know animation is needed
-        this.clusterAnimating = true;
-
-        const animateLoop = () => {
-            if (!this.clusterAnimating) return;
-
-            for (let c = 0; c < this.reels.length; c++) {
-                const reel = this.reels[c];
-
-                for (let i = 0; i < reel.symbols.length; i++) {
-                    const symbol = reel.symbols[i];
-
-                    if (symbol.y < visibleTop || symbol.y >= visibleBottom) continue;
-
-                    const rowIndex = Math.floor(symbol.y / tileSize) - 1;
-
-                    if (targetSet.has(`${rowIndex},${c}`)) {
-                        symbol.animatePlay(true);
-                    }
-                }
-            }
-
-            setTimeout(animateLoop, 800);
-        };
-
-        animateLoop();
-    }
-
-
-    private stopAllSymbolAnimations() {
-        this.clusterAnimating = false;
-
-        for (let c = 0; c < this.reels.length; c++) {
-            const reel = this.reels[c];
-
-            for (let symbol of reel.symbols) {
-                if (!symbol) continue;
-
-                symbol._isLooping = false;
-                symbol.stopAnimationImmediately();
-            }
-        }
-    }
-
     // -----------------------------------------------------
-    // ⭐ NEW: TEMPORARY SPIN - START IMMEDIATELY
+    // MAIN SPIN SEQUENCE
     // -----------------------------------------------------
-    private startImmediateSpin() {
-        if (!this.ticker) return;
+    private async spinSequence() {
+        const maskH = this.match3.board.rows * this.match3.board.tileSize;
 
-        this._tempSpinSpeed = 0.55; // adjustable
-        this._isTempSpinning = true;
+        if (!this.blurReels.length) this.buildBlurLayer();
+        if (!this.realReels.length) this.buildRealLayer();
 
-        const tick = () => {
-            if (!this._isTempSpinning) return;
+        // Move layers to initial slide positions
+        this.blurLayer.y = -maskH;
+        this.realLayer.y = 0;
 
-            for (let r = 0; r < this.reels.length; r++) {
-                const reel = this.reels[r];
-                reel.position += this._tempSpinSpeed;
-            }
+        // Slide realLayer OUT, blurLayer IN
+        await Promise.all([
+            gsap.to(this.realLayer, { y: maskH, duration: 0.35, ease: "power2.out" }),
+            gsap.to(this.blurLayer, { y: 0, duration: 0.35, ease: "power2.out" }),
+        ]);
 
-            requestAnimationFrame(tick);
-        };
-        tick();
-    }
+        // Start blur spin
+        this.startBlurSpin();
 
-    // -----------------------------------------------------
-    // ⭐ NEW: STOP TEMP SPIN SMOOTHLY
-    // -----------------------------------------------------
-    private stopImmediateSpin() {
-        if (!this._isTempSpinning) return;
-
-        this._isTempSpinning = false;
-
-        gsap.to(this, {
-            _tempSpinSpeed: 0,
-            duration: 0.25,
-            ease: "power2.out"
-        });
-    }
-
-    // -----------------------------------------------------
-    // ⭐ Fallback stopping when API is offline or timeout
-    // -----------------------------------------------------
-    private async forceStopReelsFallback() {
-        // Stop temp spin immediately
-        this._isTempSpinning = false;
-
-        return new Promise(resolve => {
-            gsap.to(this, {
-                _tempSpinSpeed: 0,
-                duration: 0.35,
-                ease: "power2.out",
-                onComplete: () => {
-                    console.log("🛑 Reels stopped safely (fallback due to offline API).");
-                    resolve(null);
-                }
-            });
-        });
-    }
-
-
-    // -----------------------------------------------------
-    // SPIN (TEMP SPIN → BACKEND → FINAL SPIN)
-    // -----------------------------------------------------
-    private async spinWithAnimation() {
-
-        this.startImmediateSpin();
-
-        // ------------------------------------------------------
-        // ⭐ SAFE API CALL WITH TIMEOUT
-        // ------------------------------------------------------
-        let result: any; // <-- allow TS to treat result as an object later
+        // Wait backend
+        let result: any;
         let apiSuccess = true;
-
         try {
             result = await Promise.race([
                 BetAPI.spin("n"),
-                new Promise((_, reject) => setTimeout(() => reject("timeout"), 5000))
+                new Promise((_, reject) => setTimeout(() => reject("timeout"), 5000)),
             ]);
         } catch (err) {
-            console.warn("⚠️ Spin API offline or timeout:", err);
             apiSuccess = false;
         }
 
-        // ⭐ Always stop temp spin
-        this.stopImmediateSpin();
+        this.stopBlurSpin();
 
-        // ------------------------------------------------------
-        // ⭐ OFFLINE OR FAILURE → SAFE EXIT
-        // ------------------------------------------------------
         if (!apiSuccess) {
-
-            await this.forceStopReelsFallback();
-
-            this.processing = false;
-            console.warn("Spin aborted safely due to network error.");
-
+            console.warn("Backend offline or timeout.");
             return;
         }
 
-        // ------------------------------------------------------
-        // ⭐ API SUCCESS — result is guaranteed valid now
-        // ------------------------------------------------------
-        const reelsResult = result.reels;
-        const bonusResult = result.bonusReels;
+        // Update realLayer with backend reels
+        this.applyBackendToRealLayer(result.reels);
 
-        if (!this.reels.length) {
-            this.buildReels();
-        }
-
-        this.resetReelsState();
-
-        this.refreshDummySymbols();
-        this.clearBackendSymbols();
-        this.appendBackendReels(reelsResult, bonusResult);
-
-        // ⭐ 3. FINAL LANDING SPIN
-        await this.spinReels();
-
-        this.setFinalGridState(reelsResult, bonusResult);
-
-        console.log("🎉 Spin complete with natural landing.");
+        // Slide blurLayer OUT, realLayer IN
+        await Promise.all([
+            gsap.to(this.blurLayer, { y: maskH, duration: 0.35, ease: "power2.out" }),
+            gsap.to(this.realLayer, { y: 0, duration: 0.35, ease: "power2.out" }),
+        ]);
     }
 
-
-
-    private resetReelsState() {
-        for (const reel of this.reels) {
-            reel.position = 0;
-            reel.previousPosition = 0;
-            reel.target = 0;
-        }
+    // -----------------------------------------------------
+    // CREATE RANDOM BLUR SYMBOL
+    // -----------------------------------------------------
+    private createBlur(): BlurSymbol {
+        const types = Object.keys(this.match3.board.typesMap).map(Number);
+        const rand = types[Math.floor(Math.random() * types.length)];
+        return new BlurSymbol(rand, this.match3.board.tileSize);
     }
 
-    private createRandomDummySymbol(column: number): SlotSymbol {
+    // -----------------------------------------------------
+    // BUILD BLUR LAYER (spinning)
+    // -----------------------------------------------------
+    private buildBlurLayer() {
         const board = this.match3.board;
-        const tileSize = board.tileSize;
+        const tile = board.tileSize;
+        const cols = board.columns;
+        const rows = board.rows;
 
-        const typeKeys = Object.keys(board.typesMap).map(Number);
-        const randType = typeKeys[Math.floor(Math.random() * typeKeys.length)];
-        const name = board.typesMap[randType];
+        const offsetX = ((cols - 1) * tile) / 2;
+        const offsetY = ((rows - 1) * tile) / 2;
 
-        const s = new SlotSymbol();
-        s.setup({
-            name,
-            type: randType,
-            size: tileSize,
-            multiplier: 0,
-        });
+        for (let c = 0; c < cols; c++) {
+            const col = new Container();
+            col.x = c * tile - offsetX;
+            col.y = -offsetY;
 
-        s.alpha = 1;
-        s.x = 0;
-        return s;
-    }
+            this.blurLayer.addChild(col);
 
-    // -----------------------------------------------------
-    // ⭐ FIX: REGENERATE DUMMY ROWS EVERY SPIN
-    // -----------------------------------------------------
-    private refreshDummySymbols() {
-        const board = this.match3.board;
-        const tileSize = board.tileSize;
-
-        for (let c = 0; c < this.reels.length; c++) {
-            const reel = this.reels[c];
-
-            const oldTop = reel.symbols[0];
-            const oldBottom = reel.symbols[reel.symbols.length - 1];
-
-            reel.container.removeChild(oldTop);
-            reel.container.removeChild(oldBottom);
-            oldTop.destroy();
-            oldBottom.destroy();
-
-            const newTop = this.createRandomDummySymbol(c);
-            newTop.y = -tileSize;
-
-            const newBottom = this.createRandomDummySymbol(c);
-            newBottom.y = (this.match3.board.rows) * tileSize;
-
-            reel.symbols[0] = newTop;
-            reel.symbols[reel.symbols.length - 1] = newBottom;
-
-            reel.container.addChild(newTop);
-            reel.container.addChild(newBottom);
-        }
-    }
-
-    // -----------------------------------------------------
-    // BUILD REELS
-    // -----------------------------------------------------
-    private buildReels() {
-        const board = this.match3.board;
-               const tileSize = board.tileSize;
-
-        const offsetX = ((board.columns - 1) * tileSize) / 2;
-        const offsetY = ((board.rows - 1) * tileSize) / 2;
-
-        for (let c = 0; c < board.columns; c++) {
-            const reelContainer = new Container();
-            reelContainer.x = c * tileSize - offsetX;
-            reelContainer.y = -offsetY + (-1 * tileSize);
-            reelContainer.mask = board.piecesMask;
-            board.piecesContainer.addChild(reelContainer);
-
-            const reel: Reel = {
-                container: reelContainer,
+            const reel: ReelColumn = {
+                container: col,
                 symbols: [],
                 position: 0,
-                previousPosition: 0,
-                target: 0
             };
 
-            const colSymbols = board.pieces.filter(p => p.column === c);
-            colSymbols.sort((a, b) => a.row - b.row);
-
-            const topDummy = this.createRandomDummySymbol(c);
-            topDummy.y = -tileSize;
-            reelContainer.addChild(topDummy);
-            reel.symbols.push(topDummy);
-
-            for (let i = 0; i < colSymbols.length; i++) {
-                const s = colSymbols[i];
-                s.x = 0;
-                s.y = i * tileSize;
-                reelContainer.addChild(s);
-                reel.symbols.push(s);
+            const total = rows + 2;
+            for (let i = 0; i < total; i++) {
+                const blur = this.createBlur();
+                blur.y = i * tile;
+                col.addChild(blur);
+                reel.symbols.push(blur);
             }
 
-            const bottomDummy = this.createRandomDummySymbol(c);
-            bottomDummy.y = colSymbols.length * tileSize;
-            reelContainer.addChild(bottomDummy);
-            reel.symbols.push(bottomDummy);
-
-            this.reels.push(reel);
+            this.blurReels.push(reel);
         }
 
         this.ticker = new Ticker();
-        this.ticker.add(() => this.updateReels());
+        this.ticker.add(() => this.updateBlurSpin());
         this.ticker.start();
     }
 
     // -----------------------------------------------------
-    // APPEND BACKEND SYMBOLS
+    // BUILD REAL LAYER (static)
     // -----------------------------------------------------
-    private appendBackendReels(types: number[][], bonus: number[][]) {
+    private buildRealLayer() {
         const board = this.match3.board;
-        const tileSize = board.tileSize;
+        const tile = board.tileSize;
+        const cols = board.columns;
+        const rows = board.rows;
 
-        for (let c = 0; c < this.reels.length; c++) {
-            const reel = this.reels[c];
-            const backendColumn: SlotSymbol[] = [];
+        const offsetX = ((cols - 1) * tile) / 2;
+        const offsetY = ((rows - 1) * tile) / 2;
+
+        for (let c = 0; c < cols; c++) {
+            const col = new Container();
+            col.x = c * tile - offsetX;
+            col.y = -offsetY;
+
+            this.realLayer.addChild(col);
+
+            const reel: ReelColumn = {
+                container: col,
+                symbols: [],
+                position: 0,
+            };
+
+            for (let r = 0; r < rows; r++) {
+                const blur = this.createBlur();
+                blur.y = r * tile;
+                col.addChild(blur);
+                reel.symbols.push(blur);
+            }
+
+            this.realReels.push(reel);
+        }
+    }
+
+    // -----------------------------------------------------
+    // APPLY BACKEND GRID TO REAL LAYER (SlotSymbol)
+    // -----------------------------------------------------
+    private applyBackendToRealLayer(grid: number[][]) {
+        const board = this.match3.board;
+        const tile = board.tileSize;
+
+        for (let c = 0; c < this.realReels.length; c++) {
+            const reel = this.realReels[c];
+
+            for (const s of reel.symbols) s.destroy();
+            reel.symbols = [];
+            reel.container.removeChildren();
 
             for (let r = 0; r < board.rows; r++) {
-                const backendType = types[r][c];
-                const backendMult = bonus[r][c];
-                const name = board.typesMap[backendType];
+                const type = grid[r][c];
+                const name = board.typesMap[type];
 
-                const symbol = new SlotSymbol();
-                symbol.setup({
-                    name,
-                    type: backendType,
-                    size: tileSize,
-                    multiplier: backendMult,
-                });
+                const sym = new SlotSymbol();
+                sym.setup({ name, type, size: tile, multiplier: 0 });
+                sym.y = r * tile;
 
-                symbol.alpha = 1;
-                symbol.x = 0;
-                symbol.y = reel.symbols.length * tileSize;
-
-                backendColumn.push(symbol);
-            }
-
-            for (let s of backendColumn) {
-                reel.container.addChild(s);
-                reel.symbols.push(s);
+                reel.symbols.push(sym);
+                reel.container.addChild(sym);
             }
         }
     }
 
     // -----------------------------------------------------
-    // SPIN TWEENING
+    // BLUR SPIN LOOP
     // -----------------------------------------------------
-    private async spinReels() {
-        const board = this.match3.board;
-        const visible = board.rows;
+    private _blurSpinSpeed = 0.55;
+    private _blurSpinning = false;
 
-        const promises: Promise<void>[] = [];
-
-        for (let i = 0; i < this.reels.length; i++) {
-            const reel = this.reels[i];
-
-            const extra = Math.floor(Math.random() * 3);
-            const spinCycles = 10 + i * 5 + extra;
-
-            const totalSymbols = reel.symbols.length;
-            const backendStartIndex = totalSymbols - visible - 1;
-
-            const targetPosition =
-                spinCycles * totalSymbols + backendStartIndex;
-
-            reel.target = targetPosition;
-
-            const duration = 2500 + i * 600 + extra * 600;
-
-            promises.push(
-                this.tweenReelTo(
-                    reel,
-                    "position",
-                    targetPosition,
-                    duration,
-                    this.easeBackout(0.5)
-                )
-            );
-        }
-
-        await Promise.all(promises);
+    private startBlurSpin() {
+        this._blurSpinSpeed = 0.55;
+        this._blurSpinning = true;
     }
 
-    private updateReels() {
-        const tileSize = this.match3.board.tileSize;
+    private stopBlurSpin() {
+        this._blurSpinning = false;
+    }
 
-        for (const reel of this.reels) {
-            reel.previousPosition = reel.position;
+    private updateBlurSpin() {
+        if (!this._blurSpinning) return;
+
+        const tile = this.match3.board.tileSize;
+
+        for (const reel of this.blurReels) {
+            reel.position += this._blurSpinSpeed;
             const total = reel.symbols.length;
 
             for (let i = 0; i < total; i++) {
-                const s = reel.symbols[i];
-                const localIndex = (reel.position + i) % total;
-                s.y = localIndex * tileSize;
+                const sym = reel.symbols[i];
+                const idx = (reel.position + i) % total;
+                sym.y = idx * tile;
             }
         }
-    }
-
-    // -----------------------------------------------------
-    // FINAL GRID WRITE
-    // -----------------------------------------------------
-    private setFinalGridState(types: number[][], multipliers: number[][]) {
-        const board = this.match3.board;
-
-        board.grid = types.map(row => [...row]);  
-        board.multiplierGrid = multipliers.map(row => [...row]);
-
-        console.log("🧩 Logical grid + multiplier grid updated.");
-    }
-
-    // -----------------------------------------------------
-    // UPDATE BOARD PIECES
-    // -----------------------------------------------------
-    private updateBoardPiecesFromReels() {
-        const board = this.match3.board;
-        const tileSize = board.tileSize;
-
-        board.pieces = [];
-
-        for (let c = 0; c < this.reels.length; c++) {
-            const reel = this.reels[c];
-
-            for (let r = 0; r < board.rows; r++) {
-                const symbol = reel.symbols[r + 1];
-
-                symbol.row = r;
-                symbol.column = c;
-                symbol.x = 0;
-                symbol.y = r * tileSize;
-
-                board.pieces.push(symbol);
-            }
-        }
-
-        console.log("🔄 board.pieces updated from reels.");
-    }
-
-    private tweenReelTo(
-        reel: Reel,
-        property: keyof Reel,
-        target: number,
-        time: number,
-        easing: (t: number) => number
-    ): Promise<void> {
-        const start = Date.now();
-        const begin = reel[property] as number;
-
-        return new Promise(resolve => {
-            const tick = () => {
-                const now = Date.now();
-                const t = Math.min(1, (now - start) / time);
-
-                (reel as any)[property] =
-                    begin + (target - begin) * easing(t);
-
-                if (t === 1) {
-                    resolve();
-                    return;
-                }
-
-                requestAnimationFrame(tick);
-            };
-            tick();
-        });
-    }
-
-    private easeBackout(amount: number) {
-        return (t: number) =>
-            --t * t * ((amount + 1) * t + amount) + 1;
-    }
-
-    // -----------------------------------------------------
-    // CLEAR BACKEND SYMBOLS
-    // -----------------------------------------------------
-    private clearBackendSymbols() {
-        const board = this.match3.board;
-        const visible = board.rows;
-
-        for (const reel of this.reels) {
-            while (reel.symbols.length > visible + 2) {
-                const s = reel.symbols.pop()!;
-                gsap.to(s, {
-                    alpha: 0,
-                    duration: 0.15,
-                    onComplete: () => {
-                        reel.container.removeChild(s);
-                        s.destroy();
-                    }
-                });
-            }
-        }
-    }
-
-    public async stop() {
-        this.processing = false;
     }
 }
