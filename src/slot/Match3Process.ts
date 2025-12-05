@@ -119,7 +119,12 @@ export class Match3Process {
 
         // Slide blurLayer OUT, realLayer IN
         await Promise.all([
-            gsap.to(this.blurLayer, { y: maskH, duration: 0.35, ease: "power2.out" }),
+            gsap.to(this.blurLayer, { 
+                y: maskH + (this.match3.board.tileSize * 3),  
+                duration: 0.35,
+                ease: "power2.out" 
+            }),
+
             gsap.to(this.realLayer, { y: 0, duration: 0.35, ease: "power2.out" }),
         ]);
     }
@@ -148,7 +153,7 @@ export class Match3Process {
         for (let c = 0; c < cols; c++) {
             const col = new Container();
             col.x = c * tile - offsetX;
-            col.y = -offsetY;
+            col.y = -offsetY - tile;
 
             this.blurLayer.addChild(col);
 
@@ -158,7 +163,7 @@ export class Match3Process {
                 position: 0,
             };
 
-            const total = rows + 2;
+            const total = rows + 3;
             for (let i = 0; i < total; i++) {
                 const blur = this.createBlur();
                 blur.y = i * tile;

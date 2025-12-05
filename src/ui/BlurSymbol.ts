@@ -23,8 +23,8 @@ export class BlurSymbol extends Sprite {
         this.scale.set(0.45);
 
         // ✔ Match grid size
-        this.width = tileSize;
-        this.height = tileSize;
+        this.width = tileSize * .93;
+        this.height = tileSize * 1.2;
 
         this.alpha = 1;
     }
