@@ -5,6 +5,9 @@ import { BlurSymbol } from "../ui/BlurSymbol";
 import gsap from "gsap";
 import { SlotSymbol } from "./SlotSymbol";
 
+// ⭐ SlotUtility imports
+import { slotGetClusters, slotEvaluateClusterWins } from "./SlotUtility";
+
 interface ReelColumn {
     container: Container;
     symbols: (BlurSymbol | SlotSymbol)[];
@@ -15,33 +18,30 @@ export class Match3Process {
     private match3: Match3;
     private processing = false;
 
-    // Two layers
     private blurLayer: Container;
     private realLayer: Container;
 
-    // Reels for blur + real layers
     private blurReels: ReelColumn[] = [];
     private realReels: ReelColumn[] = [];
 
     private ticker?: Ticker;
+
+    private _clusterAnimating = false;
 
     constructor(match3: Match3) {
         this.match3 = match3;
 
         const mask = this.match3.board.piecesMask;
 
-        // 🌟 Create two vertically stacked layers
         this.blurLayer = new Container();
         this.realLayer = new Container();
 
         this.blurLayer.mask = mask;
         this.realLayer.mask = mask;
 
-        // Mark layers so Match3Board will NOT delete them
         (this.blurLayer as any).isReelLayer = true;
         (this.realLayer as any).isReelLayer = true;
 
-        // Add both layers into board container
         this.match3.board.piecesContainer.addChild(this.blurLayer);
         this.match3.board.piecesContainer.addChild(this.realLayer);
     }
@@ -62,11 +62,12 @@ export class Match3Process {
     public async start() {
         if (this.processing) return;
 
+        // ⭐ Stop cluster animations before next spin
+        this.stopAllClusterAnimations();
+
         this.processing = true;
 
-        // ⭐ Remove initial 5x5 SlotSymbols cleanly using the NEW METHOD
         this.match3.board.removeInitialPiecesOnly();
-
         await this.spinSequence();
 
         this.processing = false;
@@ -82,20 +83,18 @@ export class Match3Process {
         if (!this.blurReels.length) this.buildBlurLayer();
         if (!this.realReels.length) this.buildRealLayer();
 
-        // Move layers to initial slide positions
         this.blurLayer.y = -maskH;
         this.realLayer.y = 0;
 
-        // Slide realLayer OUT, blurLayer IN
+        // Slide real out, blur in
         await Promise.all([
             gsap.to(this.realLayer, { y: maskH, duration: 0.35, ease: "power2.out" }),
             gsap.to(this.blurLayer, { y: 0, duration: 0.35, ease: "power2.out" }),
         ]);
 
-        // Start blur spin
         this.startBlurSpin();
 
-        // Wait backend
+        // Fetch backend
         let result: any;
         let apiSuccess = true;
         try {
@@ -114,19 +113,54 @@ export class Match3Process {
             return;
         }
 
-        // Update realLayer with backend reels
+        // Apply backend to real layer
         this.applyBackendToRealLayer(result.reels);
 
-        // Slide blurLayer OUT, realLayer IN
+        // Slide blur out, real in
         await Promise.all([
             gsap.to(this.blurLayer, { 
-                y: maskH + (this.match3.board.tileSize * 3),  
+                y: maskH + (this.match3.board.tileSize * 3),
                 duration: 0.35,
-                ease: "power2.out" 
+                ease: "power2.out"
             }),
-
             gsap.to(this.realLayer, { y: 0, duration: 0.35, ease: "power2.out" }),
         ]);
+
+        this.playInfiniteClusterAnimations();
+        this.logClusterResults(result.reels, result.bonusReels);
+    }
+
+    // -----------------------------------------------------
+    // LOGGING LOGIC
+    // -----------------------------------------------------
+    private logClusterResults(grid: number[][], bonusGrid: number[][]) {
+        const finalGrid = this.getFinalGridFromRealLayer();
+
+        console.log("FINAL GRID:", finalGrid);
+
+        const clusters = slotGetClusters(finalGrid);
+        console.log("CLUSTERS FOUND:", clusters);
+
+        const results = slotEvaluateClusterWins(finalGrid, bonusGrid);
+        console.log("WIN RESULTS:", results);
+    }
+
+    // Extract number grid from realReels
+    private getFinalGridFromRealLayer(): number[][] {
+        const board = this.match3.board;
+        const rows = board.rows;
+        const cols = board.columns;
+
+        const grid: number[][] = [];
+
+        for (let r = 0; r < rows; r++) {
+            grid[r] = [];
+            for (let c = 0; c < cols; c++) {
+                const symbol = this.realReels[c].symbols[r] as SlotSymbol;
+                grid[r][c] = symbol.type;
+            }
+        }
+        return grid;
     }
 
     // -----------------------------------------------------
@@ -180,7 +214,7 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // BUILD REAL LAYER (static)
+    // BUILD REAL LAYER
     // -----------------------------------------------------
     private buildRealLayer() {
         const board = this.match3.board;
@@ -216,7 +250,7 @@ export class Match3Process {
     }
 
     // -----------------------------------------------------
-    // APPLY BACKEND GRID TO REAL LAYER (SlotSymbol)
+    // APPLY BACKEND TO REAL LAYER
     // -----------------------------------------------------
     private applyBackendToRealLayer(grid: number[][]) {
         const board = this.match3.board;
@@ -274,4 +308,62 @@ export class Match3Process {
             }
         }
     }
+
+    public stopAllClusterAnimations() {
+        this._clusterAnimating = false;
+
+        // Stop ALL SlotSymbols animation loops
+        for (const col of this.realReels) {
+            for (const sym of col.symbols) {
+                if (sym instanceof SlotSymbol) {
+                    sym._isLooping = false;
+                    sym.stopAnimationImmediately();
+                }
+            }
+        }
+    }
+
+    private async playInfiniteClusterAnimations() {
+        const board = this.match3.board;
+
+        // 1. Gather grid of SlotSymbols
+        const grid: SlotSymbol[][] = [];
+        for (let r = 0; r < board.rows; r++) {
+            grid[r] = [];
+            for (let c = 0; c < board.columns; c++) {
+                const sym = this.realReels[c].symbols[r] as SlotSymbol;
+                grid[r][c] = sym;
+            }
+        }
+
+        // 2. Convert SlotSymbols → number grid
+        const numGrid: number[][] = grid.map(row =>
+            row.map(sym => sym.type)
+        );
+
+        // 3. Detect clusters using your SlotUtility
+        const clusters = slotGetClusters(numGrid);
+        if (!clusters || clusters.length === 0) {
+            console.log("🔥 No clusters found");
+            return;
+        }
+
+        console.log("🔥 Infinite cluster animations:", clusters);
+
+        this._clusterAnimating = true;
+
+        // 4. Animate all cluster symbols infinitely
+        for (const cluster of clusters) {
+            for (const pos of cluster.positions) {
+                const sym = grid[pos.row][pos.column];
+                if (!sym) continue;
+
+                sym.__match3ProcessRef = this;
+
+                // Loop forever until next spin
+                sym.animatePlay(true);
+            }
+        }
+    }
+
 }
