@@ -26,8 +26,6 @@ export class Match3Process {
     private _blurSpinning = false;
     private _blurSpinSpeed = 0.55;
 
-    private _clusterAnimating = false;
-
     constructor(match3: Match3) {
         this.match3 = match3;
 
@@ -80,9 +78,6 @@ export class Match3Process {
         }
         this.realReels = [];
         this.realLayer.removeChildren();
-
-        // Stop cluster animations safely
-        this._clusterAnimating = false;
     }
 
     // -----------------------------------------------------
@@ -146,7 +141,7 @@ export class Match3Process {
         }
 
         // Apply backend
-        this.applyBackendToRealLayer(result.reels);
+        this.applyBackendToRealLayer(result.reels, result.bonusReels);
 
         // Slide back real layer
         await Promise.all([
@@ -274,7 +269,7 @@ export class Match3Process {
     // -----------------------------------------------------
     // APPLY BACKEND — ALWAYS CREATE NEW SYMBOLS
     // -----------------------------------------------------
-    private applyBackendToRealLayer(grid: number[][]) {
+    private applyBackendToRealLayer(grid: number[][], bonusGrid: number[][]) {
         const board = this.match3.board;
         const tile = board.tileSize;
 
@@ -289,10 +284,11 @@ export class Match3Process {
             // Create new SlotSymbols
             for (let r = 0; r < board.rows; r++) {
                 const type = grid[r][c];
+                const multiplier = bonusGrid[r][c];
                 const name = board.typesMap[type];
 
                 const sym = new SlotSymbol();
-                sym.setup({ name, type, size: tile, multiplier: 0 });
+                sym.setup({ name, type, size: tile, multiplier });
                 sym.y = r * tile;
 
                 reel.symbols.push(sym);
@@ -328,8 +324,6 @@ export class Match3Process {
     // CLUSTER ANIMATIONS
     // -----------------------------------------------------
     public stopAllClusterAnimations() {
-        this._clusterAnimating = false;
-
         for (const col of this.realReels) {
             for (const sym of col.symbols) {
                 if (sym instanceof SlotSymbol) {
@@ -355,7 +349,6 @@ export class Match3Process {
         const clusters = slotGetClusters(numGrid);
         if (!clusters.length) return;
 
-        this._clusterAnimating = true;
 
         const uniqueSymbols = new Set<SlotSymbol>();
         for (const cluster of clusters) {
