@@ -87,7 +87,7 @@ export class Match3Process {
     // ENTRY POINT
     // -----------------------------------------------------
     public async start() {
-        navigation.presentPopup(SpinRoundBanner, { win: 50 });
+        navigation.presentPopup(SpinRoundBanner, { win: 70 });
 
         if (this.processing) return;
 

@@ -2,6 +2,12 @@ import { Container, Sprite, Texture } from "pixi.js";
 import gsap from "gsap";
 import { navigation } from "../utils/navigation";
 
+type BannerItem = {
+    max: number;
+    board: string;
+    text: string;
+};
+
 export class SpinRoundBanner extends Container {
     private bg: Sprite;
     private panel: Container;
@@ -64,7 +70,7 @@ export class SpinRoundBanner extends Container {
     private createBanner() {
         if (this.banner) this.banner.destroy();
 
-        this.banner = Sprite.from(this.getBannerTexture(this.winValue));
+        this.banner = Sprite.from(this.getBannerTexture(this.winValue).board);
         this.banner.anchor.set(0.5);
 
         this.banner.x = 0;
@@ -79,7 +85,7 @@ export class SpinRoundBanner extends Container {
     private createHeaderText() {
         if (this.headerText) this.headerText.destroy();
 
-        this.headerText = Sprite.from("green-banner-text");
+        this.headerText = Sprite.from(this.getBannerTexture(this.winValue).text);
         this.headerText.anchor.set(0.5);
 
         // ⭐ Apply both X and Y offsets
@@ -89,10 +95,14 @@ export class SpinRoundBanner extends Container {
         this.panel.addChild(this.headerText);
     }
 
-    private getBannerTexture(win: number): string {
-        if (win < 80) return "green-banner-board";
-        if (win < 150) return "blue-banner-board";
-        return "red-banner-board";
+    private getBannerTexture(win: number): BannerItem {
+        const bannerDict: BannerItem[] = [
+            { max: 80, board: "green-banner-board", text: "green-banner-text" },
+            { max: 150, board: "blue-banner-board", text: "blue-banner-text" },
+            { max: Infinity, board: "red-banner-board", text: "red-banner-text" }
+        ];
+
+        return bannerDict.find(x => win < x.max)!;
     }
 
     // ==================================================
