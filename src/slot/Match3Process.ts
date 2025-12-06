@@ -6,6 +6,9 @@ import { SlotSymbol } from "./SlotSymbol";
 import gsap from "gsap";
 import { slotGetClusters, slotEvaluateClusterWins } from "./SlotUtility";
 
+import { navigation } from "../utils/navigation";
+import { SpinRoundBanner } from "../ui/SpinRoundBanner";
+
 interface ReelColumn {
     container: Container;
     symbols: (BlurSymbol | SlotSymbol)[];
@@ -84,6 +87,8 @@ export class Match3Process {
     // ENTRY POINT
     // -----------------------------------------------------
     public async start() {
+        navigation.presentPopup(SpinRoundBanner, { win: 50 });
+
         if (this.processing) return;
 
         this.stopAllClusterAnimations();

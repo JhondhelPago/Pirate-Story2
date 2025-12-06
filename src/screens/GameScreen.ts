@@ -207,20 +207,6 @@ export class GameScreen extends Container {
         await waitFor(0.3);
     }
 
-    // private async onJackpotMatch(data: SlotOnJackpotMatchData) {
-    //     await this.vfx?.onJackpotMatch(data);
-    // }
-
-    // private async onJackpotTrigger(data: SlotOnJackpotTriggerData): Promise<void> {
-    //     return new Promise((resolve) => {
-    //         navigation.presentPopup(JackpotWinPopup, async () => {
-    //             await navigation.dismissPopup();
-    //             console.log(data);
-    //             resolve();
-    //         });
-    //     });
-    // }
-
     private async onFreeSpinTrigger(): Promise<void> {
         return new Promise((resolve) => {
             navigation.presentPopup(FreeSpinPopup, async () => {
