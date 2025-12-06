@@ -4,7 +4,7 @@ import { Match3 } from "./Match3";
 import { BlurSymbol } from "../ui/BlurSymbol";
 import { SlotSymbol } from "./SlotSymbol";
 import gsap from "gsap";
-import { slotGetClusters, slotEvaluateClusterWins } from "./SlotUtility";
+import { slotGetClusters, slotEvaluateClusterWins, RoundResult } from "./SlotUtility";
 
 import { navigation } from "../utils/navigation";
 import { SpinRoundBanner } from "../ui/SpinRoundBanner";
@@ -87,8 +87,9 @@ export class Match3Process {
     // ENTRY POINT
     // -----------------------------------------------------
     public async start() {
-        navigation.presentPopup(SpinRoundBanner, { win: 2000 });
-
+        // navigation.presentPopup(SpinRoundBanner, { win: 300 });
+        SpinRoundBanner.forceDismiss();
+        
         if (this.processing) return;
 
         this.stopAllClusterAnimations();
@@ -160,6 +161,7 @@ export class Match3Process {
 
         this.playInfiniteClusterAnimations();
         this.logClusterResults(result.reels, result.bonusReels);
+        this.DrawSpinRoundBanner(slotEvaluateClusterWins(this.getFinalGridFromRealLayer(), result.bonusReels));
     }
 
     // -----------------------------------------------------
@@ -173,7 +175,7 @@ export class Match3Process {
         const clusters = slotGetClusters(finalGrid);
         console.log("CLUSTERS FOUND:", clusters);
 
-        const results = slotEvaluateClusterWins(finalGrid, bonusGrid);
+        const results: RoundResult = slotEvaluateClusterWins(finalGrid, bonusGrid);
         console.log("WIN RESULTS:", results);
     }
 
@@ -366,5 +368,14 @@ export class Match3Process {
             sym._isLooping = false;
             sym.animatePlay(true);
         }
+    }
+
+    private async DrawSpinRoundBanner(roundResult: RoundResult) {
+        const totalFinalWin = roundResult.reduce((sum, r) => sum + r.finalWin, 0);
+
+        if (totalFinalWin < 50) return;
+
+        await new Promise(res => setTimeout(res, 1500));
+        navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });  
     }
 }

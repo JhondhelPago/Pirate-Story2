@@ -23,6 +23,15 @@ export type Match3Orientation = 'horizontal' | 'vertical';
 export const multiplierValues = [2, 3, 5];
 export type MultipliersValues = typeof multiplierValues[number];
 
+export type RoundResult = {
+        type: number;
+        count: number;
+        baseWin: number;
+        multiplier: number;
+        finalWin: number;
+        positions: Match3Position[];
+    }[];
+
 /**
  * Create a 2D grid matrix filled up with given types
  * Example:
@@ -617,14 +626,7 @@ export function slotEvaluateClusterWins(
     const clusters = slotGetClusters(grid);
     const paytable = gameConfig.getPaytables();
 
-    const results: {
-        type: number;
-        count: number;
-        baseWin: number;
-        multiplier: number;
-        finalWin: number;
-        positions: Match3Position[];
-    }[] = [];
+    const results: RoundResult = [];
 
     for (const cluster of clusters) {
         const entry = paytable.find(p => p.type === cluster.type);

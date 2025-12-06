@@ -33,10 +33,10 @@ let scatterReels = [
 
 let winReels = [
     [1, 4, 3, 2, 5],
-    [6, 6, 2, 2, 12],
-    [4, 12, 4, 12, 4],
-    [1, 3, 12, 1, 10],
-    [5, 11, 12, 2, 10],
+    [6, 6, 9, 9, 12],
+    [8, 10, 8, 12, 10],
+    [8, 8, 12, 1, 10],
+    [5, 11, 3, 1, 10],
 ];
 
 let grandReels = [
@@ -52,19 +52,19 @@ app.get('/spin', async (req, res) => {
 
     // Generate 5 reels, each with 5 random symbols (1-12)
     //const reels = Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => getRandomInt(1, 12)));
-    const reels = Array.from({ length: 5 }, () =>
-        Array.from({ length: 5 }, () => {
-            let n = getRandomInt(1, 12);  // now includes 12
-            while (n === 11) {
-            n = getRandomInt(1, 12);
-            }
-            return n;
-        })
-    );
+    // const reels = Array.from({ length: 5 }, () =>
+    //     Array.from({ length: 5 }, () => {
+    //         let n = getRandomInt(1, 12);  // now includes 12
+    //         while (n === 11) {
+    //         n = getRandomInt(1, 12);
+    //         }
+    //         return n;
+    //     })
+    // );
 
 
     
-    // const reels = winReels;
+    const reels = winReels;
 
     const bonusReels = reels.map(reel => {
         const multiplierOptions = [2, 3, 5];
