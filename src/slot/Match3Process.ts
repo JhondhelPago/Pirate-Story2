@@ -89,7 +89,7 @@ export class Match3Process {
     public async start() {
         // navigation.presentPopup(SpinRoundBanner, { win: 300 });
         SpinRoundBanner.forceDismiss();
-        
+
         if (this.processing) return;
 
         this.stopAllClusterAnimations();
@@ -376,6 +376,11 @@ export class Match3Process {
         if (totalFinalWin < 50) return;
 
         await new Promise(res => setTimeout(res, 1500));
-        navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });  
+
+        // ⭐ If user already pressed spin again, DO NOT show the banner
+        if (this.processing) return;
+
+        navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
     }
+
 }
