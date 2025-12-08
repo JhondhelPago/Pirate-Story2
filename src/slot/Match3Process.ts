@@ -21,7 +21,9 @@ export class Match3Process {
     protected processing = false;
     protected round = 0
     protected hasRoundWin = false;
-    isBannerDraw = false;
+    protected isBannerDraw = false;
+    protected bannerTimer: any = null;
+
     private queue: AsyncQueue;
 
     private blurLayer: Container;
@@ -93,14 +95,23 @@ export class Match3Process {
     // ENTRY POINT
     // -----------------------------------------------------
     public async start() {
+
+        if (this.bannerTimer) {
+            clearTimeout(this.bannerTimer);
+            this.bannerTimer = null;
+        }
         SpinRoundBanner.forceDismiss();
 
-        if (this.processing) return;
+        if (this.processing) {
+            this.forceFinishSpin();
+            return;
+        }
 
-        this.stopAllClusterAnimations();
         this.processing = true;
 
+        this.stopAllClusterAnimations();
         this.match3.board.removeInitialPiecesOnly();
+
         await this.spinSequence();
 
         this.processing = false;
@@ -114,7 +125,6 @@ export class Match3Process {
         this.startSpinLog();
         const maskH = this.match3.board.rows * this.match3.board.tileSize;
 
-        // ❗ FULL RESET OF ALL MEMORY
         this.destroyAllLayers();
 
         // Fresh layers
@@ -366,7 +376,6 @@ export class Match3Process {
         const clusters = slotGetClusters(numGrid);
         if (!clusters.length) return;
 
-
         const uniqueSymbols = new Set<SlotSymbol>();
         for (const cluster of clusters) {
             for (const pos of cluster.positions) {
@@ -385,14 +394,23 @@ export class Match3Process {
 
         if (totalFinalWin < 50) return;
 
-        await new Promise(res => setTimeout(res, 2000));
+        // Cancel existing timer
+        if (this.bannerTimer) {
+            clearTimeout(this.bannerTimer);
+            this.bannerTimer = null;
+        }
 
-        if (this.processing) return;
+        // Schedule banner
+        this.bannerTimer = setTimeout(() => {
+            if (this.processing) return;
 
-        navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
+            navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
+
+            this.bannerTimer = null;
+        }, 2000);
     }
 
-    public startSpinLog(){
+    public startSpinLog() {
         console.log("Spin Session from the Match3Process");
     }
 
@@ -406,4 +424,36 @@ export class Match3Process {
         this.isBannerDraw = totalFinalWin >= 50;
     }
 
+    private forceFinishSpin() {
+        console.log("Force finishing spin...");
+
+        // 1. Kill ALL GSAP tweens
+        gsap.killTweensOf(this.blurLayer);
+        gsap.killTweensOf(this.realLayer);
+
+        // 2. Stop blur spin immediately
+        this._blurSpinning = false;
+
+        // 3. Stop ticker to freeze blur movement
+        if (this.ticker) {
+            this.ticker.stop();
+        }
+
+        // 4. Instantly move layers to final positions
+        const maskH = this.match3.board.rows * this.match3.board.tileSize;
+        this.blurLayer.y = maskH + this.match3.board.tileSize * 3;  
+        this.realLayer.y = 0;
+
+        // 5. Cancel banner
+        if (this.bannerTimer) {
+            clearTimeout(this.bannerTimer);
+            this.bannerTimer = null;
+        }
+        SpinRoundBanner.forceDismiss();
+
+        // 6. Stop cluster animation
+        this.stopAllClusterAnimations();
+
+        console.log("Spin forced to finish instantly.");
+    }
 }

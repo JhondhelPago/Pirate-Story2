@@ -483,7 +483,7 @@ export class ControlPanel extends Container {
         });
     }
 
-    public onAutoplay(callback: () => void) {
+    public onAutoplay(callback: () => void) { 
         this.autoplayButton.on('pointerdown', () => {
             if (this.isSpinButtonEnabled) {
                 callback();

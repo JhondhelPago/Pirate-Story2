@@ -29,7 +29,7 @@ export class Match3Actions {
     /** FREE SPIN */
     public async actionFreeSpin() {
         // await this.match3.freeSpinProcess.start(5);
-        await this.match3.freeSpinProcess.start(3);
+        await this.match3.freeSpinProcess.start(10);
     }
 
     public setup(config: { isFreeSpin: boolean }) {

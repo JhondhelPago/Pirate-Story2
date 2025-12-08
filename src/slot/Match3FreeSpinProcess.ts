@@ -73,17 +73,17 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     // Override to add a delay for the free spin session
-    protected async DrawSpinRoundBanner(roundResult: RoundResult) {
-        const totalFinalWin = roundResult.reduce((sum, r) => sum + r.finalWin, 0);
+    // protected async DrawSpinRoundBanner(roundResult: RoundResult) {
+    //     const totalFinalWin = roundResult.reduce((sum, r) => sum + r.finalWin, 0);
 
-        if (totalFinalWin < 50) return;
+    //     if (totalFinalWin < 50) return;
 
-        await new Promise(res => setTimeout(res, 2000));
+    //     await new Promise(res => setTimeout(res, 2000));
 
-        if (this.processing) return;
+    //     if (this.processing) return;
 
-        const banner = navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
-    }
+    //     const banner = navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
+    // }
 
     public startSpinLog() {
         console.log("Spin Session from the Match3FreeSpinProcess");
