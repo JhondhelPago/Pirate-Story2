@@ -74,7 +74,6 @@ export class SpinRoundBanner extends Container {
         setTimeout(() => this.animateValue(), 500);
         setTimeout(() => (this.canClickAnywhere = true), 1200);
 
-        // ⭐ AUTO-HIDE AFTER 5.5s
         setTimeout(() => {
             if (SpinRoundBanner.currentInstance === this) {
                 if (this.canClickAnywhere) this.hide();

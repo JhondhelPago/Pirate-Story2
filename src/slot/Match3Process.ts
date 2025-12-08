@@ -375,9 +375,8 @@ export class Match3Process {
 
         if (totalFinalWin < 50) return;
 
-        await new Promise(res => setTimeout(res, 1500));
+        await new Promise(res => setTimeout(res, 2000));
 
-        // ⭐ If user already pressed spin again, DO NOT show the banner
         if (this.processing) return;
 
         navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
