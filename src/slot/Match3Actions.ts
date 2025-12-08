@@ -8,6 +8,8 @@ export class Match3Actions {
         this.match3 = match3;
     }
 
+
+    // Action for the normal Spin Round using the Match3Process
     /** Standard SPIN */
     public async actionSpin() {
         // Fire callback
@@ -22,9 +24,12 @@ export class Match3Actions {
         // After process finishes, Process.start() will call onProcessComplete automatically
     }
 
+
+    // Action for the Free Spin Round using the Match3FreeSpinProcess
     /** FREE SPIN */
     public async actionFreeSpin() {
-        await this.match3.freeSpinProcess.start(5);
+        // await this.match3.freeSpinProcess.start(5);
+        await this.match3.freeSpinProcess.start(3);
     }
 
     public setup(config: { isFreeSpin: boolean }) {

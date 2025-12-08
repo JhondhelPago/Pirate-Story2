@@ -24,13 +24,13 @@ export const multiplierValues = [2, 3, 5];
 export type MultipliersValues = typeof multiplierValues[number];
 
 export type RoundResult = {
-        type: number;
-        count: number;
-        baseWin: number;
-        multiplier: number;
-        finalWin: number;
-        positions: Match3Position[];
-    }[];
+    type: number;
+    count: number;
+    baseWin: number;
+    multiplier: number;
+    finalWin: number;
+    positions: Match3Position[];
+}[];
 
 /**
  * Create a 2D grid matrix filled up with given types

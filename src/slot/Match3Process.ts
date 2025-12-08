@@ -8,6 +8,7 @@ import { slotGetClusters, slotEvaluateClusterWins, RoundResult } from "./SlotUti
 
 import { navigation } from "../utils/navigation";
 import { SpinRoundBanner } from "../ui/SpinRoundBanner";
+import { AsyncQueue } from "../utils/asyncUtils";
 
 interface ReelColumn {
     container: Container;
@@ -16,8 +17,12 @@ interface ReelColumn {
 }
 
 export class Match3Process {
-    private match3: Match3;
-    private processing = false;
+    protected match3: Match3;
+    protected processing = false;
+    protected round = 0
+    protected hasRoundWin = false;
+    isBannerDraw = false;
+    private queue: AsyncQueue;
 
     private blurLayer: Container;
     private realLayer: Container;
@@ -31,6 +36,7 @@ export class Match3Process {
 
     constructor(match3: Match3) {
         this.match3 = match3;
+        this.queue = new AsyncQueue();
 
         const mask = this.match3.board.piecesMask;
 
@@ -52,7 +58,7 @@ export class Match3Process {
     // -----------------------------------------------------
     // DESTROY ENTIRE SPIN STATE (BOTH LAYERS)
     // -----------------------------------------------------
-    private destroyAllLayers() {
+    protected destroyAllLayers() {
         // Stop tickers
         if (this.ticker) {
             this.ticker.stop();
@@ -87,7 +93,6 @@ export class Match3Process {
     // ENTRY POINT
     // -----------------------------------------------------
     public async start() {
-        // navigation.presentPopup(SpinRoundBanner, { win: 300 });
         SpinRoundBanner.forceDismiss();
 
         if (this.processing) return;
@@ -105,7 +110,8 @@ export class Match3Process {
     // -----------------------------------------------------
     // MAIN SEQUENCE
     // -----------------------------------------------------
-    private async spinSequence() {
+    protected async spinSequence() {
+        this.startSpinLog();
         const maskH = this.match3.board.rows * this.match3.board.tileSize;
 
         // ❗ FULL RESET OF ALL MEMORY
@@ -161,13 +167,17 @@ export class Match3Process {
 
         this.playInfiniteClusterAnimations();
         this.logClusterResults(result.reels, result.bonusReels);
-        this.DrawSpinRoundBanner(slotEvaluateClusterWins(this.getFinalGridFromRealLayer(), result.bonusReels));
+
+        const roundResult = slotEvaluateClusterWins(this.getFinalGridFromRealLayer(), result.bonusReels);
+        this.setHasRoundWin(roundResult);
+        this.setHasBannerDrawn(roundResult);
+        this.DrawSpinRoundBanner(roundResult);
     }
 
     // -----------------------------------------------------
     // LOGS
     // -----------------------------------------------------
-    private logClusterResults(grid: number[][], bonusGrid: number[][]) {
+    protected logClusterResults(grid: number[][], bonusGrid: number[][]) {
         const finalGrid = this.getFinalGridFromRealLayer();
 
         console.log("FINAL GRID:", finalGrid);
@@ -179,7 +189,7 @@ export class Match3Process {
         console.log("WIN RESULTS:", results);
     }
 
-    private getFinalGridFromRealLayer() {
+    protected getFinalGridFromRealLayer() {
         const board = this.match3.board;
         const grid: number[][] = [];
 
@@ -195,7 +205,7 @@ export class Match3Process {
     // -----------------------------------------------------
     // BLUR SYMBOL
     // -----------------------------------------------------
-    private createBlur() {
+    protected createBlur() {
         const types = Object.keys(this.match3.board.typesMap).map(Number);
         const rand = types[Math.floor(Math.random() * types.length)];
         return new BlurSymbol(rand, this.match3.board.tileSize);
@@ -204,7 +214,7 @@ export class Match3Process {
     // -----------------------------------------------------
     // BUILD BLUR LAYER
     // -----------------------------------------------------
-    private buildBlurLayer() {
+    protected buildBlurLayer() {
         const board = this.match3.board;
         const tile = board.tileSize;
 
@@ -242,7 +252,7 @@ export class Match3Process {
     // -----------------------------------------------------
     // BUILD REAL LAYER
     // -----------------------------------------------------
-    private buildRealLayer() {
+    protected buildRealLayer() {
         const board = this.match3.board;
         const tile = board.tileSize;
 
@@ -276,7 +286,7 @@ export class Match3Process {
     // -----------------------------------------------------
     // APPLY BACKEND — ALWAYS CREATE NEW SYMBOLS
     // -----------------------------------------------------
-    private applyBackendToRealLayer(grid: number[][], bonusGrid: number[][]) {
+    protected applyBackendToRealLayer(grid: number[][], bonusGrid: number[][]) {
         const board = this.match3.board;
         const tile = board.tileSize;
 
@@ -307,10 +317,10 @@ export class Match3Process {
     // -----------------------------------------------------
     // BLUR SPIN
     // -----------------------------------------------------
-    private startBlurSpin() { this._blurSpinning = true; }
-    private stopBlurSpin() { this._blurSpinning = false; }
+    protected startBlurSpin() { this._blurSpinning = true; }
+    protected stopBlurSpin() { this._blurSpinning = false; }
 
-    private updateBlurSpin() {
+    protected updateBlurSpin() {
         if (!this._blurSpinning) return;
 
         const tile = this.match3.board.tileSize;
@@ -341,7 +351,7 @@ export class Match3Process {
         }
     }
 
-    private async playInfiniteClusterAnimations() {
+    protected async playInfiniteClusterAnimations() {
         const board = this.match3.board;
 
         const grid: SlotSymbol[][] = [];
@@ -370,7 +380,7 @@ export class Match3Process {
         }
     }
 
-    private async DrawSpinRoundBanner(roundResult: RoundResult) {
+    protected async DrawSpinRoundBanner(roundResult: RoundResult) {
         const totalFinalWin = roundResult.reduce((sum, r) => sum + r.finalWin, 0);
 
         if (totalFinalWin < 50) return;
@@ -380,6 +390,20 @@ export class Match3Process {
         if (this.processing) return;
 
         navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
+    }
+
+    public startSpinLog(){
+        console.log("Spin Session from the Match3Process");
+    }
+
+    public setHasRoundWin(roundResult: RoundResult) {
+        const totalFinalWin = roundResult.reduce((sum, r) => sum + r.finalWin, 0);
+        this.hasRoundWin = totalFinalWin > 0;
+    }
+
+    public setHasBannerDrawn(roundResult: RoundResult) {
+        const totalFinalWin = roundResult.reduce((sum, r) => sum + r.finalWin, 0);
+        this.isBannerDraw = totalFinalWin >= 50;
     }
 
 }

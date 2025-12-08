@@ -78,7 +78,7 @@ export class SpinRoundBanner extends Container {
             if (SpinRoundBanner.currentInstance === this) {
                 if (this.canClickAnywhere) this.hide();
             }
-        }, 5500);
+        }, 4500);
     }
 
     private createBanner() {

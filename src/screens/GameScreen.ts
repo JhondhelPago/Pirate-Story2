@@ -122,7 +122,8 @@ export class GameScreen extends Container {
     public startSpinning() {
         if (this.finished) return;
         this.finished = true;
-        this.match3.spin();
+        //this.match3.spin();
+        this.match3.freeSpin();
     }
 
     public prepare() {
