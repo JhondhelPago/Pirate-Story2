@@ -23,6 +23,9 @@ const easeSingleBounce = registerCustomEase(
 export class SlotSymbol extends Container {
     /** The actual spine animation of the symbol */
     private spine: Spine;
+
+    private sprite: Sprite | null = null;
+
     /** Explosion animated sprite */
     private explosionSprite: AnimatedSprite | null = null;
     /** True if animations are paused */
@@ -586,6 +589,38 @@ export class SlotSymbol extends Container {
 
     }
 
+    public showBlurSprite() {
+        if (!this.sprite) { 
+
+            const assetName = "blur_" + this.type.toString();
+
+            const spr = Sprite.from(assetName);
+            spr.anchor.set(0.5);
+            spr.scale.set(0.45);
+            spr.visible = false;
+            this.sprite = spr;
+            this.addChildAt(spr, 0);
+        }
+
+        // Hide spine
+        if (this.spine) {
+            this.spine.visible = false;
+        }
+
+        // Show PNG sprite
+        if (this.sprite) {
+            this.sprite.visible = true;
+        }
+    }
+
+    public showSpine() {
+        if (this.sprite) {
+            this.sprite.visible = false;
+        }
+        if (this.spine) {
+            this.spine.visible = true;
+        }
+    }
 
 
 

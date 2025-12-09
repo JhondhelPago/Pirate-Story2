@@ -320,6 +320,8 @@ export class Match3Process {
                 sym.setup({ name, type, size: tile, multiplier });
                 sym.y = r * tile;
 
+                // sym.showBlurSprite();
+
                 reel.symbols.push(sym);
                 reel.container.addChild(sym);
             }
