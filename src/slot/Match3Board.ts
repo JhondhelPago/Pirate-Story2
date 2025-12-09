@@ -6,7 +6,6 @@ import {
     Match3Position,
     match3SetPieceType,
     match3GetPieceType,
-    match3CreateGrid,
     match3ForEach,
     Match3Grid,
     Match3Type,
@@ -14,35 +13,50 @@ import {
 } from './SlotUtility';
 import { SlotSymbol } from './SlotSymbol';
 
+/**
+ * SlotBoard (Column-major FIXED version)
+ * --------------------------------------
+ * Matches how your SlotProcess, Cluster logic, and backend mapping works:
+ *
+ * Grid Shape:
+ *      grid[column][row]
+ *
+ * This prevents invalid array lengths and keeps the engine consistent.
+ */
 export class Match3Board {
     public match3: Match3;
-    public grid: Match3Grid = [];
-    public multiplierGrid: Match3Grid = [];
+
+    /** Numeric grids (column-major) */
+    public grid: Match3Grid = [];            // [column][row]
+    public multiplierGrid: Match3Grid = [];  // [column][row]
+
     public pieces: SlotSymbol[] = [];
+
     public piecesMask: Graphics;
     public piecesContainer: Container;
+
     public rows = 0;
     public columns = 0;
     public tileSize = 0;
+
     public typesMap!: Record<number, string>;
 
     constructor(match3: Match3) {
         this.match3 = match3;
 
-        /** All visible + spinning symbols live here */
         this.piecesContainer = new Container();
         this.piecesContainer.sortableChildren = true;
         this.match3.addChild(this.piecesContainer);
 
-        /** Mask (must be inside piecesContainer to align correctly) */
         this.piecesMask = new Graphics();
         this.piecesContainer.addChild(this.piecesMask);
 
-        /** Apply mask to everything inside */
         this.piecesContainer.mask = this.piecesMask;
     }
 
-    /** Setup board and redraw mask */
+    // ------------------------------------------------------------
+    // SETUP
+    // ------------------------------------------------------------
     public setup(config: Match3Config) {
         this.rows = config.rows;
         this.columns = config.columns;
@@ -50,33 +64,55 @@ export class Match3Board {
 
         this.refreshMask();
 
+        /** Build type-map from block list */
         const blocks = slotGetBlocks();
         this.typesMap = {};
 
-        for (let i = 0; i < blocks.length; i++) {
-            const name = blocks[i];
-            const type = i + 1;
-            this.typesMap[type] = name.symbol;
+        for (const block of blocks) {
+            this.typesMap[block.type] = block.symbol;
         }
 
-        /** Create grid */
-        this.grid = match3CreateGrid(
-            this.rows,
-            this.columns,
-            Object.keys(this.typesMap).map(Number)
-        );
+        const availableTypes = Object.keys(this.typesMap).map(Number);
 
-        /** Create the initial real symbols */
+        /** Create grids (COLUMN-MAJOR) */
+        this.grid = this.createColumnMajorGrid(this.columns, this.rows, availableTypes);
+        this.multiplierGrid = this.createColumnMajorGrid(this.columns, this.rows, [0]);
+
+        /** Create initial pieces */
         match3ForEach(this.grid, (pos, type) => {
-            const multiplier = (type === 11 || type === 12)
-                ? getRandomMultiplier()
-                : 0;
+            const isWild = type === 11 || type === 12;
+            const mult = isWild ? getRandomMultiplier() : 0;
 
-            this.createPiece(pos, type, multiplier);
+            this.multiplierGrid[pos.column][pos.row] = mult;
+            this.createPiece(pos, type, mult);
         });
     }
 
-    /** PERFECTLY aligned 5x5 mask */
+    // ------------------------------------------------------------
+    // GRID GENERATOR (COLUMN-MAJOR)  <--- FIXED
+    // ------------------------------------------------------------
+    private createColumnMajorGrid(columns: number, rows: number, types: number[]): Match3Grid {
+        const grid: Match3Grid = [];
+
+        for (let c = 0; c < columns; c++) {
+            grid[c] = [];
+
+            for (let r = 0; r < rows; r++) {
+                if (types.length > 0) {
+                    const t = types[Math.floor(Math.random() * types.length)];
+                    grid[c][r] = t;
+                } else {
+                    grid[c][r] = 0;
+                }
+            }
+        }
+
+        return grid;
+    }
+
+    // ------------------------------------------------------------
+    // MASK
+    // ------------------------------------------------------------
     private refreshMask() {
         const w = this.columns * this.tileSize;
         const h = this.rows * this.tileSize;
@@ -85,7 +121,7 @@ export class Match3Board {
         const offsetY = ((this.rows - 1) * this.tileSize) / 2;
 
         this.piecesMask.clear();
-        this.piecesMask.beginFill(0xffffff, 0.0001); // transparent mask
+        this.piecesMask.beginFill(0xffffff, 0.0001);
         this.piecesMask.drawRect(
             -offsetX - this.tileSize / 2,
             -offsetY - this.tileSize / 2,
@@ -95,30 +131,37 @@ export class Match3Board {
         this.piecesMask.endFill();
     }
 
+    // ------------------------------------------------------------
+    // RESET / CLEAR
+    // ------------------------------------------------------------
     public reset() {
         for (const p of this.pieces) this.disposePiece(p);
         this.pieces = [];
     }
 
-    public clear() {
-        for (let col = 0; col < this.columns; col++) {
-            for (let row = 0; row < this.rows; row++) {
-                this.grid[col][row] = 0;
+    public clearGridOnly() {
+        for (let c = 0; c < this.columns; c++) {
+            for (let r = 0; r < this.rows; r++) {
+                this.grid[c][r] = 0;
+                this.multiplierGrid[c][r] = 0;
             }
         }
     }
 
-    /** Create a visible piece in correct screen position */
+    // ------------------------------------------------------------
+    // CREATE / REMOVE PIECES
+    // ------------------------------------------------------------
     public createPiece(position: Match3Position, type: Match3Type, multiplier = 0) {
         const name = this.typesMap[type];
         const piece = pool.get(SlotSymbol);
+
         const view = this.getViewPositionByGridPosition(position);
 
         piece.setup({
             name,
             type,
             size: this.tileSize,
-            multiplier: multiplier,
+            multiplier,
             interactive: false
         });
 
@@ -134,22 +177,24 @@ export class Match3Board {
         return piece;
     }
 
-    public async spawnPiece(position: Match3Position, type: Match3Type) {
+    public async spawnPiece(position: Match3Position, type: Match3Type, multiplier = 0) {
         const old = this.getPieceByPosition(position);
         if (old) this.disposePiece(old);
 
         match3SetPieceType(this.grid, position, type);
+        this.multiplierGrid[position.column][position.row] = multiplier;
 
         if (!type) return;
-        this.createPiece(position, type);
+
+        this.createPiece(position, type, multiplier);
     }
 
-    public async playPiece() { return; }
-
     public async popPiece(position: Match3Position) {
-        const p = this.getPieceByPosition(position);
-        if (p) this.disposePiece(p);
+        const piece = this.getPieceByPosition(position);
+        if (piece) this.disposePiece(piece);
+
         match3SetPieceType(this.grid, position, 0);
+        this.multiplierGrid[position.column][position.row] = 0;
     }
 
     public async popPieces(positions: Match3Position[]) {
@@ -165,72 +210,32 @@ export class Match3Board {
         pool.giveBack(piece);
     }
 
+    // ------------------------------------------------------------
+    // QUERIES
+    // ------------------------------------------------------------
     public getPieceByPosition(pos: Match3Position) {
-        return this.pieces.find(p =>
-            p.row === pos.row && p.column === pos.column
+        return this.pieces.find(
+            p => p.row === pos.row && p.column === pos.column
         ) || null;
     }
 
-    public getViewPositionByGridPosition(position: Match3Position) {
+    public getViewPositionByGridPosition(pos: Match3Position) {
         const offsetX = ((this.columns - 1) * this.tileSize) / 2;
         const offsetY = ((this.rows - 1) * this.tileSize) / 2;
 
         return {
-            x: position.column * this.tileSize - offsetX,
-            y: position.row * this.tileSize - offsetY
+            x: pos.column * this.tileSize - offsetX,
+            y: pos.row * this.tileSize - offsetY
         };
     }
 
-    public getWidth() {
-        return this.tileSize * this.columns;
-    }
-
-    public getHeight() {
-        return this.tileSize * this.rows;
-    }
+    public getWidth() { return this.tileSize * this.columns; }
+    public getHeight() { return this.tileSize * this.rows; }
 
     public bringToFront(piece: SlotSymbol) {
         this.piecesContainer.addChild(piece);
     }
 
-    public pause() {}
-    public resume() {}
-
-    public removeInitialPiecesOnly() {
-        for (const child of [...this.piecesContainer.children]) {
-            // Keep mask
-            if (child === this.piecesMask) continue;
-
-            // Keep blurLayer & realLayer (detect by name or instanceof)
-            if ((child as any).isReelLayer) continue;
-
-            // Remove SlotSymbol object
-            if (child instanceof SlotSymbol) {
-                this.piecesContainer.removeChild(child);
-                child.destroy();
-            }
-        }
-
-        this.pieces = [];
-    }
-
-    public clearAllLayers() {
-        const container = this.piecesContainer;
-
-        // Remove all children EXCEPT the mask
-        for (const child of [...container.children]) {
-            if (child === this.piecesMask) continue;
-
-            container.removeChild(child);
-
-            // Full destroy of container or symbol
-            if (child.destroy) child.destroy({ children: true });
-        }
-
-        // Reset board symbols list
-        this.pieces = [];
-    }
-
-
-
+    public pause() { for (const p of this.pieces) p.pause?.(); }
+    public resume() { for (const p of this.pieces) p.resume?.(); }
 }
