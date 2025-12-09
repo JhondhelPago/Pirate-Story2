@@ -2,6 +2,7 @@ import { Container, Sprite, Texture } from 'pixi.js';
 import gsap from 'gsap';
 import { navigation } from '../utils/navigation';
 import { ConfirmationBuyFreeSpinPopup } from './BuyFreeConfirmationPopup';
+import { GameScreen } from '../screens/GameScreen';
 
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
@@ -82,8 +83,14 @@ export class BuyFreeSpinPopup extends Container {
                         buySpinLabel: "buy-10-label",
                         amountLabel: "amount-200",
                         confirmButton: "confirm-button",
-                        cancelButton: "cancel-button"
+                        cancelButton: "cancel-button",
+                        onConfirm: () => {
+                            const game = navigation.currentScreen as GameScreen;
+                            // process here to validate purchase, deduct currency,
+                            game.freeSpinStartSpinning(10); 
+                        }
                     });
+
                 }
                 else if (s === this.option15) {
                     navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
@@ -91,7 +98,12 @@ export class BuyFreeSpinPopup extends Container {
                         buySpinLabel: "buy-15-label",
                         amountLabel: "amount-500",
                         confirmButton: "confirm-button",
-                        cancelButton: "cancel-button"
+                        cancelButton: "cancel-button",
+                        onConfirm: () => {
+                            const game = navigation.currentScreen as GameScreen;
+                            // process here to validate purchase, deduct currency,
+                            game.freeSpinStartSpinning(15); 
+                        }
                     });
                 }
                 else if (s === this.option20) {
@@ -100,7 +112,12 @@ export class BuyFreeSpinPopup extends Container {
                         buySpinLabel: "buy-20-label",
                         amountLabel: "amount-1000",
                         confirmButton: "confirm-button",
-                        cancelButton: "cancel-button"
+                        cancelButton: "cancel-button",
+                        onConfirm: () => {
+                            const game = navigation.currentScreen as GameScreen;
+                            // process here to validate purchase, deduct currency,
+                            game.freeSpinStartSpinning(20); 
+                        }
                     });
                 }
                 // =====================================================

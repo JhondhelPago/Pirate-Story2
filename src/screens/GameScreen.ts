@@ -71,9 +71,7 @@ export class GameScreen extends Container {
         /** Match3 core */
         this.match3 = new Match3();
         this.match3.onSpinStart = this.onSpinStart.bind(this);
-        // this.match3.onJackpotMatch = this.onJackpotMatch.bind(this);
-        // this.match3.onJackpotTrigger = this.onJackpotTrigger.bind(this);
-        this.match3.onFreeSpinTrigger = this.onFreeSpinTrigger.bind(this);
+        // this.match3.onFreeSpinTrigger = this.onFreeSpinTrigger.bind(this);
         this.match3.onFreeSpinStart = this.onFreeSpinStart.bind(this);
         this.match3.onFreeSpinComplete = this.onFreeSpinComplete.bind(this);
         this.match3.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
@@ -122,8 +120,14 @@ export class GameScreen extends Container {
     public startSpinning() {
         if (this.finished) return;
         this.finished = true;
-        //this.match3.spin();
-        this.match3.freeSpin();
+        this.match3.spin();
+        
+    }
+
+    public freeSpinStartSpinning(spins: number) {
+        if (this.finished) return;
+        this.finished = true;
+        this.match3.freeSpin(spins);
     }
 
     public prepare() {
@@ -208,16 +212,16 @@ export class GameScreen extends Container {
         await waitFor(0.3);
     }
 
-    private async onFreeSpinTrigger(): Promise<void> {
-        return new Promise((resolve) => {
-            navigation.presentPopup(FreeSpinPopup, async () => {
-                await navigation.dismissPopup();
-                await waitFor(1);
-                this.match3.actions.actionFreeSpin();
-                resolve();
-            });
-        });
-    }
+    // private async onFreeSpinTrigger(): Promise<void> {
+    //     return new Promise((resolve) => {
+    //         navigation.presentPopup(FreeSpinPopup, async () => {
+    //             await navigation.dismissPopup();
+    //             await waitFor(1);
+    //             this.match3.actions.actionFreeSpin();
+    //             resolve();
+    //         });
+    //     });
+    // }
 
     private async onSpinStart() {
         console.log('SPIN STARTED');
@@ -229,19 +233,19 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinComplete() {
-        return new Promise((resolve) => {
-            navigation.presentPopup(FreeSpinWinPopup, {
-                winAmount: 1000,
-                spinsCount: 3,
-                callBack: async () => {
-                    await navigation.dismissPopup();
-                    await waitFor(1);
-                    if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing())
-                        this.finish();
-                    resolve;
-                },
-            });
-        });
+        // return new Promise((resolve) => {
+        //     navigation.presentPopup(FreeSpinWinPopup, {
+        //         winAmount: 1000,
+        //         spinsCount: 3,
+        //         callBack: async () => {
+        //             await navigation.dismissPopup();
+        //             await waitFor(1);
+        //             if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing())
+        //                 this.finish();
+        //             resolve;
+        //         },
+        //     });
+        // });
     }
 
     private async onFreeSpinRoundStart() {

@@ -128,10 +128,10 @@ export class Match3 extends Container {
     }
 
     /** Start the spin and disable interaction */
-    public async freeSpin() {
+    public async freeSpin(spins: number) {
         if (this.spinning) return;
         this.spinning = true;
-        await this.actions.actionFreeSpin();
+        await this.actions.actionFreeSpin(spins);
         this.spinning = false;
     }
 

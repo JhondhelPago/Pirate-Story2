@@ -24,6 +24,9 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     private btnConfirm!: Sprite;
     private btnCancel!: Sprite;
 
+    private onConfirm?: () => void;
+
+
     constructor() {
         super();
         this.eventMode = "static";
@@ -31,7 +34,8 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     }
 
     public prepare<T>(data?: T) {
-        const d = data as BuyConfirmData;
+        const d = data as BuyConfirmData & { onConfirm?: () => void };
+        this.onConfirm = d.onConfirm;
 
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
@@ -65,7 +69,11 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.btnConfirm.eventMode = "static";
         this.btnConfirm.cursor = "pointer";
         this.board.addChild(this.btnConfirm);
-        this.btnConfirm.on("pointertap", () => this.hide());
+        this.btnConfirm.on("pointertap", () => {
+            this.onConfirm?.();
+            this.hide();
+        });
+
 
         this.btnCancel = Sprite.from(d.cancelButton);
         this.btnCancel.anchor.set(0.5);

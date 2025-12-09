@@ -19,7 +19,7 @@ interface ReelColumn {
 export class Match3Process {
     protected match3: Match3;
     protected processing = false;
-    protected round = 0
+    protected round = 0;
     protected hasRoundWin = false;
     protected isBannerDraw = false;
     protected bannerTimer: any = null;
@@ -61,18 +61,18 @@ export class Match3Process {
     // DESTROY ENTIRE SPIN STATE (BOTH LAYERS)
     // -----------------------------------------------------
     protected destroyAllLayers() {
-        // Stop tickers
+        // Stop ticker
         if (this.ticker) {
             this.ticker.stop();
             this.ticker.destroy();
             this.ticker = undefined;
         }
 
-        // Kill GSAP animations
+        // Kill all animations
         gsap.killTweensOf(this.blurLayer);
         gsap.killTweensOf(this.realLayer);
 
-        // Destroy blur layer completely
+        // Destroy blur reels content
         for (const reel of this.blurReels) {
             for (const sym of reel.symbols) sym.destroy();
             reel.container.removeChildren();
@@ -81,7 +81,7 @@ export class Match3Process {
         this.blurReels = [];
         this.blurLayer.removeChildren();
 
-        // Destroy real layer completely
+        // Destroy real reels content
         for (const reel of this.realReels) {
             for (const sym of reel.symbols) sym.destroy();
             reel.container.removeChildren();
@@ -89,13 +89,30 @@ export class Match3Process {
         }
         this.realReels = [];
         this.realLayer.removeChildren();
+
+        // ---------------------------------------------------------
+        // ⭐ CRITICAL FIX: Remove layer containers entirely
+        // ---------------------------------------------------------
+        if (this.blurLayer.parent) this.blurLayer.parent.removeChild(this.blurLayer);
+        if (this.realLayer.parent) this.realLayer.parent.removeChild(this.realLayer);
+
+        // Recreate fresh layers for next spin
+        const mask = this.match3.board.piecesMask;
+        this.blurLayer = new Container();
+        this.realLayer = new Container();
+
+        this.blurLayer.mask = mask;
+        this.realLayer.mask = mask;
+
+        // Re-attach them empty
+        this.match3.board.piecesContainer.addChild(this.blurLayer);
+        this.match3.board.piecesContainer.addChild(this.realLayer);
     }
 
     // -----------------------------------------------------
     // ENTRY POINT
     // -----------------------------------------------------
     public async start() {
-
         if (this.bannerTimer) {
             clearTimeout(this.bannerTimer);
             this.bannerTimer = null;
@@ -127,14 +144,13 @@ export class Match3Process {
 
         this.destroyAllLayers();
 
-        // Fresh layers
+        // Build new layers
         this.buildBlurLayer();
         this.buildRealLayer();
 
         this.blurLayer.y = -maskH;
         this.realLayer.y = 0;
 
-        // Entrance transition
         await Promise.all([
             gsap.to(this.realLayer, { y: maskH, duration: 0.35, ease: "power0.out" }),
             gsap.to(this.blurLayer, { y: 0, duration: 0.35, ease: "power0.out" }),
@@ -142,7 +158,6 @@ export class Match3Process {
 
         this.startBlurSpin();
 
-        // Fetch backend
         let result: any;
         let apiSuccess = true;
 
@@ -162,10 +177,8 @@ export class Match3Process {
             return;
         }
 
-        // Apply backend
         this.applyBackendToRealLayer(result.reels, result.bonusReels);
 
-        // Slide back real layer
         await Promise.all([
             gsap.to(this.blurLayer, {
                 y: maskH + this.match3.board.tileSize * 3,
@@ -191,7 +204,6 @@ export class Match3Process {
         const finalGrid = this.getFinalGridFromRealLayer();
 
         console.log("FINAL GRID:", finalGrid);
-
         const clusters = slotGetClusters(finalGrid);
         console.log("CLUSTERS FOUND:", clusters);
 
@@ -212,18 +224,14 @@ export class Match3Process {
         return grid;
     }
 
-    // -----------------------------------------------------
     // BLUR SYMBOL
-    // -----------------------------------------------------
     protected createBlur() {
         const types = Object.keys(this.match3.board.typesMap).map(Number);
         const rand = types[Math.floor(Math.random() * types.length)];
         return new BlurSymbol(rand, this.match3.board.tileSize);
     }
 
-    // -----------------------------------------------------
     // BUILD BLUR LAYER
-    // -----------------------------------------------------
     protected buildBlurLayer() {
         const board = this.match3.board;
         const tile = board.tileSize;
@@ -259,9 +267,7 @@ export class Match3Process {
         this.ticker.start();
     }
 
-    // -----------------------------------------------------
     // BUILD REAL LAYER
-    // -----------------------------------------------------
     protected buildRealLayer() {
         const board = this.match3.board;
         const tile = board.tileSize;
@@ -281,7 +287,7 @@ export class Match3Process {
                 position: 0,
             };
 
-            // Fill with temporary blur (will be replaced)
+            // TEMP BLURS
             for (let r = 0; r < board.rows; r++) {
                 const blur = this.createBlur();
                 blur.y = r * tile;
@@ -293,9 +299,7 @@ export class Match3Process {
         }
     }
 
-    // -----------------------------------------------------
-    // APPLY BACKEND — ALWAYS CREATE NEW SYMBOLS
-    // -----------------------------------------------------
+    // APPLY BACKEND
     protected applyBackendToRealLayer(grid: number[][], bonusGrid: number[][]) {
         const board = this.match3.board;
         const tile = board.tileSize;
@@ -303,12 +307,10 @@ export class Match3Process {
         for (let c = 0; c < board.columns; c++) {
             const reel = this.realReels[c];
 
-            // Destroy old
             for (const sym of reel.symbols) sym.destroy();
             reel.symbols = [];
             reel.container.removeChildren();
 
-            // Create new SlotSymbols
             for (let r = 0; r < board.rows; r++) {
                 const type = grid[r][c];
                 const multiplier = bonusGrid[r][c];
@@ -324,9 +326,6 @@ export class Match3Process {
         }
     }
 
-    // -----------------------------------------------------
-    // BLUR SPIN
-    // -----------------------------------------------------
     protected startBlurSpin() { this._blurSpinning = true; }
     protected stopBlurSpin() { this._blurSpinning = false; }
 
@@ -347,9 +346,6 @@ export class Match3Process {
         }
     }
 
-    // -----------------------------------------------------
-    // CLUSTER ANIMATIONS
-    // -----------------------------------------------------
     public stopAllClusterAnimations() {
         for (const col of this.realReels) {
             for (const sym of col.symbols) {
@@ -394,18 +390,14 @@ export class Match3Process {
 
         if (totalFinalWin < 50) return;
 
-        // Cancel existing timer
         if (this.bannerTimer) {
             clearTimeout(this.bannerTimer);
             this.bannerTimer = null;
         }
 
-        // Schedule banner
         this.bannerTimer = setTimeout(() => {
             if (this.processing) return;
-
             navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
-
             this.bannerTimer = null;
         }, 2000);
     }
@@ -427,31 +419,25 @@ export class Match3Process {
     private forceFinishSpin() {
         console.log("Force finishing spin...");
 
-        // 1. Kill ALL GSAP tweens
         gsap.killTweensOf(this.blurLayer);
         gsap.killTweensOf(this.realLayer);
 
-        // 2. Stop blur spin immediately
         this._blurSpinning = false;
 
-        // 3. Stop ticker to freeze blur movement
         if (this.ticker) {
             this.ticker.stop();
         }
 
-        // 4. Instantly move layers to final positions
         const maskH = this.match3.board.rows * this.match3.board.tileSize;
-        this.blurLayer.y = maskH + this.match3.board.tileSize * 3;  
+        this.blurLayer.y = maskH + this.match3.board.tileSize * 3;
         this.realLayer.y = 0;
 
-        // 5. Cancel banner
         if (this.bannerTimer) {
             clearTimeout(this.bannerTimer);
             this.bannerTimer = null;
         }
         SpinRoundBanner.forceDismiss();
 
-        // 6. Stop cluster animation
         this.stopAllClusterAnimations();
 
         console.log("Spin forced to finish instantly.");

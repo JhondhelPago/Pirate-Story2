@@ -214,5 +214,23 @@ export class Match3Board {
         this.pieces = [];
     }
 
+    public clearAllLayers() {
+        const container = this.piecesContainer;
+
+        // Remove all children EXCEPT the mask
+        for (const child of [...container.children]) {
+            if (child === this.piecesMask) continue;
+
+            container.removeChild(child);
+
+            // Full destroy of container or symbol
+            if (child.destroy) child.destroy({ children: true });
+        }
+
+        // Reset board symbols list
+        this.pieces = [];
+    }
+
+
 
 }

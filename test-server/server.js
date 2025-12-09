@@ -52,19 +52,19 @@ app.get('/spin', async (req, res) => {
 
     // Generate 5 reels, each with 5 random symbols (1-12)
     //const reels = Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => getRandomInt(1, 12)));
-    // const reels = Array.from({ length: 5 }, () =>
-    //     Array.from({ length: 5 }, () => {
-    //         let n = getRandomInt(1, 12);  // now includes 12
-    //         while (n === 11) {
-    //         n = getRandomInt(1, 12);
-    //         }
-    //         return n;
-    //     })
-    // );
+    const reels = Array.from({ length: 5 }, () =>
+        Array.from({ length: 5 }, () => {
+            let n = getRandomInt(1, 12);  // now includes 12
+            while (n === 11) {
+            n = getRandomInt(1, 12);
+            }
+            return n;
+        })
+    );
 
 
     
-    const reels = winReels;
+    //const reels = winReels;
 
     const bonusReels = reels.map(reel => {
         const multiplierOptions = [2, 3, 5];
