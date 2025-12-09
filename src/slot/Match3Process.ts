@@ -442,4 +442,33 @@ export class Match3Process {
 
         console.log("Spin forced to finish instantly.");
     }
+
+    public destroy() {
+        // Stop ticker
+        if (this.ticker) {
+            this.ticker.stop();
+            this.ticker.destroy();
+            this.ticker = undefined;
+        }
+
+        // Kill GSAP
+        gsap.killTweensOf(this.blurLayer);
+        gsap.killTweensOf(this.realLayer);
+
+        // Remove & destroy layers
+        if (this.blurLayer.parent) {
+            this.blurLayer.parent.removeChild(this.blurLayer);
+        }
+        if (this.realLayer.parent) {
+            this.realLayer.parent.removeChild(this.realLayer);
+        }
+
+        this.blurLayer.destroy({ children: true });
+        this.realLayer.destroy({ children: true });
+
+        // Clear reel references
+        this.blurReels = [];
+        this.realReels = [];
+    }
+
 }

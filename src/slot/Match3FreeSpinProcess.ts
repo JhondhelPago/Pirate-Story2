@@ -47,7 +47,9 @@ export class Match3FreeSpinProcess extends Match3Process {
             console.log("Free Spins Complete.");
             return;
         }
-
+        
+        console.log("Free Spins Remaining:", this.remainingFreeSpin);
+        console.log("IsProcessing:", this.processing);
         // consume one spin
         this.remainingFreeSpin--;
         this.currentFreeSpin++;
@@ -65,25 +67,8 @@ export class Match3FreeSpinProcess extends Match3Process {
             await waitFor(1.5);
         }
 
-        // Parent banner: if banner appears, it blocks next spin until user click or auto hide
-        // So we don't need to manage it — parent already delays internally.
-
-        // ---- RECURSIVE NEXT SPIN ----
         await this.runNextSpin();
     }
-
-    // Override to add a delay for the free spin session
-    // protected async DrawSpinRoundBanner(roundResult: RoundResult) {
-    //     const totalFinalWin = roundResult.reduce((sum, r) => sum + r.finalWin, 0);
-
-    //     if (totalFinalWin < 50) return;
-
-    //     await new Promise(res => setTimeout(res, 2000));
-
-    //     if (this.processing) return;
-
-    //     const banner = navigation.presentPopup(SpinRoundBanner, { win: totalFinalWin });
-    // }
 
     public startSpinLog() {
         console.log("Spin Session from the Match3FreeSpinProcess");

@@ -87,7 +87,7 @@ export class BuyFreeSpinPopup extends Container {
                         onConfirm: () => {
                             const game = navigation.currentScreen as GameScreen;
                             // process here to validate purchase, deduct currency,
-                            game.freeSpinStartSpinning(10); 
+                            game.freeSpinStartSpinning(2); 
                         }
                     });
 

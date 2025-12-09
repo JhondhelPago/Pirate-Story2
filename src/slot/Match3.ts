@@ -25,8 +25,7 @@ export interface SlotOnJackpotMatchData {
 
 /** Interface for onMatch event data */
 export interface SlotOnJackpotTriggerData {
-    /** List of all jackpot matches detected in the grid *
-    /** Occurance */
+    /** List of all jackpot matches detected in the grid */
     times: number;
 }
 
@@ -48,48 +47,53 @@ export class Match3 extends Container {
     public board: Match3Board;
     /** Sort out actions that the player can take */
     public actions: Match3Actions;
-    /** Process matches and fills up the grid */
-    public process: Match3Process;
-    /** Process matches and fills up the grid */
-    public freeSpinProcess: Match3FreeSpinProcess;
-    /** Handles pieces with special powers */
-    // public jackpot: Match3Jackpot;
+    
+    /** ⚠️ The active process (normal spin or free spin) */
+    private _currentProcess: Match3Process;
 
-    /** Firew when a spin started, regardless of the spin type */
+    /** Public accessor for current process */
+    public get process(): Match3Process {
+        return this._currentProcess;
+    }
+
+    /** Safe setter — destroys previous process before switching */
+    public set process(p: Match3Process) {
+        if (this._currentProcess && this._currentProcess !== p) {
+            this._currentProcess.destroy();   // SAFE CLEANUP
+        }
+        this._currentProcess = p;
+    }
+
+    /** A dedicated free spin process */
+    public freeSpinProcess: Match3FreeSpinProcess;
+
+    /** Game callbacks */
     public onSpinStart?: () => void;
-    /** Firew when free spin triggered */
     public onFreeSpinTrigger?: () => void;
-    /** Fires when special triggered */
     public onJackpotMatch?: (data: SlotOnJackpotMatchData) => Promise<void>;
-    /** Fires when multiplier jackpot triggered */
     public onJackpotTrigger?: (data: SlotOnJackpotTriggerData) => Promise<void>;
 
-    /** Fires when the game start auto-processing the grid */
     public onFreeSpinStart?: (count: number) => void;
-    /** Fires when the game finishes auto-processing the grid */
     public onFreeSpinComplete?: () => void;
-    /** Fires when the game start auto-processing the grid */
-    public onFreeSpinRoundStart?: (currentCount: number, remainingCount: number) => void;
-    /** Fires when the game start auto-processing the grid */
-    public onFreeSpinRoundComplete?: (currentCount: number, remainingCount: number) => void;
+    public onFreeSpinRoundStart?: (current: number, remaining: number) => void;
+    public onFreeSpinRoundComplete?: (current: number, remaining: number) => void;
 
-    /** Fires when the game start auto-processing the grid */
     public onProcessStart?: () => void;
-    /** Fires when the game finishes auto-processing the grid */
     public onProcessComplete?: () => void;
 
     constructor() {
         super();
         this.spinning = false;
 
-        // Game sub-systems
+        /** Game sub-systems */
         this.config = slotGetConfig();
         this.stats = new Match3Stats(this);
         this.roundResults = new Match3RoundResults(this);
         this.board = new Match3Board(this);
         this.actions = new Match3Actions(this);
-        this.process = new Match3Process(this);
-        // this.jackpot = new Match3Jackpot(this);
+
+        /** Create process instances */
+        this._currentProcess = new Match3Process(this);       // use direct assign (NO setter here)
         this.freeSpinProcess = new Match3FreeSpinProcess(this);
     }
 
@@ -100,40 +104,47 @@ export class Match3 extends Container {
     public setup(config: Match3Config) {
         this.config = config;
         this.reset();
-
-        // Jackpot is not used anymore
-        // const jackpotConfig = gameConfig.getJackpots();
-        // this.jackpot.setup(jackpotConfig);
-
         this.board.setup(config);
     }
-
 
     /** Fully reset the game */
     public reset() {
         this.interactiveChildren = false;
         this.stats.reset();
         this.board.reset();
-        this.process.reset();
+
+        // Reset both processes safely
+        this._currentProcess.reset();
         this.freeSpinProcess.reset();
-        // this.jackpot.reset();
     }
 
-    /** Start the spin and disable interaction */
+    /** Start normal spin */
     public async spin() {
         if (this.spinning) return;
         this.spinning = true;
+
+        // ALWAYS use a fresh normal Match3Process
+        this.process = new Match3Process(this);
+
         await this.actions.actionSpin();
+
         this.spinning = false;
     }
 
-    /** Start the spin and disable interaction */
+
+    /** Start free spin sequence */
     public async freeSpin(spins: number) {
         if (this.spinning) return;
         this.spinning = true;
+
+        // Switch safely to the free spin process
+        this.process = this.freeSpinProcess;
+
         await this.actions.actionFreeSpin(spins);
+
         this.spinning = false;
     }
+
 
     /** Start the timer and enable interaction */
     public startPlaying() {
