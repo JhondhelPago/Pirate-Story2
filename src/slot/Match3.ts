@@ -56,14 +56,6 @@ export class Match3 extends Container {
         return this._currentProcess;
     }
 
-    /** Safe setter — destroys previous process before switching */
-    public set process(p: Match3Process) {
-        if (this._currentProcess && this._currentProcess !== p) {
-            this._currentProcess.destroy();   // SAFE CLEANUP
-        }
-        this._currentProcess = p;
-    }
-
     /** A dedicated free spin process */
     public freeSpinProcess: Match3FreeSpinProcess;
 
@@ -123,9 +115,6 @@ export class Match3 extends Container {
         if (this.spinning) return;
         this.spinning = true;
 
-        // ALWAYS use a fresh normal Match3Process
-        this.process = new Match3Process(this);
-
         await this.actions.actionSpin();
 
         this.spinning = false;
@@ -136,9 +125,6 @@ export class Match3 extends Container {
     public async freeSpin(spins: number) {
         if (this.spinning) return;
         this.spinning = true;
-
-        // Switch safely to the free spin process
-        this.process = this.freeSpinProcess;
 
         await this.actions.actionFreeSpin(spins);
 
