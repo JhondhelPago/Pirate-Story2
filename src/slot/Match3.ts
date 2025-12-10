@@ -103,7 +103,7 @@ export class Match3 extends Container {
     public reset() {
         this.interactiveChildren = false;
         this.stats.reset();
-        this.board.reset();
+        
 
         // Reset both processes safely
         this._currentProcess.reset();
@@ -144,13 +144,13 @@ export class Match3 extends Container {
 
     /** Pause the game */
     public pause() {
-        this.board.pause();
+        // this.board.pause();
         this.process.pause();
     }
 
     /** Resume the game */
     public resume() {
-        this.board.resume();
+        // this.board.resume();
         this.process.resume();
     }
 

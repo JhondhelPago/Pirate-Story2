@@ -19,7 +19,10 @@ export class Match3Actions {
         // Do NOT call fallToBottomGrid — it no longer exists
 
         // Run the spin animation process
-        await this.match3.process.start();
+        await this.match3.board.startClassicSpin(2000);
+
+        this.match3.board.stopClassicSpin();
+
 
         // After process finishes, Process.start() will call onProcessComplete automatically
     }
