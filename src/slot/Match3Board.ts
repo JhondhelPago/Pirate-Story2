@@ -5,7 +5,6 @@ import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import { BlurSymbol } from "../ui/BlurSymbol";
 import { SlotSymbol } from "./SlotSymbol";
-import { Match3Grid } from "./SlotUtility";
 
 interface ReelColumn {
     container: Container;
@@ -314,6 +313,14 @@ export class Match3Board {
         this.backendMultipliers = multipliers;
     }
 
+    public getBackendReels(){
+        return this.backendReels
+    }
+
+    public getBackendMultipliers(){
+        return this.backendMultipliers
+    }
+
     // =========================================================================
     // APPLY BACKEND RESULT TO REAL REELS
     // =========================================================================
@@ -342,9 +349,22 @@ export class Match3Board {
         }
     }
 
-    // =========================================================================
-    // START SPIN
-    // =========================================================================
+    public animateWinningSymbols(wins: { row: number; column: number }[]) {
+        for (const pos of wins) {
+            const { row, column } = pos;
+
+            const reel = this.realReels[column];
+            if (!reel) continue;
+
+            const symbol = reel.symbols[row] as SlotSymbol;
+            if (!symbol) continue;
+
+            symbol.animatePlay(true);
+        }
+    }
+
+
+
     public async startSpin(): Promise<void> {
         const maskH = this.rows * this.tileSize;
 
@@ -364,12 +384,8 @@ export class Match3Board {
         this.startBlurSpin();
     }
 
-    // =========================================================================
-    // FINISH SPIN
-    // =========================================================================
     public async finishSpin(): Promise<void> {
         this.stopBlurSpin();
-
         this.applyBackendToRealLayer();
 
         const maskH = this.rows * this.tileSize;
@@ -378,15 +394,20 @@ export class Match3Board {
             gsap.to(this.blurLayer, {
                 y: maskH + this.tileSize * 3,
                 duration: 0.35,
-                ease: "power2.out"
+                ease: "power2.out",
             }),
             gsap.to(this.realLayer, {
                 y: 0,
                 duration: 0.35,
-                ease: "power2.out"
+                ease: "power2.out",
             }),
         ]);
+
+        // ⭐ play spine animation for winning pieces
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
     }
+
 
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
@@ -395,5 +416,7 @@ export class Match3Board {
 
         return [11, 12].includes(symbolType) ? randomMultiplier : 0;
     }
+
+
 
 }

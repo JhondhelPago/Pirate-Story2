@@ -14,10 +14,10 @@ export class Match3Actions {
         this.match3.process.start();
 
         //Simulate user interrupt after 500ms
-        setTimeout(() => {
-            console.log("Interrupting delay...");
-            this.match3.process.interruptSpinDelay();
-        }, 10);
+        // setTimeout(() => {
+        //     console.log("Interrupting delay...");
+        //     this.match3.process.interruptSpinDelay();
+        // }, 10);
     }
 
 

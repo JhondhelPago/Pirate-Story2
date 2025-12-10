@@ -668,3 +668,30 @@ export function slotEvaluateClusterWins(
 
     return results;
 }
+
+/**
+ * Flattens cluster win results into a single list of unique positions.
+ * 
+ * @param clusters Array of cluster result objects with `positions`
+ * @returns Array<{ row: number, column: number }>
+ */
+export function mergeClusterPositions(
+    clusters: { positions: { row: number, column: number }[] }[]
+) {
+    const seen = new Set<string>();
+    const result: { row: number, column: number }[] = [];
+
+    for (const cluster of clusters) {
+        for (const pos of cluster.positions) {
+            const key = pos.row + "-" + pos.column;
+
+            if (!seen.has(key)) {
+                seen.add(key);
+                result.push({ row: pos.row, column: pos.column });
+            }
+        }
+    }
+
+    return result;
+}
+
