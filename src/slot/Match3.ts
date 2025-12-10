@@ -114,7 +114,7 @@ export class Match3 extends Container {
     public async spin() {
         if (this.spinning) return;
         this.spinning = true;
-
+        
         await this.actions.actionSpin();
 
         this.spinning = false;

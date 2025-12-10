@@ -13,12 +13,18 @@ export class Match3Actions {
     /** Standard SPIN */
     public async actionSpin() {
         this.match3.onSpinStart?.();
-        console.log("Spin triggered on the block od the Match3Action actionSpin.");
+
         await this.match3.board.startClassicSpin();
+
+        const result = await this.match3.process.start();
+        console.log('result: ', result);
+
+        this.match3.board.applyFinalReels(result.reels);
+        this.match3.board.applyFinalMultipliers(result.bonusReels);
+
         this.match3.board.stopClassicSpin();
-        console.log('spinng state from the Match3Board: ', this.match3.board.spinning);
-     
     }
+
 
 
     // Action for the Free Spin Round using the Match3FreeSpinProcess

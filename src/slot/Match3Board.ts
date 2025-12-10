@@ -56,23 +56,19 @@ export class Match3Board {
         this.realLayer.mask = this.maskShape;
     }
 
-    // ======================================================================
-    // RESET SPIN STATE (CRITICAL FIX)
-    // ======================================================================
+    // =========================================================================
+    // RESET SPIN STATE
+    // =========================================================================
     private resetSpinState() {
-        // Forcefully stop any active spinning state
         this.spinning = false;
 
-        // Remove stale ticker
         if (this.spinTicker) {
             Ticker.shared.remove(this.spinTicker);
             this.spinTicker = null;
         }
 
-        // Reset tweens
         this.tweens = [];
 
-        // Reset reels + remove old blur symbols
         this.blurLayer.removeChildren();
 
         for (const r of this.reels) {
@@ -80,13 +76,12 @@ export class Match3Board {
             r.previousPosition = 0;
         }
 
-        // Rebuild blur layer from scratch
         this.buildBlurLayer();
     }
 
-    // ======================================================================
+    // =========================================================================
     // SETUP
-    // ======================================================================
+    // =========================================================================
     public setup(config: Match3Config) {
         this.rows = config.rows;
         this.columns = config.columns;
@@ -118,9 +113,9 @@ export class Match3Board {
         return grid;
     }
 
-    // ======================================================================
+    // =========================================================================
     // MASK
-    // ======================================================================
+    // =========================================================================
     private refreshMask() {
         const w = this.columns * this.tileSize;
         const h = this.rows * this.tileSize;
@@ -131,9 +126,18 @@ export class Match3Board {
         this.maskShape.endFill();
     }
 
-    // ======================================================================
+    // =========================================================================
+    // SET GRID DATA FROM BACKEND
+    // =========================================================================
+    public setBackendGrids(finalReels: number[][], finalBonusReels: number[][]) {
+        // Backend sends row-major → convert to column-major
+        this.grid = this.transposeMatrix(finalReels);
+        this.multiplierGrid = this.transposeMatrix(finalBonusReels);
+    }
+
+    // =========================================================================
     // REAL LAYER (STATIC RESULT)
-    // ======================================================================
+    // =========================================================================
     private buildRealLayer() {
         for (const p of this.realPieces) {
             if (p.parent) p.parent.removeChild(p);
@@ -142,7 +146,7 @@ export class Match3Board {
         this.realPieces = [];
 
         match3ForEach(this.grid, (pos, type) => {
-            const mult = (type === 11 || type === 12) ? getRandomMultiplier() : 0;
+            const mult = this.multiplierGrid[pos.column]?.[pos.row] ?? 0;
 
             const piece = pool.get(SlotSymbol);
             piece.setup({
@@ -167,11 +171,33 @@ export class Match3Board {
         this.realLayer.visible = false;
     }
 
-    // ======================================================================
-    // BLUR LAYER (SPINNING)
-    // ======================================================================
+    // =========================================================================
+    // APPLY BACKEND RESULTS
+    // =========================================================================
+    public applyFinalReels(finalReels: number[][]) {
+        // Convert backend data into board format
+        const grid = this.transposeMatrix(finalReels);
+        this.grid = grid;
+
+        for (const piece of this.realPieces) {
+            const t = grid[piece.column][piece.row];
+            piece.type = t;
+        }
+    }
+
+    public applyFinalMultipliers(multGrid: number[][]) {
+        const mg = this.transposeMatrix(multGrid);
+        this.multiplierGrid = mg;
+
+        for (const piece of this.realPieces) {
+            piece.multiplier = mg[piece.column][piece.row];
+        }
+    }
+
+    // =========================================================================
+    // BLUR SPINNING LAYER
+    // =========================================================================
     private buildBlurLayer() {
-        // Remove previous reels
         for (const r of this.reels) {
             for (const s of r.symbols) {
                 if (s.parent) s.parent.removeChild(s);
@@ -236,12 +262,10 @@ export class Match3Board {
         };
     }
 
-    // ======================================================================
-    // SPIN START — FULLY FIXED
-    // ======================================================================
-    public async startClassicSpin(duration = 1000) {
-
-        // ALWAYS reset view before spin
+    // =========================================================================
+    // SPIN START
+    // =========================================================================
+    public async startClassicSpin() {
         this.resetSpinState();
 
         this.spinning = true;
@@ -269,9 +293,9 @@ export class Match3Board {
         });
     }
 
-    // ======================================================================
-    // REEL MOVEMENT
-    // ======================================================================
+    // =========================================================================
+    // UPDATE SPIN ANIMATION
+    // =========================================================================
     private updateReels() {
         const SYMBOL_COUNT = this.rows + 2;
 
@@ -296,11 +320,10 @@ export class Match3Board {
         }
     }
 
-    // ======================================================================
-    // STOP SPIN — FIXED
-    // ======================================================================
+    // =========================================================================
+    // STOP SPIN
+    // =========================================================================
     public stopClassicSpin() {
-        // CRITICAL: reset BEFORE removing ticker
         this.spinning = false;
 
         if (this.spinTicker) {
@@ -312,9 +335,9 @@ export class Match3Board {
         this.realLayer.visible = true;
     }
 
-    // ======================================================================
+    // =========================================================================
     // TWEEN ENGINE
-    // ======================================================================
+    // =========================================================================
     private tweenTo(object: any, property: string, target: number, time: number, easing: (t: number) => number, oncomplete?: Function) {
         const tween = {
             object,
@@ -365,15 +388,12 @@ export class Match3Board {
         return (t: number) => --t * t * ((amount + 1) * t + amount) + 1;
     }
 
-    // ======================================================================
-    public applyFinalReels(finalReels: number[][]) {
-        for (const piece of this.realPieces) {
-            const t = finalReels[piece.column][piece.row];
-            piece.type = t;
-        }
-    }
-
     public isSpinning() {
         return this.spinning;
     }
+
+    private transposeMatrix<T>(matrix: T[][]): T[][] {
+        return matrix[0].map((_, col) => matrix.map(row => row[col]));
+    }
+
 }
