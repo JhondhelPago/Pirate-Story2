@@ -1,33 +1,20 @@
 import { Container, Graphics, Ticker } from "pixi.js";
+import gsap from "gsap";
 import { pool } from "../utils/pool";
 import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
-import {
-    Match3Grid,
-    Match3Position,
-    match3ForEach,
-    getRandomMultiplier
-} from "./SlotUtility";
+import { BlurSymbol } from "../ui/BlurSymbol";
 import { SlotSymbol } from "./SlotSymbol";
+import { Match3Grid } from "./SlotUtility";
+
+interface ReelColumn {
+    container: Container;
+    symbols: (BlurSymbol | SlotSymbol)[];
+    position: number;
+}
 
 export class Match3Board {
     public match3: Match3;
-
-    public grid: Match3Grid = [];
-    public multiplierGrid: Match3Grid = [];
-
-    public realPieces: SlotSymbol[] = [];
-
-    private reels: {
-        container: Container;
-        symbols: SlotSymbol[];
-        position: number;
-        previousPosition: number;
-    }[] = [];
-
-    private blurLayer: Container;
-    private realLayer: Container;
-    public maskShape: Graphics;
 
     public rows = 0;
     public columns = 0;
@@ -35,365 +22,380 @@ export class Match3Board {
 
     public typesMap!: Record<number, string>;
 
-    public spinning = false;
-    private spinTicker: any = null;
+    // BACKEND RESULTS -------------------------------
+    private backendReels: number[][] = [];
+    private backendMultipliers: number[][] = [];
 
-    private tweens: any[] = [];
-    private onSpinFullyComplete?: () => void;
+    // LAYERS -----------------------------------------
+    public piecesContainer: Container;
+    public piecesMask: Graphics;
+
+    private blurLayer: Container;
+    private realLayer: Container;
+
+    // REELS ------------------------------------------
+    private blurReels: ReelColumn[] = [];
+    private realReels: ReelColumn[] = [];
+
+    // SPIN CONTROL -----------------------------------
+    private ticker?: Ticker;
+    private _blurSpinning = false;
+    private _blurSpinSpeed = 0.55;
+    private initialReels: number[][] = [];
+    private initialMultipliers: number[][] = [];
+    
+
 
     constructor(match3: Match3) {
         this.match3 = match3;
 
+        // Mask (will be refreshed on setup)
+        this.piecesMask = new Graphics();
+
+        // Main container
+        this.piecesContainer = new Container();
+        this.piecesContainer.mask = this.piecesMask;
+
+        // Add to Match3 root
+        this.match3.addChild(this.piecesContainer);
+        this.match3.addChild(this.piecesMask);
+
+        // Layers
         this.blurLayer = new Container();
         this.realLayer = new Container();
-        this.maskShape = new Graphics();
 
-        this.match3.addChild(this.blurLayer);
-        this.match3.addChild(this.realLayer);
-        this.match3.addChild(this.maskShape);
-
-        this.blurLayer.mask = this.maskShape;
-        this.realLayer.mask = this.maskShape;
+        this.piecesContainer.addChild(this.blurLayer);
+        this.piecesContainer.addChild(this.realLayer);
     }
 
     // =========================================================================
-    // RESET SPIN STATE
+    // UPDATE MASK TO FIT BOARD EXACTLY
     // =========================================================================
-    private resetSpinState() {
-        this.spinning = false;
+    private refreshMask() {
+        const w = this.columns * this.tileSize;
+        const h = this.rows * this.tileSize;
 
-        if (this.spinTicker) {
-            Ticker.shared.remove(this.spinTicker);
-            this.spinTicker = null;
-        }
+        const offsetX = w / 2;
+        const offsetY = h / 2;
 
-        this.tweens = [];
+        this.piecesMask.clear();
+        this.piecesMask.beginFill(0xffffff, 1);
 
-        this.blurLayer.removeChildren();
+        // Mask aligned with the centered grid:
+        // x: -offsetX → +offsetX
+        // y: -offsetY → +offsetY
+        this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
 
-        for (const r of this.reels) {
-            r.position = 0;
-            r.previousPosition = 0;
-        }
-
-        this.buildBlurLayer();
+        this.piecesMask.endFill();
     }
 
     // =========================================================================
-    // SETUP
+    // SETUP BOARD
     // =========================================================================
     public setup(config: Match3Config) {
         this.rows = config.rows;
         this.columns = config.columns;
         this.tileSize = config.tileSize;
 
-        this.refreshMask();
-
         const blocks = slotGetBlocks();
         this.typesMap = {};
         for (const b of blocks) this.typesMap[b.type] = b.symbol;
 
-        const availableTypes = Object.keys(this.typesMap).map(Number);
+        // Generate random initial board if none provided
+        if (this.initialReels.length === 0) {
+            this.initialReels = [];
+            this.initialMultipliers = [];
 
-        this.grid = this.createGrid(availableTypes);
-        this.multiplierGrid = this.createGrid([0]);
+            const types = Object.keys(this.typesMap).map(Number);
 
-        this.buildRealLayer();
-        this.buildBlurLayer();
-    }
-
-    private createGrid(types: number[]): Match3Grid {
-        const grid: Match3Grid = [];
-        for (let c = 0; c < this.columns; c++) {
-            grid[c] = [];
             for (let r = 0; r < this.rows; r++) {
-                grid[c][r] = types[Math.floor(Math.random() * types.length)];
+                this.initialReels[r] = [];
+                this.initialMultipliers[r] = [];
+                for (let c = 0; c < this.columns; c++) {
+                    this.initialReels[r][c] = types[Math.floor(Math.random() * types.length)];
+                    this.initialMultipliers[r][c] = 0;
+                }
             }
         }
-        return grid;
+
+        this.refreshMask();
+
+        // build initial visible board
+        this.buildInitialRealLayer();
     }
 
-    // =========================================================================
-    // MASK
-    // =========================================================================
-    private refreshMask() {
-        const w = this.columns * this.tileSize;
-        const h = this.rows * this.tileSize;
 
-        this.maskShape.clear();
-        this.maskShape.beginFill(0xffffff, 0.0001);
-        this.maskShape.drawRect(-w / 2, -h / 2, w, h);
-        this.maskShape.endFill();
+    public setInitialReels(reels: number[][], multipliers: number[][]) {
+        this.initialReels = reels;
+        this.initialMultipliers = multipliers;
     }
 
-    // =========================================================================
-    // SET GRID DATA FROM BACKEND
-    // =========================================================================
-    public setBackendGrids(finalReels: number[][], finalBonusReels: number[][]) {
-        // Backend sends row-major → convert to column-major
-        this.grid = this.transposeMatrix(finalReels);
-        this.multiplierGrid = this.transposeMatrix(finalBonusReels);
-    }
 
-    // =========================================================================
-    // REAL LAYER (STATIC RESULT)
-    // =========================================================================
-    private buildRealLayer() {
-        for (const p of this.realPieces) {
-            if (p.parent) p.parent.removeChild(p);
-            pool.giveBack(p);
+    private buildInitialRealLayer() {
+    const tile = this.tileSize;
+    const offsetX = ((this.columns - 1) * tile) / 2;
+    const offsetY = ((this.rows - 1) * tile) / 2;
+
+    this.realLayer.removeChildren();
+    this.realReels = [];
+
+    for (let c = 0; c < this.columns; c++) {
+        const col = new Container();
+        col.x = c * tile - offsetX;
+        col.y = -offsetY;
+        this.realLayer.addChild(col);
+
+        const reel: ReelColumn = {
+            container: col,
+            symbols: [],
+            position: 0
+        };
+
+        for (let r = 0; r < this.rows; r++) {
+            const type = this.initialReels[r][c];
+            const mult = this.initialPieceMutliplier(this.initialReels[r][c]);
+            const name = this.typesMap[type];
+
+            const sym = new SlotSymbol();
+            sym.setup({ name, type, size: tile, multiplier: mult });  // <-- MULTIPLIER APPLIED
+            sym.y = r * tile;
+
+            reel.symbols.push(sym);
+            col.addChild(sym);
         }
-        this.realPieces = [];
 
-        match3ForEach(this.grid, (pos, type) => {
-            const mult = this.multiplierGrid[pos.column]?.[pos.row] ?? 0;
-
-            const piece = pool.get(SlotSymbol);
-            piece.setup({
-                name: this.typesMap[type],
-                type,
-                multiplier: mult,
-                size: this.tileSize,
-                interactive: false
-            });
-
-            piece.column = pos.column;
-            piece.row = pos.row;
-
-            const view = this.getViewPosition(pos);
-            piece.x = view.x;
-            piece.y = view.y;
-
-            this.realLayer.addChild(piece);
-            this.realPieces.push(piece);
-        });
-
-        this.realLayer.visible = false;
+        this.realReels.push(reel);
     }
+}
+
+
 
     // =========================================================================
-    // APPLY BACKEND RESULTS
+    // REBUILD LAYERS BEFORE SPIN
     // =========================================================================
-    public applyFinalReels(finalReels: number[][]) {
-        // Convert backend data into board format
-        const grid = this.transposeMatrix(finalReels);
-        this.grid = grid;
-
-        for (const piece of this.realPieces) {
-            const t = grid[piece.column][piece.row];
-            piece.type = t;
+    private destroyAllLayers() {
+        if (this.ticker) {
+            this.ticker.stop();
+            this.ticker.destroy();
+            this.ticker = undefined;
         }
-    }
 
-    public applyFinalMultipliers(multGrid: number[][]) {
-        const mg = this.transposeMatrix(multGrid);
-        this.multiplierGrid = mg;
+        gsap.killTweensOf(this.blurLayer);
+        gsap.killTweensOf(this.realLayer);
 
-        for (const piece of this.realPieces) {
-            piece.multiplier = mg[piece.column][piece.row];
+        for (const reel of this.blurReels) {
+            for (const sym of reel.symbols) sym.destroy();
+            reel.container.removeChildren();
+            reel.container.destroy();
         }
+        this.blurReels = [];
+        this.blurLayer.removeChildren();
+
+        for (const reel of this.realReels) {
+            for (const sym of reel.symbols) sym.destroy();
+            reel.container.removeChildren();
+            reel.container.destroy();
+        }
+        this.realReels = [];
+        this.realLayer.removeChildren();
+
+        if (this.blurLayer.parent) this.blurLayer.parent.removeChild(this.blurLayer);
+        if (this.realLayer.parent) this.realLayer.parent.removeChild(this.realLayer);
+
+        this.blurLayer = new Container();
+        this.realLayer = new Container();
+
+        this.piecesContainer.addChild(this.blurLayer);
+        this.piecesContainer.addChild(this.realLayer);
     }
 
     // =========================================================================
-    // BLUR SPINNING LAYER
+    // BLUR SYMBOL CREATOR
+    // =========================================================================
+    private createBlur(): BlurSymbol {
+        const types = Object.keys(this.typesMap).map(Number);
+        const rand = types[Math.floor(Math.random() * types.length)];
+        return new BlurSymbol(rand, this.tileSize);
+    }
+
+    // =========================================================================
+    // BUILD BLUR LAYER
     // =========================================================================
     private buildBlurLayer() {
-        for (const r of this.reels) {
-            for (const s of r.symbols) {
-                if (s.parent) s.parent.removeChild(s);
-                pool.giveBack(s);
-            }
-        }
-
-        this.reels = [];
+        const tile = this.tileSize;
+        const offsetX = ((this.columns - 1) * tile) / 2;
+        const offsetY = ((this.rows - 1) * tile) / 2;
 
         for (let c = 0; c < this.columns; c++) {
-            const container = new Container();
-            this.blurLayer.addChild(container);
+            const col = new Container();
+            col.x = c * tile - offsetX;
+            col.y = -offsetY - tile;
+            this.blurLayer.addChild(col);
 
-            const reel = {
-                container,
-                symbols: [] as SlotSymbol[],
-                position: 0,
-                previousPosition: 0,
+            const reel: ReelColumn = {
+                container: col,
+                symbols: [],
+                position: 0
             };
 
-            for (let r = -2; r < this.rows; r++) {
-                const type = this.randomType();
-                const piece = pool.get(SlotSymbol);
-
-                piece.setup({
-                    name: this.typesMap[type],
-                    type,
-                    multiplier: 0,
-                    size: this.tileSize,
-                    interactive: false
-                });
-
-                piece.column = c;
-                piece.row = r;
-
-                const view = this.getViewPosition({ column: c, row: r });
-                piece.x = view.x;
-                piece.y = view.y;
-
-                reel.symbols.push(piece);
-                container.addChild(piece);
+            const total = this.rows + 3;
+            for (let i = 0; i < total; i++) {
+                const blur = this.createBlur();
+                blur.y = i * tile;
+                col.addChild(blur);
+                reel.symbols.push(blur);
             }
 
-            this.reels.push(reel);
+            this.blurReels.push(reel);
         }
 
-        this.blurLayer.visible = true;
-    }
-
-    private randomType() {
-        const keys = Object.keys(this.typesMap);
-        return Number(keys[Math.floor(Math.random() * keys.length)]);
-    }
-
-    private getViewPosition(pos: Match3Position) {
-        const offsetX = ((this.columns - 1) * this.tileSize) / 2;
-        const offsetY = ((this.rows - 1) * this.tileSize) / 2;
-
-        return {
-            x: pos.column * this.tileSize - offsetX,
-            y: pos.row * this.tileSize - offsetY
-        };
+        this.ticker = new Ticker();
+        this.ticker.add(() => this.updateBlurSpin());
+        this.ticker.start();
     }
 
     // =========================================================================
-    // SPIN START
+    // BUILD REAL LAYER
     // =========================================================================
-    public async startClassicSpin() {
-        this.resetSpinState();
+    private buildRealLayer() {
+        const tile = this.tileSize;
+        const offsetX = ((this.columns - 1) * tile) / 2;
+        const offsetY = ((this.rows - 1) * tile) / 2;
 
-        this.spinning = true;
-        this.realLayer.visible = false;
-        this.blurLayer.visible = true;
+        for (let c = 0; c < this.columns; c++) {
+            const col = new Container();
+            col.x = c * tile - offsetX;
+            col.y = -offsetY;
+            this.realLayer.addChild(col);
 
-        return new Promise<void>(resolve => {
-            this.onSpinFullyComplete = () => resolve();
-
-            for (let i = 0; i < this.reels.length; i++) {
-                const extra = Math.floor(Math.random() * 3);
-                const target = 15 + i * 3 + extra;
-                const time = 1800 + i * 250 + extra * 240;
-
-                this.tweenTo(this.reels[i], "position", target, time, this.backout(0.45));
-            }
-
-            this.spinTicker = () => {
-                if (!this.spinning) return;
-                this.updateTweens();
-                this.updateReels();
+            const reel: ReelColumn = {
+                container: col,
+                symbols: [],
+                position: 0
             };
 
-            Ticker.shared.add(this.spinTicker);
-        });
+            for (let r = 0; r < this.rows; r++) {
+                const blur = this.createBlur();
+                blur.y = r * tile;
+                col.addChild(blur);
+                reel.symbols.push(blur);
+            }
+
+            this.realReels.push(reel);
+        }
     }
 
     // =========================================================================
-    // UPDATE SPIN ANIMATION
+    // BLUR SPIN UPDATE
     // =========================================================================
-    private updateReels() {
-        const SYMBOL_COUNT = this.rows + 2;
+    private updateBlurSpin() {
+        if (!this._blurSpinning) return;
 
-        for (const reel of this.reels) {
-            for (let i = 0; i < reel.symbols.length; i++) {
-                const s = reel.symbols[i];
-                const prevY = s.y;
+        const tile = this.tileSize;
 
-                const newIndex = ((reel.position + i) % SYMBOL_COUNT) - 2;
+        for (const reel of this.blurReels) {
+            reel.position += this._blurSpinSpeed;
+            const total = reel.symbols.length;
 
-                const view = this.getViewPosition({
-                    column: s.column,
-                    row: newIndex
-                });
+            for (let i = 0; i < total; i++) {
+                const sym = reel.symbols[i];
+                const idx = (reel.position + i) % total;
+                sym.y = idx * tile;
+            }
+        }
+    }
 
-                s.y = view.y;
+    private startBlurSpin() { this._blurSpinning = true; }
+    private stopBlurSpin() { this._blurSpinning = false; }
 
-                if (newIndex < -1 && prevY > this.tileSize) {
-                    s.type = this.randomType();
-                }
+    // =========================================================================
+    // BACKEND APPLIED HERE
+    // =========================================================================
+    public applyBackendResults(reels: number[][], multipliers: number[][]) {
+        this.backendReels = reels;
+        this.backendMultipliers = multipliers;
+    }
+
+    // =========================================================================
+    // APPLY BACKEND RESULT TO REAL REELS
+    // =========================================================================
+    private applyBackendToRealLayer() {
+        const tile = this.tileSize;
+
+        for (let c = 0; c < this.columns; c++) {
+            const reel = this.realReels[c];
+
+            for (const sym of reel.symbols) sym.destroy();
+            reel.symbols = [];
+            reel.container.removeChildren();
+
+            for (let r = 0; r < this.rows; r++) {
+                const type = this.backendReels[r][c];
+                const mult = this.backendMultipliers[r][c];
+                const name = this.typesMap[type];
+
+                const sym = new SlotSymbol();
+                sym.setup({ name, type, size: tile, multiplier: mult });
+                sym.y = r * tile;
+
+                reel.symbols.push(sym);
+                reel.container.addChild(sym);
             }
         }
     }
 
     // =========================================================================
-    // STOP SPIN
+    // START SPIN
     // =========================================================================
-    public stopClassicSpin() {
-        this.spinning = false;
+    public async startSpin(): Promise<void> {
+        const maskH = this.rows * this.tileSize;
 
-        if (this.spinTicker) {
-            Ticker.shared.remove(this.spinTicker);
-            this.spinTicker = null;
-        }
+        this.destroyAllLayers();
 
-        this.blurLayer.visible = false;
-        this.realLayer.visible = true;
+        this.buildBlurLayer();
+        this.buildRealLayer();
+
+        this.blurLayer.y = -maskH;
+        this.realLayer.y = 0;
+
+        await Promise.all([
+            gsap.to(this.realLayer, { y: maskH, duration: 0.35, ease: "power0.out" }),
+            gsap.to(this.blurLayer, { y: 0, duration: 0.35, ease: "power0.out" }),
+        ]);
+
+        this.startBlurSpin();
     }
 
     // =========================================================================
-    // TWEEN ENGINE
+    // FINISH SPIN
     // =========================================================================
-    private tweenTo(object: any, property: string, target: number, time: number, easing: (t: number) => number, oncomplete?: Function) {
-        const tween = {
-            object,
-            property,
-            start: Date.now(),
-            time,
-            easing,
-            propertyBeginValue: object[property],
-            target,
-            oncomplete,
-            finished: false
-        };
-        this.tweens.push(tween);
+    public async finishSpin(): Promise<void> {
+        this.stopBlurSpin();
+
+        this.applyBackendToRealLayer();
+
+        const maskH = this.rows * this.tileSize;
+
+        await Promise.all([
+            gsap.to(this.blurLayer, {
+                y: maskH + this.tileSize * 3,
+                duration: 0.35,
+                ease: "power2.out"
+            }),
+            gsap.to(this.realLayer, {
+                y: 0,
+                duration: 0.35,
+                ease: "power2.out"
+            }),
+        ]);
     }
 
-    private updateTweens() {
-        const now = Date.now();
-        let allDone = true;
+    public initialPieceMutliplier(symbolType: number) {
+        const multiplierOptions = [2, 3, 5];
+        const randomMultiplier =
+            multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
 
-        this.tweens = this.tweens.filter(t => {
-            const phase = Math.min(1, (now - t.start) / t.time);
-            t.object[t.property] = this.lerp(t.propertyBeginValue, t.target, t.easing(phase));
-
-            if (phase === 1) {
-                if (!t.finished) {
-                    t.finished = true;
-                    if (t.oncomplete) t.oncomplete();
-                }
-                return false;
-            }
-
-            allDone = false;
-            return true;
-        });
-
-        if (allDone && this.spinning && this.onSpinFullyComplete) {
-            const cb = this.onSpinFullyComplete;
-            this.onSpinFullyComplete = undefined;
-            cb();
-        }
-    }
-
-    private lerp(a: number, b: number, t: number) {
-        return a * (1 - t) + b * t;
-    }
-
-    private backout(amount: number) {
-        return (t: number) => --t * t * ((amount + 1) * t + amount) + 1;
-    }
-
-    public isSpinning() {
-        return this.spinning;
-    }
-
-    private transposeMatrix<T>(matrix: T[][]): T[][] {
-        return matrix[0].map((_, col) => matrix.map(row => row[col]));
+        return [11, 12].includes(symbolType) ? randomMultiplier : 0;
     }
 
 }

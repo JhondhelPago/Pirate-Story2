@@ -25,29 +25,23 @@ export class Match3Process {
     // ENTRY POINT — FETCH BACKEND + SEND TO BOARD
     // ---------------------------------------------------------
     public async start(): Promise<BackendSpinResult> {
-        // Prevent double-processing
         if (this.processing) {
             return {
-                reels: this.match3.board.grid,
-                bonusReels: this.match3.board.multiplierGrid
+                reels: this.match3.board["backendReels"],
+                bonusReels: this.match3.board["backendMultipliers"]
             };
         }
 
         this.processing = true;
         this.match3.onProcessStart?.();
 
-        // 1. Fetch backend result
         const result = await this.fetchBackendSpin();
 
-        // 2. Update board's backend data
-        this.match3.board.setBackendGrids(result.reels, result.bonusReels);
-
-        // 3. Mark process complete
         this.processing = false;
 
-        // 4. Return backend result to Match3Actions
         return result;
     }
+
 
     // ---------------------------------------------------------
     // FETCH BACKEND SPIN

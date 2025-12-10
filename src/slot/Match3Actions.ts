@@ -12,18 +12,25 @@ export class Match3Actions {
     // Action for the normal Spin Round using the Match3Process
     /** Standard SPIN */
     public async actionSpin() {
+        // Notify UI
         this.match3.onSpinStart?.();
 
-        await this.match3.board.startClassicSpin();
+        // 1. Start the spin animation immediately (blur slides in + starts spinning)
+        await this.match3.board.startSpin();
 
+        // 2. Get backend result while blur is spinning
         const result = await this.match3.process.start();
-        console.log('result: ', result);
+        console.log("Backend result:", result);
 
-        this.match3.board.applyFinalReels(result.reels);
-        this.match3.board.applyFinalMultipliers(result.bonusReels);
+        // 3. Give backend result to the board
+        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
 
-        this.match3.board.stopClassicSpin();
+        // 4. Finish the spin (blur slides out, real symbols slide in)
+        await this.match3.board.finishSpin();
+
+        return result;
     }
+
 
 
 
