@@ -1,3 +1,4 @@
+import { BetAPI } from "../api/betApi";
 import { Match3 } from "./Match3";
 
 export interface BackendSpinResult {
@@ -8,6 +9,9 @@ export interface BackendSpinResult {
 export class Match3Process {
     private match3: Match3;
     private processing = false;
+
+    // Cancel token for interrupting the minimum delay
+    private cancelToken: { cancelled: boolean } | null = null;
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -22,35 +26,81 @@ export class Match3Process {
     }
 
     // ---------------------------------------------------------
-    // ENTRY POINT — FETCH BACKEND + SEND TO BOARD
+    // PUBLIC METHOD — INTERRUPT MINIMUM DELAY
     // ---------------------------------------------------------
-    public async start(): Promise<BackendSpinResult> {
+    public interruptSpinDelay() {
+        if (this.cancelToken) {
+            this.cancelToken.cancelled = true;
+        }
+    }
+
+    // ---------------------------------------------------------
+    // ENTRY POINT — SPIN PROCESS WITH MINIMUM DELAY
+    // ---------------------------------------------------------
+    public async start() {
         if (this.processing) {
-            return {
-                reels: this.match3.board["backendReels"],
-                bonusReels: this.match3.board["backendMultipliers"]
-            };
+            return;
         }
 
         this.processing = true;
         this.match3.onProcessStart?.();
 
-        const result = await this.fetchBackendSpin();
+        // Setup cancel token for this spin
+        const token = { cancelled: false };
+        this.cancelToken = token;
+
+        // Start spinning animation immediately
+        await this.match3.board.startSpin();
+
+        // Start the backend request
+        const backendPromise = this.fetchBackendSpin();
+
+        // Start the cancelable minimum delay (1s)
+        const delayPromise = this.createCancelableDelay(1000, token);
+
+        // Wait for backend result (always required)
+        const result = await backendPromise;
+
+        // Wait for minimum delay or skip if cancelled
+        await delayPromise;
+
+        // IMPORTANT FIX:
+        // Do NOT return early when cancelled
+        // Skipping delay is fine — continue the spin normally.
+
+        // Apply backend result (even if delay was skipped)
+        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+
+        // Finish spin animation normally
+        await this.match3.board.finishSpin();
 
         this.processing = false;
-
-        return result;
     }
 
+    // ---------------------------------------------------------
+    // CANCELABLE DELAY (does NOT break the spin)
+    // ---------------------------------------------------------
+    private createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
+        return new Promise(resolve => {
+            const timer = setTimeout(() => {
+                resolve(); // delay finished normally
+            }, ms);
+
+            // If delay is cancelled early → skip the wait
+            const check = setInterval(() => {
+                if (token.cancelled) {
+                    clearTimeout(timer);
+                    clearInterval(check);
+                    resolve(); // resolve immediately
+                }
+            }, 10);
+        });
+    }
 
     // ---------------------------------------------------------
-    // FETCH BACKEND SPIN
+    // BACKEND REQUEST
     // ---------------------------------------------------------
     private async fetchBackendSpin(): Promise<BackendSpinResult> {
-        const res = await fetch("http://localhost:3000/spin");
-        return res.json();
+        return BetAPI.spin("n");
     }
-
-    
-    
 }

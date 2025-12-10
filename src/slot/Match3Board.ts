@@ -132,43 +132,41 @@ export class Match3Board {
 
 
     private buildInitialRealLayer() {
-    const tile = this.tileSize;
-    const offsetX = ((this.columns - 1) * tile) / 2;
-    const offsetY = ((this.rows - 1) * tile) / 2;
+        const tile = this.tileSize;
+        const offsetX = ((this.columns - 1) * tile) / 2;
+        const offsetY = ((this.rows - 1) * tile) / 2;
 
-    this.realLayer.removeChildren();
-    this.realReels = [];
+        this.realLayer.removeChildren();
+        this.realReels = [];
 
-    for (let c = 0; c < this.columns; c++) {
-        const col = new Container();
-        col.x = c * tile - offsetX;
-        col.y = -offsetY;
-        this.realLayer.addChild(col);
+        for (let c = 0; c < this.columns; c++) {
+            const col = new Container();
+            col.x = c * tile - offsetX;
+            col.y = -offsetY;
+            this.realLayer.addChild(col);
 
-        const reel: ReelColumn = {
-            container: col,
-            symbols: [],
-            position: 0
-        };
+            const reel: ReelColumn = {
+                container: col,
+                symbols: [],
+                position: 0
+            };
 
-        for (let r = 0; r < this.rows; r++) {
-            const type = this.initialReels[r][c];
-            const mult = this.initialPieceMutliplier(this.initialReels[r][c]);
-            const name = this.typesMap[type];
+            for (let r = 0; r < this.rows; r++) {
+                const type = this.initialReels[r][c];
+                const mult = this.initialPieceMutliplier(this.initialReels[r][c]);
+                const name = this.typesMap[type];
 
-            const sym = new SlotSymbol();
-            sym.setup({ name, type, size: tile, multiplier: mult });  // <-- MULTIPLIER APPLIED
-            sym.y = r * tile;
+                const sym = new SlotSymbol();
+                sym.setup({ name, type, size: tile, multiplier: mult });  // <-- MULTIPLIER APPLIED
+                sym.y = r * tile;
 
-            reel.symbols.push(sym);
-            col.addChild(sym);
+                reel.symbols.push(sym);
+                col.addChild(sym);
+            }
+
+            this.realReels.push(reel);
         }
-
-        this.realReels.push(reel);
     }
-}
-
-
 
     // =========================================================================
     // REBUILD LAYERS BEFORE SPIN
