@@ -622,7 +622,9 @@ export class SlotSymbol extends Container {
         }
     }
 
-
+    public setType(type: number){
+        this.type = type;
+    }
 
 
 }

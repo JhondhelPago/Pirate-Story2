@@ -4,7 +4,6 @@ import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import {
     Match3Grid,
-    Match3Type,
     Match3Position,
     match3ForEach,
     getRandomMultiplier
@@ -19,7 +18,6 @@ export class Match3Board {
 
     public realPieces: SlotSymbol[] = [];
 
-    // NEW REEL STRUCTURE (like Pixi demo)
     private reels: {
         container: Container;
         symbols: SlotSymbol[];
@@ -37,13 +35,11 @@ export class Match3Board {
 
     public typesMap!: Record<number, string>;
 
-    private spinning = false;
+    public spinning = false;
     private spinTicker: any = null;
 
-    // Tween storage
     private tweens: any[] = [];
     private onSpinFullyComplete?: () => void;
-
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -58,18 +54,39 @@ export class Match3Board {
 
         this.blurLayer.mask = this.maskShape;
         this.realLayer.mask = this.maskShape;
-
-        (window as any).testSpin = async () => {
-            console.log("▶ TEST SPIN");
-            await this.startClassicSpin(2000);
-            this.stopClassicSpin();
-            console.log("■ END");
-        };
     }
 
-    // ---------------------------------------------------------
+    // ======================================================================
+    // RESET SPIN STATE (CRITICAL FIX)
+    // ======================================================================
+    private resetSpinState() {
+        // Forcefully stop any active spinning state
+        this.spinning = false;
+
+        // Remove stale ticker
+        if (this.spinTicker) {
+            Ticker.shared.remove(this.spinTicker);
+            this.spinTicker = null;
+        }
+
+        // Reset tweens
+        this.tweens = [];
+
+        // Reset reels + remove old blur symbols
+        this.blurLayer.removeChildren();
+
+        for (const r of this.reels) {
+            r.position = 0;
+            r.previousPosition = 0;
+        }
+
+        // Rebuild blur layer from scratch
+        this.buildBlurLayer();
+    }
+
+    // ======================================================================
     // SETUP
-    // ---------------------------------------------------------
+    // ======================================================================
     public setup(config: Match3Config) {
         this.rows = config.rows;
         this.columns = config.columns;
@@ -101,9 +118,9 @@ export class Match3Board {
         return grid;
     }
 
-    // ---------------------------------------------------------
+    // ======================================================================
     // MASK
-    // ---------------------------------------------------------
+    // ======================================================================
     private refreshMask() {
         const w = this.columns * this.tileSize;
         const h = this.rows * this.tileSize;
@@ -114,9 +131,9 @@ export class Match3Board {
         this.maskShape.endFill();
     }
 
-    // ---------------------------------------------------------
-    // REAL LAYER (STATIC RESULT GRID)
-    // ---------------------------------------------------------
+    // ======================================================================
+    // REAL LAYER (STATIC RESULT)
+    // ======================================================================
     private buildRealLayer() {
         for (const p of this.realPieces) {
             if (p.parent) p.parent.removeChild(p);
@@ -150,11 +167,11 @@ export class Match3Board {
         this.realLayer.visible = false;
     }
 
-    // ---------------------------------------------------------
-    // BLUR (SPINNING) LAYER — PIXI SLOT STYLE
-    // ---------------------------------------------------------
+    // ======================================================================
+    // BLUR LAYER (SPINNING)
+    // ======================================================================
     private buildBlurLayer() {
-        // Clear old reels
+        // Remove previous reels
         for (const r of this.reels) {
             for (const s of r.symbols) {
                 if (s.parent) s.parent.removeChild(s);
@@ -175,7 +192,6 @@ export class Match3Board {
                 previousPosition: 0,
             };
 
-            // 7 SYMBOLS (5 visible + 2 buffer above)
             for (let r = -2; r < this.rows; r++) {
                 const type = this.randomType();
                 const piece = pool.get(SlotSymbol);
@@ -210,7 +226,6 @@ export class Match3Board {
         return Number(keys[Math.floor(Math.random() * keys.length)]);
     }
 
-    // ---------------------------------------------------------
     private getViewPosition(pos: Match3Position) {
         const offsetX = ((this.columns - 1) * this.tileSize) / 2;
         const offsetY = ((this.rows - 1) * this.tileSize) / 2;
@@ -221,55 +236,50 @@ export class Match3Board {
         };
     }
 
-    // ---------------------------------------------------------
-    // SPIN START — USING PIXI SLOT TWEEN LOGIC
-    // ---------------------------------------------------------
+    // ======================================================================
+    // SPIN START — FULLY FIXED
+    // ======================================================================
     public async startClassicSpin(duration = 1000) {
-        if (this.spinning) return;
-        this.spinning = true;
 
+        // ALWAYS reset view before spin
+        this.resetSpinState();
+
+        this.spinning = true;
         this.realLayer.visible = false;
         this.blurLayer.visible = true;
 
         return new Promise<void>(resolve => {
-            this.onSpinFullyComplete = () => {
-                resolve();
-            };
+            this.onSpinFullyComplete = () => resolve();
 
             for (let i = 0; i < this.reels.length; i++) {
-                const reel = this.reels[i];
-
                 const extra = Math.floor(Math.random() * 3);
-                const target = reel.position + 15 + i * 3 + extra;
+                const target = 15 + i * 3 + extra;
                 const time = 1800 + i * 250 + extra * 240;
 
-                this.tweenTo(reel, "position", target, time, this.backout(0.45));
+                this.tweenTo(this.reels[i], "position", target, time, this.backout(0.45));
             }
 
-            this.spinTicker = (delta: number) => {
+            this.spinTicker = () => {
                 if (!this.spinning) return;
                 this.updateTweens();
-                this.updateReels(delta);
+                this.updateReels();
             };
 
             Ticker.shared.add(this.spinTicker);
         });
     }
 
-
-    // ---------------------------------------------------------
-    // REEL ANIMATION UPDATE (PIXISLOT STYLE)
-    // ---------------------------------------------------------
-    private updateReels(delta: number) {
-        const SYMBOL_COUNT = this.rows + 2; // 7
-        const SYMBOL_SIZE = this.tileSize;
+    // ======================================================================
+    // REEL MOVEMENT
+    // ======================================================================
+    private updateReels() {
+        const SYMBOL_COUNT = this.rows + 2;
 
         for (const reel of this.reels) {
             for (let i = 0; i < reel.symbols.length; i++) {
                 const s = reel.symbols[i];
                 const prevY = s.y;
 
-                // Pixi modulo wrap logic
                 const newIndex = ((reel.position + i) % SYMBOL_COUNT) - 2;
 
                 const view = this.getViewPosition({
@@ -279,31 +289,32 @@ export class Match3Board {
 
                 s.y = view.y;
 
-                // If looped from bottom → top, randomize
-                if (newIndex < -1 && prevY > SYMBOL_SIZE) {
-                    const newType = this.randomType();
-                    s.type = newType;
+                if (newIndex < -1 && prevY > this.tileSize) {
+                    s.type = this.randomType();
                 }
             }
         }
     }
 
-    // ---------------------------------------------------------
-    // STOP SPIN
-    // ---------------------------------------------------------
+    // ======================================================================
+    // STOP SPIN — FIXED
+    // ======================================================================
     public stopClassicSpin() {
-        if (!this.spinning) return;
+        // CRITICAL: reset BEFORE removing ticker
         this.spinning = false;
 
-        Ticker.shared.remove(this.spinTicker);
+        if (this.spinTicker) {
+            Ticker.shared.remove(this.spinTicker);
+            this.spinTicker = null;
+        }
 
         this.blurLayer.visible = false;
         this.realLayer.visible = true;
     }
 
-    // ---------------------------------------------------------
-    // TWEEN SYSTEM
-    // ---------------------------------------------------------
+    // ======================================================================
+    // TWEEN ENGINE
+    // ======================================================================
     private tweenTo(object: any, property: string, target: number, time: number, easing: (t: number) => number, oncomplete?: Function) {
         const tween = {
             object,
@@ -318,7 +329,6 @@ export class Match3Board {
         };
         this.tweens.push(tween);
     }
-
 
     private updateTweens() {
         const now = Date.now();
@@ -340,14 +350,12 @@ export class Match3Board {
             return true;
         });
 
-        // When all tweens are finished → complete spin
         if (allDone && this.spinning && this.onSpinFullyComplete) {
-            const callback = this.onSpinFullyComplete;
+            const cb = this.onSpinFullyComplete;
             this.onSpinFullyComplete = undefined;
-            callback();
+            cb();
         }
     }
-
 
     private lerp(a: number, b: number, t: number) {
         return a * (1 - t) + b * t;
@@ -357,7 +365,7 @@ export class Match3Board {
         return (t: number) => --t * t * ((amount + 1) * t + amount) + 1;
     }
 
-    // ---------------------------------------------------------
+    // ======================================================================
     public applyFinalReels(finalReels: number[][]) {
         for (const piece of this.realPieces) {
             const t = finalReels[piece.column][piece.row];

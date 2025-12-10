@@ -117,12 +117,11 @@ export class GameScreen extends Container {
         console.log("GameScreen constructed (multiplier system removed)");
     }
 
-    public startSpinning() {
-        if (this.finished) return;
-        this.finished = true;
-        this.match3.spin();
-        
+    public async startSpinning() {
+        if (this.match3.spinning) return;
+        await this.match3.spin();
     }
+
 
     public freeSpinStartSpinning(spins: number) {
         if (this.finished) return;
@@ -263,16 +262,11 @@ export class GameScreen extends Container {
     private onProcessComplete() {
         if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing())
             this.finish();
+        this.finished = false;
     }
 
     private async finish() {
         if (!this.finished) return;
         this.finished = false;
-    }
-
-    public blur() {
-        if (!navigation.currentPopup) {
-            // navigation.presentPopup(PausePopup);
-        }
     }
 }

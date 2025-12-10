@@ -478,6 +478,7 @@ export class ControlPanel extends Container {
     public onSpin(callback: () => void) {
         this.spinButton.on('pointerdown', () => {
             if (this.isSpinButtonEnabled) {
+                console.log('spin trigger from the ControlPanels');
                 callback();
             }
         });

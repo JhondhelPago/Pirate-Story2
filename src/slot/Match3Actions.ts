@@ -12,19 +12,12 @@ export class Match3Actions {
     // Action for the normal Spin Round using the Match3Process
     /** Standard SPIN */
     public async actionSpin() {
-        // Fire callback
         this.match3.onSpinStart?.();
-
-        // Do NOT reset the board here — animation needs current pieces
-        // Do NOT call fallToBottomGrid — it no longer exists
-
-        // Run the spin animation process
-        await this.match3.board.startClassicSpin(2000);
-
+        console.log("Spin triggered on the block od the Match3Action actionSpin.");
+        await this.match3.board.startClassicSpin();
         this.match3.board.stopClassicSpin();
-
-
-        // After process finishes, Process.start() will call onProcessComplete automatically
+        console.log('spinng state from the Match3Board: ', this.match3.board.spinning);
+     
     }
 
 
