@@ -14,7 +14,7 @@ interface AppScreen extends Container {
     /** Resume the screen */ 
     resume?(): Promise<void>;
     /** Prepare screen, before showing */
-    prepare?<T>(callback?: T): void;
+    prepare?(data?: any): void;
     /** Reset screen, after hidden */
     reset?(): void;
     /** Update the screen, passing delta time/step */

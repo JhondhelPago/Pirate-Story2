@@ -16,6 +16,7 @@ import { FreeSpinPopup } from '../popups/FreeSpinPopup';
 import { FreeSpinWinPopup } from '../popups/FreeSpinWinPopup';
 import { JackpotWinPopup } from '../popups/JackpotWinPopup';
 import { BarrelBoard } from '../ui/BarrelBoard';
+import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
 
 /** The screen that holds the Match3 game */
 export class GameScreen extends Container {
@@ -99,6 +100,17 @@ export class GameScreen extends Container {
         this.controlPanel.onSpin(() => this.startSpinning());
         this.controlPanel.onSpacebar(() => this.startSpinning());
         this.controlPanel.onAutoplay(() => {});
+
+        this.controlPanel.onInfo(() => {
+            navigation.presentPopup<InfoPopupData>(InfoPopup, {
+                finished: this.finished,
+                onBetChanged: () => {
+                    this.controlPanel.setBet(userSettings.getBet());
+                    // this.updateMultiplierAmounts();
+                    // this.updateBuyFreeSpinAmount();
+                },
+            });
+        });
 
         // Bet buttons still work normally
         this.controlPanel.setBet(userSettings.getBet());
