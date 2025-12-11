@@ -11,7 +11,7 @@
     "types": "tsc",
     "prepreview": "run-s build",
     "preview": "vite preview --open",
-    "clean": "rimraf public/assets/* dist/* .assetpack/*",
+    "clean": "rimraf \"public/assets\" \"dist\" \".assetpack\"",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write src",
