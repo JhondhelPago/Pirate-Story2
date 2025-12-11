@@ -14,6 +14,8 @@ export class Match3Process {
     private match3: Match3;
     private processing = false;
 
+    private round = 0;
+
     private queue: AsyncQueue;
 
     private cancelToken: { cancelled: boolean } | null = null;
@@ -47,6 +49,17 @@ export class Match3Process {
         this.queue.resume();
     }
 
+    public  stop(){
+        if (!this.processing) return;
+        this.processing = false;
+        this.queue.clear();
+        console.log('[Match3] Sequence rounds:', this.round);
+        console.log('[Match3] ======= PROCESSING COMPLETE =======');
+        this.match3.onProcessComplete?.();
+    }
+
+
+
     public async start() {
         if (this.processing) {
             return;
@@ -76,6 +89,8 @@ export class Match3Process {
 
     public async runProcessRound() {
         this.queue.add(async () => {
+            this.round += 1;
+
             this.roundResult = slotEvaluateClusterWins(this.match3.board.getBackendReels(), this.match3.board.getBackendMultipliers());
             const winningCluster = this.roundResult?.map(r => ({
                 positions: r.positions
@@ -85,7 +100,20 @@ export class Match3Process {
             console.log("Winning positions: ", winningPositions);
             this.winningPositions = winningPositions;
 
+            // update stats here
+
         });
+
+        // check the round if he gets rounnd win to display banner
+
+    }
+
+    public updateStats(){
+
+    }
+
+    public processCheckpoint() {
+        
     }
 
     private createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
@@ -105,6 +133,10 @@ export class Match3Process {
         });
     }
 
+    public getWinningPositions(){
+        return this.winningPositions;
+    }
+
     // ---------------------------------------------------------
     // BACKEND REQUEST
     // ---------------------------------------------------------
@@ -112,7 +144,4 @@ export class Match3Process {
         return BetAPI.spin("n");
     }
 
-    public getWinningPositions(){
-        return this.winningPositions;
-    }
 }
