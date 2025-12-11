@@ -8,17 +8,28 @@ export class Match3Actions {
         this.match3 = match3;
     }
 
+    // public async actionSpin() {
+    //     this.match3.onSpinStart?.();
+
+    //     this.match3.process.start();
+
+    //     //Simulate user interrupt after 500ms
+    //     // setTimeout(() => {
+    //     //     console.log("Interrupting delay...");
+    //     //     this.match3.process.interruptSpinDelay();
+    //     // }, 10);
+    // }
+
     public async actionSpin() {
         this.match3.onSpinStart?.();
+        
+         await this.match3.process.start(); // returns { reels, bonusReels }
 
-        this.match3.process.start();
-
-        //Simulate user interrupt after 500ms
-        // setTimeout(() => {
-        //     console.log("Interrupting delay...");
-        //     this.match3.process.interruptSpinDelay();
-        // }, 10);
     }
+
+
+
+
 
 
     // Action for the Free Spin Round using the Match3FreeSpinProcess

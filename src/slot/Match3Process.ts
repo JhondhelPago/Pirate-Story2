@@ -58,18 +58,16 @@ export class Match3Process {
         const token = { cancelled: false };
         this.cancelToken = token;
 
-        await this.match3.board.startSpin();
+        await this.match3.board.startClassicSpin();
 
         const backendPromise = this.fetchBackendSpin();
         const delayPromise = this.createCancelableDelay(1, token);
         const result = await backendPromise;
         await delayPromise;
-        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        this.match3.board.applyFinalResult(result.reels, result.bonusReels);
 
         // sample log of the spin result
         this.runProcessRound();
-
-        await this.match3.board.finishSpin();
 
         this.processing = false;
     }
