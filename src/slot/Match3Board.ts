@@ -377,8 +377,8 @@ export class Match3Board {
         this.realLayer.y = 0;
 
         await Promise.all([
-            gsap.to(this.realLayer, { y: maskH, duration: 0.35, ease: "power0.out" }),
-            gsap.to(this.blurLayer, { y: 0, duration: 0.35, ease: "power0.out" }),
+            gsap.to(this.realLayer, { y: maskH, duration: 0.25, ease: "power0.out" }),
+            gsap.to(this.blurLayer, { y: 0, duration: 0.25, ease: "power0.out" }),
         ]);
 
         this.startBlurSpin();

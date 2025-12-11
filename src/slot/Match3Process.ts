@@ -61,7 +61,7 @@ export class Match3Process {
         await this.match3.board.startSpin();
 
         const backendPromise = this.fetchBackendSpin();
-        const delayPromise = this.createCancelableDelay(1000, token);
+        const delayPromise = this.createCancelableDelay(1, token);
         const result = await backendPromise;
         await delayPromise;
         this.match3.board.applyBackendResults(result.reels, result.bonusReels);
