@@ -96,9 +96,12 @@ export class Match3Process {
                 positions: r.positions
             }));
 
+            
+
             const winningPositions = mergeClusterPositions(winningCluster);
             console.log("Winning positions: ", winningPositions);
             this.winningPositions = winningPositions;
+            console.log("Round result: ", slotEvaluateClusterWins(this.match3.board.getBackendReels(), this.match3.board.getBackendMultipliers()));
 
             // update stats here
 
@@ -135,6 +138,10 @@ export class Match3Process {
 
     public getWinningPositions(){
         return this.winningPositions;
+    }
+
+    public getRoundResult(){
+        return this.roundResult;
     }
 
     // ---------------------------------------------------------

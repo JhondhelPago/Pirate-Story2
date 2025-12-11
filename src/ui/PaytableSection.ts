@@ -28,7 +28,7 @@ export class PayTableSection extends Container {
         this.addChild(this.mainLayout);
 
         this.symbolsDescriptionLabel = new Label(
-            'Symbols pay regardless of their position. Your payout is based on how many identical symbols appear when the spin ends.',
+            'Symbols pay if there is a minimum of 5 connected symbols. Your payout is based on the size of connected symbol groups.',
             {
                 fill: '#ffffff',
                 fontSize: 18,
@@ -43,7 +43,7 @@ export class PayTableSection extends Container {
 
         this.paytableCardsContainer = new Container();
 
-        for (const paytable of this.paytables.slice(0, 9)) {
+        for (const paytable of this.paytables.slice(0, 10)) {
             const card = new PaytableCard({
                 image: `symbol-${paytable.type}`,
                 betAmount: this.betAmount,

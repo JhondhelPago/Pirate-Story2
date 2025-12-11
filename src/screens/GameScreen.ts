@@ -93,7 +93,7 @@ export class GameScreen extends Container {
         /** Control panel */
         this.controlPanel = new ControlPanel();
         this.addChild(this.controlPanel);
-        this.controlPanel.setCredit(100000);
+        this.controlPanel.setCredit(200000);
         this.controlPanel.setBet(2.0);
         this.controlPanel.setMessage('HOLD SPACE FOR TURBO SPIN');
 
@@ -132,6 +132,9 @@ export class GameScreen extends Container {
     public async startSpinning() {
         if (this.match3.spinning) return;
         await this.match3.spin();
+        console.log("round result");
+        console.log(this.match3.process.getRoundResult());
+        console.log("current bet: " + userSettings.getBet());
     }
 
 

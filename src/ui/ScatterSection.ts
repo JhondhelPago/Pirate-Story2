@@ -31,7 +31,7 @@ export class ScatterSection extends Container {
 
         this.wildCardContainer = new Container();
         this.wildCard = new PaytableSpecialCard({
-            image: 'symbol-10',
+            image: 'symbol-11',
             description: 'This is SCATTER symbol. \nSCATTER symbol is present on all reels',
         });
         this.wildCardContainer.addChild(this.wildCard);

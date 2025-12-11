@@ -26,9 +26,7 @@ export type MultipliersValues = typeof multiplierValues[number];
 export type RoundResult = {
     type: number;
     count: number;
-    baseWin: number;
     multiplier: number;
-    finalWin: number;
     positions: Match3Position[];
 }[];
 
@@ -619,6 +617,12 @@ export function slotGetClusters(grid: Match3Grid) {
  * - If sum = 0 → totalMultiplier = 1 (neutral)
  * - No extra +1 added
  */
+/**
+ * Evaluate clusters returning:
+ * - count
+ * - final multiplier (paytable * bonusGrid wild multipliers)
+ * - positions
+ */
 export function slotEvaluateClusterWins(
     grid: Match3Grid,
     bonusGrid: number[][]
@@ -626,7 +630,12 @@ export function slotEvaluateClusterWins(
     const clusters = slotGetClusters(grid);
     const paytable = gameConfig.getPaytables();
 
-    const results: RoundResult = [];
+    const results: {
+        type: number;
+        count: number;
+        multiplier: number;   // FINAL multiplier = paytable × wild bonus
+        positions: Match3Position[];
+    }[] = [];
 
     for (const cluster of clusters) {
         const entry = paytable.find(p => p.type === cluster.type);
@@ -634,40 +643,41 @@ export function slotEvaluateClusterWins(
 
         const count = cluster.positions.length;
 
+        // ------ PAYTABLE MULTIPLIER ------
         const pattern = entry.patterns.find(
             p => count >= p.min && count <= p.max
         );
-        if (!pattern || pattern.win <= 0) continue;
+        if (!pattern) continue;
 
-        // -------- MULTIPLIER EXTRACTION (FIXED) --------
-        let sum = 0;
+        const baseMultiplier = pattern.multiplier;
+
+        // ------ BONUS WILD MULTIPLIERS ------
+        let wildBonus = 0;
 
         for (const pos of cluster.positions) {
             const t = grid[pos.row][pos.column];
             if (t === WILD) {
                 const m = bonusGrid[pos.row][pos.column] || 0;
-                if (m > 0) sum += m;
+                if (m > 0) wildBonus += m;
             }
         }
 
-        const totalMultiplier = sum > 0 ? sum : 1;
+        const bonusMultiplier = wildBonus > 0 ? wildBonus : 1;
 
-        // -------- FINAL WIN CALCULATION --------
-        const baseWin = pattern.win;
-        const finalWin = baseWin * totalMultiplier;
+        // ------ FINAL MULTIPLIER ------
+        const finalMultiplier = baseMultiplier + bonusMultiplier;
 
         results.push({
             type: cluster.type,
             count,
-            baseWin,
-            multiplier: totalMultiplier,
-            finalWin,
+            multiplier: finalMultiplier,
             positions: cluster.positions,
         });
     }
 
     return results;
 }
+
 
 /**
  * Flattens cluster win results into a single list of unique positions.
