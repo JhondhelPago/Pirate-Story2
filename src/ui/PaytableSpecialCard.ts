@@ -23,7 +23,7 @@ export class PaytableSpecialCard extends Container {
 
         this.image = Sprite.from(opts.image);
         this.image.anchor.set(0, 0.5);
-        this.image.scale.set(0.45);
+        this.image.scale.set(1);
         this.mainLayout.addChild(this.image);
 
         this.labelMessage = new Label(opts.description, {

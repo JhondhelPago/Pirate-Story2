@@ -41,7 +41,7 @@ export class FeatureSection extends Container {
         for (const jackpot of this.wildBlocks.reverse()) {
             const jackpotSprite = Sprite.from(`symbol-${jackpot.type}`);
             jackpotSprite.anchor.y = 0.5;
-            jackpotSprite.scale.set(0.5);
+            jackpotSprite.scale.set(1);
             this.symbolsContainer.addChild(jackpotSprite);
             this.symbols.push(jackpotSprite);
         }
