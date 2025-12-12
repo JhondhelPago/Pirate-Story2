@@ -379,9 +379,11 @@ export class Match3Board {
     // BACKEND APPLIED HERE
     // =========================================================================
     public applyBackendResults(reels: number[][], multipliers: number[][]) {
+        // store reels directly
         this.backendReels = reels;
         this.backendMultipliers = multipliers;
     }
+
 
     public getBackendReels() {
         return this.backendReels;

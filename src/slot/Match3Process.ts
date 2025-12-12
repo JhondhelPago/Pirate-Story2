@@ -116,7 +116,11 @@ export class Match3Process {
             return;
         }
 
-        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        const multiplierTraversed = this.mergeMultipliersIfEmpty(
+            this.match3.board.getBackendMultipliers(),
+            result.bonusReels
+        )
+        this.match3.board.applyBackendResults(result.reels, multiplierTraversed);
         await this.match3.board.finishSpin();
 
         // evaluate wins and wait for queue work to finish
@@ -199,4 +203,37 @@ export class Match3Process {
     private async fetchBackendSpin(): Promise<BackendSpinResult> {
         return BetAPI.spin("n");
     }
+
+    private mergeMultipliersIfEmpty(
+        current: number[][],
+        incoming: number[][]
+    ): number[][] {
+        const rows = Math.max(current.length, incoming.length);
+        const result: number[][] = [];
+
+        for (let r = 0; r < rows; r++) {
+            const curRow = current[r] ?? [];
+            const inRow = incoming[r] ?? [];
+
+            const cols = Math.max(curRow.length, inRow.length);
+            const newRow: number[] = [];
+
+            for (let c = 0; c < cols; c++) {
+                const cur = curRow[c] ?? 0;
+                const inc = inRow[c] ?? 0;
+
+                if (cur === 0 && inc !== 0) {
+                    newRow[c] = inc;
+                } else {
+                    newRow[c] = cur;
+                }
+            }
+
+            result[r] = newRow;
+        }
+
+        return result;
+    }
+
+
 }
