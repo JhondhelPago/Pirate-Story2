@@ -1,4 +1,3 @@
-import { roundPixelsBit } from "pixi.js";
 import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
@@ -23,6 +22,10 @@ export class Match3Process {
     private roundResult: RoundResult | null = null;
     private winningPositions: GridPosition[] | null = null;
 
+    private delayRemainingMs = 0;
+    private delayResolver: (() => void) | null = null;
+    private delayToken: { cancelled: boolean } | null = null;
+
     constructor(match3: Match3) {
         this.match3 = match3;
         this.queue = new AsyncQueue();
@@ -36,9 +39,32 @@ export class Match3Process {
         this.processing = false;
     }
 
+    public update(deltaMS: number) {
+        if (this.delayResolver && this.delayToken) {
+            // if cancelled, resolve immediately
+            if (this.delayToken.cancelled) {
+                const resolve = this.delayResolver;
+                this.clearDelay();
+                resolve();
+                return;
+            }
+
+            this.delayRemainingMs -= deltaMS;
+            if (this.delayRemainingMs <= 0) {
+                const resolve = this.delayResolver;
+                this.clearDelay();
+                resolve();
+            }
+        }
+    }
+
     public interruptSpinDelay() {
         if (this.cancelToken) {
             this.cancelToken.cancelled = true;
+        }
+        // Also cancel any active ticker-based delay right now
+        if (this.delayToken) {
+            this.delayToken.cancelled = true;
         }
     }
 
@@ -52,17 +78,22 @@ export class Match3Process {
 
     public stop() {
         if (!this.processing) return;
+
         this.processing = false;
         this.queue.clear();
+
+        // ensure any pending delay resolves so start() can unwind safely
+        if (this.delayToken) {
+            this.delayToken.cancelled = true;
+        }
+
         console.log("[Match3] Sequence rounds:", this.round);
         console.log("[Match3] ======= PROCESSING COMPLETE =======");
         this.match3.onProcessComplete?.();
     }
 
     public async start() {
-        if (this.processing) {
-            return;
-        }
+        if (this.processing) return;
 
         this.processing = true;
         this.match3.onProcessStart?.();
@@ -72,10 +103,18 @@ export class Match3Process {
 
         await this.match3.board.startSpin();
 
+        // Fetch backend + enforce minimum delay (ticker-driven)
         const backendPromise = this.fetchBackendSpin();
         const delayPromise = this.createCancelableDelay(1000, token); // 1s min delay
+
         const result = await backendPromise;
         await delayPromise;
+
+        // If the whole process was stopped/cancelled during wait, bail cleanly
+        if (!this.processing || token.cancelled) {
+            this.processing = false;
+            return;
+        }
 
         this.match3.board.applyBackendResults(result.reels, result.bonusReels);
 
@@ -88,7 +127,6 @@ export class Match3Process {
     }
 
     public async runProcessRound(): Promise<void> {
-        // IMPORTANT: return the promise from queue.add
         return this.queue.add(async () => {
             this.round += 1;
 
@@ -117,21 +155,37 @@ export class Match3Process {
         // TODO
     }
 
+    /**
+     * Ticker-driven delay.
+     * - Respects pause (because update(deltaMS) stops when your game loop stops)
+     * - Can be cancelled via token.cancelled = true
+     */
     private createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
-        return new Promise(resolve => {
-            const timer = setTimeout(() => {
-                resolve(); // delay finished normally
-            }, ms);
+        // If there’s already a pending delay, resolve it to avoid deadlocks.
+        if (this.delayResolver) {
+            const prev = this.delayResolver;
+            this.clearDelay();
+            prev();
+        }
 
-            // If delay is cancelled early → skip the wait
-            const check = setInterval(() => {
-                if (token.cancelled) {
-                    clearTimeout(timer);
-                    clearInterval(check);
-                    resolve(); // resolve immediately
-                }
-            }, 10);
+        this.delayRemainingMs = ms;
+        this.delayToken = token;
+
+        return new Promise(resolve => {
+            // If already cancelled, resolve immediately
+            if (token.cancelled) {
+                this.clearDelay();
+                resolve();
+                return;
+            }
+            this.delayResolver = resolve;
         });
+    }
+
+    private clearDelay() {
+        this.delayRemainingMs = 0;
+        this.delayResolver = null;
+        this.delayToken = null;
     }
 
     public getWinningPositions() {

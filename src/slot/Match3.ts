@@ -158,5 +158,6 @@ export class Match3 extends Container {
     /** Update the timer */
     public update(_delta: number) {
         // this.timer.update(delta);
+        this.process.update(_delta);
     }
 }

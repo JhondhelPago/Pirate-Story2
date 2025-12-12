@@ -133,7 +133,7 @@ export class GameScreen extends Container {
         if (this.match3.spinning) return;
         await this.match3.spin();
         console.log("round result");
-        console.log(this.match3.process.getRoundResult());
+        console.log(this.match3.process.getRoundResult)
         console.log("current bet: " + userSettings.getBet());
     }
 
