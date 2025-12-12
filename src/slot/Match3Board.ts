@@ -39,11 +39,10 @@ export class Match3Board {
     // SPIN CONTROL -----------------------------------
     private ticker?: Ticker;
     private _blurSpinning = false;
-    private _blurSpinSpeed = 0.55;
+    private _blurSpinSpeed = 0.45;
     private initialReels: number[][] = [];
     private initialMultipliers: number[][] = [];
-    
-
+    private isTubroSpin = true;
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -377,8 +376,8 @@ export class Match3Board {
         this.realLayer.y = 0;
 
         await Promise.all([
-            gsap.to(this.realLayer, { y: maskH, duration: 0.25, ease: "power0.out" }),
-            gsap.to(this.blurLayer, { y: 0, duration: 0.25, ease: "power0.out" }),
+            gsap.to(this.realLayer, { y: maskH, duration: 0.2, ease: "power0.out" }),
+            gsap.to(this.blurLayer, { y: 0, duration: 0.2, ease: "power0.out" }),
         ]);
 
         this.startBlurSpin();
@@ -417,6 +416,8 @@ export class Match3Board {
         return [11, 12].includes(symbolType) ? randomMultiplier : 0;
     }
 
-
+    public getTurboSpin(){
+        return this.isTubroSpin;
+    }
 
 }

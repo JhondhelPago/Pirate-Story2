@@ -12,9 +12,7 @@ export type GridPosition = { row: number; column: number };
 export class Match3Process {
     private match3: Match3;
     private processing = false;
-
     private round = 0;
-
     private queue: AsyncQueue;
 
     private cancelToken: { cancelled: boolean } | null = null;
@@ -105,10 +103,12 @@ export class Match3Process {
 
         // Fetch backend + enforce minimum delay (ticker-driven)
         const backendPromise = this.fetchBackendSpin();
-        const delayPromise = this.createCancelableDelay(1000, token); // 1s min delay
+        const delayPromise = this.createCancelableDelay(1500, token); // 1s min delay
 
         const result = await backendPromise;
-        await delayPromise;
+        if (!this.match3.board.getTurboSpin()) {
+            await delayPromise;
+        }
 
         // If the whole process was stopped/cancelled during wait, bail cleanly
         if (!this.processing || token.cancelled) {
@@ -117,11 +117,11 @@ export class Match3Process {
         }
 
         this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        await this.match3.board.finishSpin();
 
         // evaluate wins and wait for queue work to finish
         await this.runProcessRound();
 
-        await this.match3.board.finishSpin();
 
         this.processing = false;
     }
