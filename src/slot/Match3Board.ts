@@ -25,6 +25,15 @@ export class Match3Board {
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
 
+    // WILD OVERLAY (PERSISTENT) ----------------------
+    private wildGrid: number[][] = [
+        [ 11, 0, 0, 0, 0 ],
+        [ 0, 0, 0, 0, 12 ],
+        [ 0, 0, 0, 12, 0 ],
+        [ 0, 0, 12, 0, 0 ],
+        [ 0, 0, 0, 0, 0 ]
+    ];
+
     // LAYERS -----------------------------------------
     public piecesContainer: Container;
     public piecesMask: Graphics;
@@ -32,9 +41,13 @@ export class Match3Board {
     private blurLayer: Container;
     private realLayer: Container;
 
+    // Persistent overlay
+    private wildLayer: Container;
+
     // REELS ------------------------------------------
     private blurReels: ReelColumn[] = [];
     private realReels: ReelColumn[] = [];
+    private wildReels: ReelColumn[] = [];
 
     // SPIN CONTROL -----------------------------------
     private ticker?: Ticker;
@@ -62,8 +75,13 @@ export class Match3Board {
         this.blurLayer = new Container();
         this.realLayer = new Container();
 
+        // Persistent top overlay
+        this.wildLayer = new Container();
+
+        // IMPORTANT: add wildLayer last so it's on top
         this.piecesContainer.addChild(this.blurLayer);
         this.piecesContainer.addChild(this.realLayer);
+        this.piecesContainer.addChild(this.wildLayer);
     }
 
     // =========================================================================
@@ -78,12 +96,7 @@ export class Match3Board {
 
         this.piecesMask.clear();
         this.piecesMask.beginFill(0xffffff, 1);
-
-        // Mask aligned with the centered grid:
-        // x: -offsetX → +offsetX
-        // y: -offsetY → +offsetY
         this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
-
         this.piecesMask.endFill();
     }
 
@@ -116,19 +129,48 @@ export class Match3Board {
             }
         }
 
+        // Default wild grid (all empty) if none set
+        if (this.wildGrid.length === 0) {
+            this.wildGrid = Array.from({ length: this.rows }, () =>
+                Array.from({ length: this.columns }, () => 0)
+            );
+        }
+
         this.refreshMask();
 
         // build initial visible board
         this.buildInitialRealLayer();
-    }
 
+        // build persistent wild overlay structure and apply current grid
+        this.rebuildWildLayerStructure();
+        this.applyWildGridToWildLayer();
+
+        // Keep wild layer definitely on top
+        this.ensureWildLayerOnTop();
+    }
 
     public setInitialReels(reels: number[][], multipliers: number[][]) {
         this.initialReels = reels;
         this.initialMultipliers = multipliers;
     }
 
+    // =========================================================================
+    // PUBLIC: SET WILD OVERLAY GRID (2D [row][col])
+    // 0 = empty/invisible (safe)
+    // =========================================================================
+    public setWildReels(wild: number[][]) {
+        this.wildGrid = wild ?? [];
+        // If structure already exists, just apply; otherwise it will be applied on setup()
+        if (this.rows > 0 && this.columns > 0) {
+            this.rebuildWildLayerStructureIfNeeded();
+            this.applyWildGridToWildLayer();
+            this.ensureWildLayerOnTop();
+        }
+    }
 
+    // =========================================================================
+    // INITIAL REAL LAYER
+    // =========================================================================
     private buildInitialRealLayer() {
         const tile = this.tileSize;
         const offsetX = ((this.columns - 1) * tile) / 2;
@@ -146,7 +188,7 @@ export class Match3Board {
             const reel: ReelColumn = {
                 container: col,
                 symbols: [],
-                position: 0
+                position: 0,
             };
 
             for (let r = 0; r < this.rows; r++) {
@@ -155,7 +197,7 @@ export class Match3Board {
                 const name = this.typesMap[type];
 
                 const sym = new SlotSymbol();
-                sym.setup({ name, type, size: tile, multiplier: mult });  // <-- MULTIPLIER APPLIED
+                sym.setup({ name, type, size: tile, multiplier: mult });
                 sym.y = r * tile;
 
                 reel.symbols.push(sym);
@@ -164,10 +206,12 @@ export class Match3Board {
 
             this.realReels.push(reel);
         }
+
+        this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
-    // REBUILD LAYERS BEFORE SPIN
+    // REBUILD LAYERS BEFORE SPIN (DO NOT TOUCH WILD LAYER)
     // =========================================================================
     private destroyAllLayers() {
         if (this.ticker) {
@@ -195,14 +239,27 @@ export class Match3Board {
         this.realReels = [];
         this.realLayer.removeChildren();
 
+        // Remove old blur/real containers
         if (this.blurLayer.parent) this.blurLayer.parent.removeChild(this.blurLayer);
         if (this.realLayer.parent) this.realLayer.parent.removeChild(this.realLayer);
 
+        // Recreate blur/real
         this.blurLayer = new Container();
         this.realLayer = new Container();
 
-        this.piecesContainer.addChild(this.blurLayer);
-        this.piecesContainer.addChild(this.realLayer);
+        // IMPORTANT: insert blur/real BELOW wildLayer
+        // Ensure wildLayer remains last/top
+        const wildIndex = this.piecesContainer.children.indexOf(this.wildLayer);
+        const insertIndex = wildIndex >= 0 ? wildIndex : this.piecesContainer.children.length;
+
+        this.piecesContainer.addChildAt(this.blurLayer, Math.min(insertIndex, this.piecesContainer.children.length));
+        // After adding blur, wild index may shift; recalc
+        const wildIndex2 = this.piecesContainer.children.indexOf(this.wildLayer);
+        const insertIndex2 = wildIndex2 >= 0 ? wildIndex2 : this.piecesContainer.children.length;
+
+        this.piecesContainer.addChildAt(this.realLayer, Math.min(insertIndex2, this.piecesContainer.children.length));
+
+        this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
@@ -231,7 +288,7 @@ export class Match3Board {
             const reel: ReelColumn = {
                 container: col,
                 symbols: [],
-                position: 0
+                position: 0,
             };
 
             const total = this.rows + 3;
@@ -248,10 +305,12 @@ export class Match3Board {
         this.ticker = new Ticker();
         this.ticker.add(() => this.updateBlurSpin());
         this.ticker.start();
+
+        this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
-    // BUILD REAL LAYER
+    // BUILD REAL LAYER (placeholder blur during spin)
     // =========================================================================
     private buildRealLayer() {
         const tile = this.tileSize;
@@ -267,7 +326,7 @@ export class Match3Board {
             const reel: ReelColumn = {
                 container: col,
                 symbols: [],
-                position: 0
+                position: 0,
             };
 
             for (let r = 0; r < this.rows; r++) {
@@ -279,6 +338,8 @@ export class Match3Board {
 
             this.realReels.push(reel);
         }
+
+        this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
@@ -301,8 +362,12 @@ export class Match3Board {
         }
     }
 
-    private startBlurSpin() { this._blurSpinning = true; }
-    private stopBlurSpin() { this._blurSpinning = false; }
+    private startBlurSpin() {
+        this._blurSpinning = true;
+    }
+    private stopBlurSpin() {
+        this._blurSpinning = false;
+    }
 
     // =========================================================================
     // BACKEND APPLIED HERE
@@ -312,12 +377,12 @@ export class Match3Board {
         this.backendMultipliers = multipliers;
     }
 
-    public getBackendReels(){
-        return this.backendReels
+    public getBackendReels() {
+        return this.backendReels;
     }
 
-    public getBackendMultipliers(){
-        return this.backendMultipliers
+    public getBackendMultipliers() {
+        return this.backendMultipliers;
     }
 
     // =========================================================================
@@ -346,6 +411,8 @@ export class Match3Board {
                 reel.container.addChild(sym);
             }
         }
+
+        this.ensureWildLayerOnTop();
     }
 
     public animateWinningSymbols(wins: { row: number; column: number }[]) {
@@ -362,11 +429,10 @@ export class Match3Board {
         }
     }
 
-
-
     public async startSpin(): Promise<void> {
         const maskH = this.rows * this.tileSize;
 
+        // destroys blur/real only, wild stays intact
         this.destroyAllLayers();
 
         this.buildBlurLayer();
@@ -374,6 +440,9 @@ export class Match3Board {
 
         this.blurLayer.y = -maskH;
         this.realLayer.y = 0;
+
+        // keep overlay on top
+        this.ensureWildLayerOnTop();
 
         await Promise.all([
             gsap.to(this.realLayer, { y: maskH, duration: 0.2, ease: "power0.out" }),
@@ -402,22 +471,165 @@ export class Match3Board {
             }),
         ]);
 
+        // ensure wild is still top
+        this.ensureWildLayerOnTop();
+
         // ⭐ play spine animation for winning pieces
         const wins = this.match3.process.getWinningPositions() ?? [];
         this.animateWinningSymbols(wins);
     }
 
-
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
-        const randomMultiplier =
-            multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
-
+        const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
         return [11, 12].includes(symbolType) ? randomMultiplier : 0;
     }
 
-    public getTurboSpin(){
+    public getTurboSpin() {
         return this.isTubroSpin;
     }
 
+    // =========================================================================
+    // WILD LAYER HELPERS (PERSISTENT TOP OVERLAY)
+    // =========================================================================
+    private ensureWildLayerOnTop() {
+        if (!this.wildLayer.parent) {
+            this.piecesContainer.addChild(this.wildLayer);
+        } else {
+            // Force last/top
+            this.piecesContainer.setChildIndex(this.wildLayer, this.piecesContainer.children.length - 1);
+        }
+    }
+
+    private rebuildWildLayerStructureIfNeeded() {
+        // If structure doesn't match current board, rebuild it
+        if (this.wildReels.length !== this.columns) {
+            this.rebuildWildLayerStructure();
+            return;
+        }
+        // Also check each column has correct number of slots
+        for (let c = 0; c < this.columns; c++) {
+            const reel = this.wildReels[c];
+            if (!reel || reel.symbols.length !== this.rows) {
+                this.rebuildWildLayerStructure();
+                return;
+            }
+        }
+    }
+
+    private rebuildWildLayerStructure() {
+        // Clear previous wild symbols/containers but keep wildLayer itself persistent
+        for (const reel of this.wildReels) {
+            for (const sym of reel.symbols) sym.destroy();
+            reel.container.removeChildren();
+            reel.container.destroy();
+        }
+        this.wildReels = [];
+        this.wildLayer.removeChildren();
+
+        const tile = this.tileSize;
+        const offsetX = ((this.columns - 1) * tile) / 2;
+        const offsetY = ((this.rows - 1) * tile) / 2;
+
+        for (let c = 0; c < this.columns; c++) {
+            const col = new Container();
+            col.x = c * tile - offsetX;
+            col.y = -offsetY;
+            this.wildLayer.addChild(col);
+
+            const reel: ReelColumn = {
+                container: col,
+                symbols: [],
+                position: 0,
+            };
+
+            // Fill with placeholders (we’ll replace/hide safely in applyWildGridToWildLayer)
+            for (let r = 0; r < this.rows; r++) {
+                // Start empty: use a dummy invisible container child (safe)
+                // We'll keep symbol slots consistent per row.
+                const dummy = new Container() as any; // lightweight placeholder
+                dummy.y = r * tile;
+                dummy.visible = false;
+
+                col.addChild(dummy);
+                reel.symbols.push(dummy);
+            }
+
+            this.wildReels.push(reel);
+        }
+
+        this.ensureWildLayerOnTop();
+    }
+
+    private applyWildGridToWildLayer() {
+        // Make safe even if wildGrid is missing rows/cols
+        if (!this.wildReels.length) return;
+
+        const tile = this.tileSize;
+
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.columns; c++) {
+                const reel = this.wildReels[c];
+                if (!reel) continue;
+
+                const current = reel.symbols[r];
+                const type = this.wildGrid?.[r]?.[c] ?? 0;
+
+                // 0 = empty/invisible (safe)
+                if (type === 0 || !this.typesMap[type]) {
+                    // If there is a real SlotSymbol here, destroy it and replace with placeholder
+                    if (current && typeof (current as any).destroy === "function" && current instanceof SlotSymbol) {
+                        current.destroy();
+                    }
+                    // Ensure a placeholder exists at that slot
+                    reel.container.removeChildAt(r);
+                    const dummy = new Container() as any;
+                    dummy.y = r * tile;
+                    dummy.visible = false;
+                    reel.container.addChildAt(dummy, r);
+                    reel.symbols[r] = dummy;
+                    continue;
+                }
+
+                // Need a visible wild symbol at this cell.
+                // If current is not a SlotSymbol, replace it.
+                if (!(current instanceof SlotSymbol)) {
+                    // remove placeholder
+                    reel.container.removeChildAt(r);
+
+                    const name = this.typesMap[type];
+                    const sym = new SlotSymbol();
+                    // multiplier can be 0 for overlay; change later if needed
+                    sym.setup({ name, type, size: tile, multiplier: 0 });
+                    sym.y = r * tile;
+
+                    reel.container.addChildAt(sym, r);
+                    reel.symbols[r] = sym;
+                } else {
+                    // It is already a SlotSymbol; if type changed, rebuild it safely
+                    const existing = current as SlotSymbol;
+                    // Best-safe approach: destroy & recreate if type differs
+                    // (avoids relying on internal SlotSymbol update API)
+                    // If you have a "setType" or similar, you can use it instead.
+                    if ((existing as any).type !== type) {
+                        existing.destroy();
+                        reel.container.removeChildAt(r);
+
+                        const name = this.typesMap[type];
+                        const sym = new SlotSymbol();
+                        sym.setup({ name, type, size: tile, multiplier: 0 });
+                        sym.y = r * tile;
+
+                        reel.container.addChildAt(sym, r);
+                        reel.symbols[r] = sym;
+                    } else {
+                        existing.visible = true;
+                        existing.y = r * tile;
+                    }
+                }
+            }
+        }
+
+        this.ensureWildLayerOnTop();
+    }
 }
