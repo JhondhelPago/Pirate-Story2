@@ -23,7 +23,13 @@ export class Match3Board {
 
     // BACKEND RESULTS -------------------------------
     private backendReels: number[][] = [];
-    private backendMultipliers: number[][] = [];
+    private backendMultipliers: number[][] = [
+        [ 0, 0, 0, 0, 0 ],
+        [ 0, 0, 0, 0, 5 ],
+        [ 0, 0, 0, 2, 0 ],
+        [ 0, 0, 2, 0, 0 ],
+        [ 0, 0, 0, 0, 0 ]
+    ];
 
     // WILD OVERLAY (PERSISTENT) ----------------------
     private wildGrid: number[][] = [
@@ -565,6 +571,9 @@ export class Match3Board {
         // Make safe even if wildGrid is missing rows/cols
         if (!this.wildReels.length) return;
 
+        console.log("block of WildGridToWildLayer:")
+        console.log(this.backendMultipliers);
+
         const tile = this.tileSize;
 
         for (let r = 0; r < this.rows; r++) {
@@ -574,6 +583,7 @@ export class Match3Board {
 
                 const current = reel.symbols[r];
                 const type = this.wildGrid?.[r]?.[c] ?? 0;
+                const mult = this.backendMultipliers[r]?.[c] ?? 0;
 
                 // 0 = empty/invisible (safe)
                 if (type === 0 || !this.typesMap[type]) {
@@ -600,7 +610,7 @@ export class Match3Board {
                     const name = this.typesMap[type];
                     const sym = new SlotSymbol();
                     // multiplier can be 0 for overlay; change later if needed
-                    sym.setup({ name, type, size: tile, multiplier: 0 });
+                    sym.setup({ name, type, size: tile, multiplier: mult});
                     sym.y = r * tile;
 
                     reel.container.addChildAt(sym, r);
