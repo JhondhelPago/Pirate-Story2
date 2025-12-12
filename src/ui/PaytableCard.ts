@@ -44,8 +44,10 @@ export class PaytableCard extends Container {
                 `${pattern.min} - ${pattern.max} - ${formatCurrency(this.betAmount * pattern.multiplier, this.currency)}`,
                 {
                     fill: '#ffffff',
-                    fontSize: 18,
-                    fontWeight: '200',
+                    fontSize: 10,
+                    fontWeight: '100',
+                    lineHeight: 14,
+                    
                 },
             );
             this.layoutList.addChild(label);

@@ -93,10 +93,26 @@ async function loadGameConfig() {
     // gameConfig.setJackpots(result.jackpots);
 }
 
+async function preloadFonts() {
+    if (!('fonts' in document)) return;
+
+    const docFonts = (document as any).fonts;
+
+    // Load Nunito once
+    await docFonts.load('18px "Nunito"');
+
+    // Wait until ALL fonts are fully ready
+    await docFonts.ready;
+
+    console.log('Fonts fully loaded');
+}
+
+
 /** Setup app and initialise assets */
 async function init() {
     // Load game config
     await loadGameConfig();
+    await preloadFonts();
 
     // @ts-ignore
     globalThis.__PIXI_APP__ = app;
@@ -107,6 +123,7 @@ async function init() {
     } else {
         document.documentElement.id = 'isDesktop';
     }
+
 
     // Initialize app
     await app.init({

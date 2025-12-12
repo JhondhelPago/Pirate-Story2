@@ -35,6 +35,7 @@ export class Match3Process {
     public reset() {
         this.processing = false;
     }
+
     public interruptSpinDelay() {
         if (this.cancelToken) {
             this.cancelToken.cancelled = true;
@@ -49,16 +50,14 @@ export class Match3Process {
         this.queue.resume();
     }
 
-    public  stop(){
+    public stop() {
         if (!this.processing) return;
         this.processing = false;
         this.queue.clear();
-        console.log('[Match3] Sequence rounds:', this.round);
-        console.log('[Match3] ======= PROCESSING COMPLETE =======');
+        console.log("[Match3] Sequence rounds:", this.round);
+        console.log("[Match3] ======= PROCESSING COMPLETE =======");
         this.match3.onProcessComplete?.();
     }
-
-
 
     public async start() {
         if (this.processing) {
@@ -74,49 +73,48 @@ export class Match3Process {
         await this.match3.board.startSpin();
 
         const backendPromise = this.fetchBackendSpin();
-        const delayPromise = this.createCancelableDelay(1, token);
+        const delayPromise = this.createCancelableDelay(1000, token); // 1s min delay
         const result = await backendPromise;
         await delayPromise;
+
         this.match3.board.applyBackendResults(result.reels, result.bonusReels);
 
-        // sample log of the spin result
-        this.runProcessRound();
+        // evaluate wins and wait for queue work to finish
+        await this.runProcessRound();
 
         await this.match3.board.finishSpin();
 
         this.processing = false;
     }
 
-    public async runProcessRound() {
-        this.queue.add(async () => {
+    public async runProcessRound(): Promise<void> {
+        // IMPORTANT: return the promise from queue.add
+        return this.queue.add(async () => {
             this.round += 1;
 
-            this.roundResult = slotEvaluateClusterWins(this.match3.board.getBackendReels(), this.match3.board.getBackendMultipliers());
-            const winningCluster = this.roundResult?.map(r => ({
-                positions: r.positions
-            }));
+            const reels = this.match3.board.getBackendReels();
+            const multipliers = this.match3.board.getBackendMultipliers();
 
-            
+            this.roundResult = slotEvaluateClusterWins(reels, multipliers);
+
+            const winningCluster =
+                this.roundResult?.map(r => ({
+                    positions: r.positions,
+                })) ?? [];
 
             const winningPositions = mergeClusterPositions(winningCluster);
-            console.log("Winning positions: ", winningPositions);
             this.winningPositions = winningPositions;
-            console.log("Round result: ", slotEvaluateClusterWins(this.match3.board.getBackendReels(), this.match3.board.getBackendMultipliers()));
 
             // update stats here
-
         });
-
-        // check the round if he gets rounnd win to display banner
-
     }
 
-    public updateStats(){
-
+    public updateStats() {
+        // TODO
     }
 
     public processCheckpoint() {
-        
+        // TODO
     }
 
     private createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
@@ -136,19 +134,15 @@ export class Match3Process {
         });
     }
 
-    public getWinningPositions(){
+    public getWinningPositions() {
         return this.winningPositions;
     }
 
-    public getRoundResult(){
+    public getRoundResult() {
         return this.roundResult;
     }
 
-    // ---------------------------------------------------------
-    // BACKEND REQUEST
-    // ---------------------------------------------------------
     private async fetchBackendSpin(): Promise<BackendSpinResult> {
         return BetAPI.spin("n");
     }
-
 }

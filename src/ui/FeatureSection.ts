@@ -1,8 +1,8 @@
 import { Container, Sprite } from 'pixi.js';
 import { List } from '@pixi/ui';
 import { Label } from './Label';
-import { Jackpot } from '../slot/SlotConfig';
 import { gameConfig } from '../utils/gameConfig';
+import { Block } from '../slot/Match3Config';
 
 export class FeatureSection extends Container {
     private descriptionLabel: Label;
@@ -10,12 +10,12 @@ export class FeatureSection extends Container {
     private descriptionLabel2: Label;
     private symbolsContainer: List;
     private symbols: Sprite[] = [];
-    private jackpots: Jackpot[] = [];
+    private wildBlocks: Block[] = [];
 
     constructor() {
         super();
         // Grab from game config
-        this.jackpots = gameConfig.getJackpots();
+        this.wildBlocks = gameConfig.getWildBlocks();
 
         this.mainLayout = new List({ type: 'vertical', elementsMargin: 40 });
         this.addChild(this.mainLayout);
@@ -38,7 +38,7 @@ export class FeatureSection extends Container {
         this.symbolsContainer = new List({ type: 'horizontal', elementsMargin: 10 });
         this.mainLayout.addChild(this.symbolsContainer);
 
-        for (const jackpot of this.jackpots.reverse()) {
+        for (const jackpot of this.wildBlocks.reverse()) {
             const jackpotSprite = Sprite.from(`symbol-${jackpot.type}`);
             jackpotSprite.anchor.y = 0.5;
             jackpotSprite.scale.set(0.5);

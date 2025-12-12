@@ -16,6 +16,10 @@ const defaultBlocks: Block[] = [
     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
 ];
 
+const wildBlocks: Block[] = [
+    { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
+]
+
 
 const defaultPaytable: Paytable[] = [
     {
@@ -150,6 +154,7 @@ class GameConfig {
     // Configuration data
     private blocks: Block[] = defaultBlocks;
     private paytable: Paytable[] = defaultPaytable;
+    private wildBlock: Block[] = wildBlocks;
 
     public constructor() {}
 
@@ -165,6 +170,10 @@ class GameConfig {
     // Getters
     getBlocks(): Block[] {
         return this.blocks;
+    }
+
+    getWildBlocks(): Block[] {
+        return this.wildBlock;
     }
 
     getPaytables(): Paytable[] {

@@ -77,13 +77,12 @@ export class PayTableSection extends Container {
             card.y = row * (cardHeight + this.cardSpacing);
         });
 
-        // Position the cards container below the description
-        this.paytableCardsContainer.y = this.symbolsDescriptionLabel.y + this.symbolsDescriptionLabel.height / 2 + 40;
     }
 
     public resize(width: number, height: number) {
         const isMobile = document.documentElement.id === 'isMobile';
         const isPortrait = width < height;
+        let yAdjustment = 0;
 
         if (isMobile && isPortrait) {
             this.symbolsDescriptionLabel.y = 100;
@@ -96,6 +95,8 @@ export class PayTableSection extends Container {
             }
 
             this.mainLayout.y = 100;
+            yAdjustment = 80;
+
         } else if (isMobile && !isPortrait) {
             this.symbolsDescriptionLabel.y = 100;
             this.symbolsDescriptionLabel.style.fontSize = 28;
@@ -107,6 +108,7 @@ export class PayTableSection extends Container {
             }
 
             this.mainLayout.y = 80;
+            yAdjustment = 40;
         } else {
             this.symbolsDescriptionLabel.y = 60;
             this.symbolsDescriptionLabel.style.fontSize = 18;
@@ -118,12 +120,15 @@ export class PayTableSection extends Container {
             }
 
             this.mainLayout.y = 60;
+            yAdjustment = 40;
+
         }
 
         this.layoutCards();
-
+        
         this.symbolsDescriptionLabel.x = width * 0.5;
         this.mainLayout.x = width * 0.5;
         this.mainLayout.elementsMargin = 20;
+        this.paytableCardsContainer.y = yAdjustment;
     }
 }
