@@ -9,7 +9,7 @@ export class BetAPI {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Define the URL of your Express server endpoint
-            const url = 'http://192.168.68.102:3000/spin';
+            const url = 'http://192.168.68.128:3000/spin';
 
             // Make a GET request to the Express server
             const response = await fetch(url, {

@@ -39,6 +39,10 @@ export class Match3Board {
         [ 0, 0, 12, 0, 0 ],
         [ 0, 0, 0, 0, 0 ]
     ];
+    
+    // validation reel
+    private validationReel: number[][] = [];
+    private validationMultiplier: number[][] = [];
 
     // LAYERS -----------------------------------------
     public piecesContainer: Container;
@@ -54,6 +58,7 @@ export class Match3Board {
     private blurReels: ReelColumn[] = [];
     private realReels: ReelColumn[] = [];
     private wildReels: ReelColumn[] = [];
+
 
     // SPIN CONTROL -----------------------------------
     private ticker?: Ticker;
