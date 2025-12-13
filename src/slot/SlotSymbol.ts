@@ -1,7 +1,7 @@
 import { Container, Texture, AnimatedSprite, Text, Sprite } from 'pixi.js';
 import gsap from 'gsap';
 import { resolveAndKillTweens, registerCustomEase, pauseTweens, resumeTweens } from '../utils/animation';
-import { Spine } from '@esotericsoftware/spine-pixi-v8';
+import { Physics, Spine } from '@esotericsoftware/spine-pixi-v8';
 
 /** Default piece options */
 const defaultSlotSymbolOptions = {
@@ -535,7 +535,7 @@ export class SlotSymbol extends Container {
         this.addChild(this.multiplierSprite);
 
         // Floating animation
-        this.applyMultiplierAnimation();
+        //this.applyMultiplierAnimation();
     }
 
     /** Apply float + zoom animation to multiplier */
@@ -588,6 +588,27 @@ export class SlotSymbol extends Container {
         }
 
     }
+
+    public resetToSetupPose() {
+        this._isLooping = false;
+        if (!this.spine) return;
+
+        // stop any running animation
+        this.spine.state.clearTracks();
+
+        // IMPORTANT: snap back to the original/default pose
+        this.spine.skeleton.setToSetupPose();
+        this.spine.skeleton.setSlotsToSetupPose();
+
+        // apply + refresh transforms
+        this.spine.state.apply(this.spine.skeleton);
+        this.spine.skeleton.updateWorldTransform(Physics.update);
+
+    }
+
+
+    
+
 
     public showBlurSprite() {
         if (!this.sprite) { 

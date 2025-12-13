@@ -117,14 +117,12 @@ export class Match3Process {
             return;
         }
 
-        // const reelsTraversed = this.mergeReels(this.match3.board.getBackendReels(), result.reels)
-        // const multiplierTraversed = this.mergeMultipliers(this.match3.board.getBackendMultipliers(), result.bonusReels)
-        // this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
-        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        const reelsTraversed = this.mergeReels(this.match3.board.getBackendReels(), result.reels)
+        const multiplierTraversed = this.mergeMultipliers(this.match3.board.getBackendMultipliers(), result.bonusReels)
+        this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
+        // this.match3.board.applyBackendResults(result.reels, result.bonusReels);
         
         await this.runProcessRound();
-
-        
         await this.match3.board.finishSpin();
 
         this.processing = false;
@@ -138,6 +136,10 @@ export class Match3Process {
             const reels = this.match3.board.getBackendReels();
             const multipliers = this.match3.board.getBackendMultipliers();
 
+
+            // virtual grid here to evaluate for the result
+            // merge with the wild reels
+
             this.roundResult = slotEvaluateClusterWins(reels, multipliers);
 
             const winningCluster =
@@ -145,6 +147,7 @@ export class Match3Process {
                     positions: r.positions,
                 })) ?? [];
 
+            
             this.winningPositions = flattenClusterPositions(winningCluster);
             console.log("WINNING POSITIONS", this.winningPositions);
 

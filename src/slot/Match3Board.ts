@@ -486,6 +486,7 @@ export class Match3Board {
 
         this.setWildReels(this.match3.process.getWildReels());
         this.testAnimateAllWildSymbols(wins);
+
     }
 
     public initialPieceMutliplier(symbolType: number) {
@@ -678,6 +679,7 @@ export class Match3Board {
                 const cell = reel.symbols[r];
                 if (!(cell instanceof SlotSymbol)) continue;
 
+                cell.resetToSetupPose();
                 // stop any gsap pulses if you ever use them
                 gsap.killTweensOf(cell);
                 gsap.killTweensOf(cell.scale);
