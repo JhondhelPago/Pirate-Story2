@@ -146,7 +146,7 @@ export class Match3Board {
         // Keep wild layer definitely on top
         this.ensureWildLayerOnTop();
 
-        // this.wildLayer.visible = false;
+        this.wildLayer.visible = false;
     }
 
     public setInitialReels(reels: number[][], multipliers: number[][]) {
@@ -480,9 +480,11 @@ export class Match3Board {
         // ensure wild is still top
         this.ensureWildLayerOnTop();
 
-        // ⭐ play spine animation for winning pieces
         const wins = this.match3.process.getWinningPositions() ?? [];
         this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols();
     }
 
     public initialPieceMutliplier(symbolType: number) {
@@ -642,4 +644,30 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
     }
+
+    public testAnimateAllWildSymbols() {
+        for (let c = 0; c < this.wildReels.length; c++) {
+            const reel = this.wildReels[c];
+            if (!reel) continue;
+
+            for (let r = 0; r < reel.symbols.length; r++) {
+                const cell = reel.symbols[r];
+
+                // Only SlotSymbol can animatePlay
+                if (!(cell instanceof SlotSymbol)) continue;
+
+                // Optional: skip invisible
+                if (!cell.visible) continue;
+
+                cell.animatePlay(false);
+            }
+        }
+
+        console.log("wild slot symbol count:", this.wildReels
+            .flatMap(r => r.symbols)
+            .filter(s => s instanceof SlotSymbol).length
+        );
+
+    }
+
 }

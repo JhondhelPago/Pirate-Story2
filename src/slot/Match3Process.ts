@@ -19,6 +19,7 @@ export class Match3Process {
 
     private roundResult: RoundResult | null = null;
     private winningPositions: GridPosition[] | null = null;
+    private wildReels: number[][] = [];
 
     private delayRemainingMs = 0;
     private delayResolver: (() => void) | null = null;
@@ -121,18 +122,17 @@ export class Match3Process {
         // this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
         this.match3.board.applyBackendResults(result.reels, result.bonusReels);
         
-        // evaluate wins and wait for queue work to finish
         await this.runProcessRound();
-        
-        await this.match3.board.finishSpin();
-        
-        this.match3.board.setWildReels(
-            this.mergeStickyWilds(
+
+        // set the reference of the stiucky wild to this process object, it board will refrence to this
+        this.wildReels = this.mergeStickyWilds(
                 this.match3.board.getWildReels(),
                 result.reels
             )
-        );
+        
+        await this.match3.board.finishSpin();
 
+        this.match3.board.testAnimateAllWildSymbols();
 
         this.processing = false;
     }
@@ -200,6 +200,10 @@ export class Match3Process {
 
     public getWinningPositions() {
         return this.winningPositions;
+    }
+
+    public getWildReels() {
+        return this.wildReels;
     }
 
     public getRoundResult() {
