@@ -50,10 +50,10 @@ export class FeatureSection extends Container {
         this.symbolsContainer.pivot.x = this.symbolsContainer.width / 2;
 
         this.descriptionLabel2 = new Label(
-            'JACKPOT AWARD symbols appear as GRAND, ANGELIC, BLESSED, and DIVINE, each collected during winning spins or cascades toward their respective JACKPOT AWARD meters, awarding the GRAND with 2 symbols, ANGELIC with 3, BLESSED with 4, and DIVINE with 5, with any extra symbols added after the meter resets, and all collected symbols cleared once the spin and its cascades end.',
+            'This is the WILD symbol and substitute for all symbols except for BONUS. WILD symbol hits with a random multiplier of 2x, 3x, 5x, 10x. Multiplier apply to all wining combination, their mutiplier add to each other. The same WILD can be part of multiple winning combinations.',
             {
                 fill: 0xffffff,
-                fontSize: 18,
+                fontSize: 20,
                 lineHeight: 24,
                 fontWeight: '200',
                 wordWrap: true,
