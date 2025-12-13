@@ -33,16 +33,12 @@ export class Match3Board {
 
     // WILD OVERLAY (PERSISTENT) ----------------------
     private wildGrid: number[][] = [
-        [ 11, 0, 0, 0, 0 ],
+        [ 0, 0, 0, 0, 0 ],
         [ 0, 0, 0, 0, 12 ],
         [ 0, 0, 0, 12, 0 ],
         [ 0, 0, 12, 0, 0 ],
         [ 0, 0, 0, 0, 0 ]
     ];
-    
-    // validation reel
-    private validationReel: number[][] = [];
-    private validationMultiplier: number[][] = [];
 
     // LAYERS -----------------------------------------
     public piecesContainer: Container;
@@ -396,6 +392,10 @@ export class Match3Board {
 
     public getBackendMultipliers() {
         return this.backendMultipliers;
+    }
+
+    public getWildReels() {
+        return this.wildGrid;
     }
 
     // =========================================================================

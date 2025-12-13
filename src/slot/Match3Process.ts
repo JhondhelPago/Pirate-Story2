@@ -119,9 +119,15 @@ export class Match3Process {
         const reelsTraversed = this.mergeReels(this.match3.board.getBackendReels(), result.reels)
         const multiplierTraversed = this.mergeMultipliers(this.match3.board.getBackendMultipliers(), result.bonusReels)
         this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
-
+        
         await this.match3.board.finishSpin();
-
+        
+        this.match3.board.setWildReels(
+            this.mergeStickyWilds(
+                this.match3.board.getWildReels(),
+                result.reels
+            )
+        );
         // evaluate wins and wait for queue work to finish
         await this.runProcessRound();
 
@@ -256,6 +262,43 @@ export class Match3Process {
                 if (cur !== 12) {
                     newRow[c] = inc;
                 } else {
+                    newRow[c] = cur;
+                }
+            }
+
+            result[r] = newRow;
+        }
+
+        return result;
+    }
+
+    private mergeStickyWilds(
+        current: number[][],
+        incoming: number[][]
+    ): number[][] {
+        const rows = Math.max(current.length, incoming.length);
+        const result: number[][] = [];
+
+        for (let r = 0; r < rows; r++) {
+            const curRow = current[r] ?? [];
+            const inRow = incoming[r] ?? [];
+
+            const cols = Math.max(curRow.length, inRow.length);
+            const newRow: number[] = [];
+
+            for (let c = 0; c < cols; c++) {
+                const cur = curRow[c] ?? 0;
+                const inc = inRow[c] ?? 0;
+
+                // ---- RULES ----
+                if (cur === 12) {
+                    // current already has sticky wild → keep locked
+                    newRow[c] = 12;
+                } else if (inc === 12) {
+                    // incoming wants to add sticky wild → accept it
+                    newRow[c] = 12;
+                } else {
+                    // neither is wild → keep current unchanged
                     newRow[c] = cur;
                 }
             }
