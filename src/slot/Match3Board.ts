@@ -23,22 +23,11 @@ export class Match3Board {
 
     // BACKEND RESULTS -------------------------------
     private backendReels: number[][] = [];
-    private backendMultipliers: number[][] = [
-        [ 0, 0, 0, 0, 0 ],
-        [ 0, 0, 0, 0, 5 ],
-        [ 0, 0, 0, 2, 0 ],
-        [ 0, 0, 2, 0, 0 ],
-        [ 0, 0, 0, 0, 0 ]
-    ];
+    private backendMultipliers: number[][] = [];
 
     // WILD OVERLAY (PERSISTENT) ----------------------
-    private wildGrid: number[][] = [
-        [ 0, 0, 0, 0, 0 ],
-        [ 0, 0, 0, 0, 12 ],
-        [ 0, 0, 0, 12, 0 ],
-        [ 0, 0, 12, 0, 0 ],
-        [ 0, 0, 0, 0, 0 ]
-    ];
+    private wildGrid: number[][] = [];
+
 
     // LAYERS -----------------------------------------
     public piecesContainer: Container;
@@ -81,9 +70,11 @@ export class Match3Board {
         // Layers
         this.blurLayer = new Container();
         this.realLayer = new Container();
+        this.backendMultipliers = Array.from({ length: 5 }, () => Array(5).fill(0));
 
         // Persistent top overlay
         this.wildLayer = new Container();
+        this.wildGrid = Array.from({ length: 5 }, () => Array(5).fill(0));
 
         // IMPORTANT: add wildLayer last so it's on top
         this.piecesContainer.addChild(this.blurLayer);
@@ -154,6 +145,8 @@ export class Match3Board {
 
         // Keep wild layer definitely on top
         this.ensureWildLayerOnTop();
+
+        this.wildLayer.visible = false;
     }
 
     public setInitialReels(reels: number[][], multipliers: number[][]) {
@@ -458,8 +451,8 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
 
         await Promise.all([
-            gsap.to(this.realLayer, { y: maskH, duration: 0.2, ease: "power0.out" }),
-            gsap.to(this.blurLayer, { y: 0, duration: 0.2, ease: "power0.out" }),
+            gsap.to(this.realLayer, { y: maskH, duration: 0.25, ease: "power0.out" }),
+            gsap.to(this.blurLayer, { y: 0, duration: 0.25, ease: "power0.out" }),
         ]);
 
         this.startBlurSpin();

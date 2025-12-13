@@ -1,7 +1,7 @@
 import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
-import { RoundResult, slotEvaluateClusterWins, mergeClusterPositions } from "./SlotUtility";
+import { RoundResult, slotEvaluateClusterWins, mergeClusterPositions, mergeWildType, mergeNonZero, mergeReels } from "./SlotUtility";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -116,9 +116,11 @@ export class Match3Process {
             return;
         }
 
-        const reelsTraversed = this.mergeReels(this.match3.board.getBackendReels(), result.reels)
-        const multiplierTraversed = this.mergeMultipliers(this.match3.board.getBackendMultipliers(), result.bonusReels)
-        this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
+        // const reelsTraversed = this.mergeReels(this.match3.board.getBackendReels(), result.reels)
+        // const multiplierTraversed = this.mergeMultipliers(this.match3.board.getBackendMultipliers(), result.bonusReels)
+        // this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
+        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        
         
         await this.match3.board.finishSpin();
         
@@ -209,106 +211,20 @@ export class Match3Process {
         return BetAPI.spin("n");
     }
 
-    private mergeMultipliers(
-        current: number[][],
-        incoming: number[][]
-    ): number[][] {
-        const rows = Math.max(current.length, incoming.length);
-        const result: number[][] = [];
-
-        for (let r = 0; r < rows; r++) {
-            const curRow = current[r] ?? [];
-            const inRow = incoming[r] ?? [];
-
-            const cols = Math.max(curRow.length, inRow.length);
-            const newRow: number[] = [];
-
-            for (let c = 0; c < cols; c++) {
-                const cur = curRow[c] ?? 0;
-                const inc = inRow[c] ?? 0;
-
-                if (cur === 0 && inc !== 0) {
-                    newRow[c] = inc;
-                } else {
-                    newRow[c] = cur;
-                }
-            }
-
-            result[r] = newRow;
-        }
-
-        return result;
+    private mergeMultipliers( current: number[][], incoming: number[][]): number[][] {
+        return mergeNonZero(current, incoming);
     }
 
     private mergeReels(
         current: number[][],
         incoming: number[][]
     ): number[][] {
-        const rows = Math.max(current.length, incoming.length);
-        const result: number[][] = [];
-
-        for (let r = 0; r < rows; r++) {
-            const curRow = current[r] ?? [];
-            const inRow = incoming[r] ?? [];
-
-            const cols = Math.max(curRow.length, inRow.length);
-            const newRow: number[] = [];
-
-            for (let c = 0; c < cols; c++) {
-                const cur = curRow[c] ?? 0;
-                const inc = inRow[c] ?? 0;
-
-                // accept incoming unless current is locked (12)
-                if (cur !== 12) {
-                    newRow[c] = inc;
-                } else {
-                    newRow[c] = cur;
-                }
-            }
-
-            result[r] = newRow;
-        }
-
-        return result;
+        return mergeReels(current, incoming);
     }
 
-    private mergeStickyWilds(
-        current: number[][],
-        incoming: number[][]
-    ): number[][] {
-        const rows = Math.max(current.length, incoming.length);
-        const result: number[][] = [];
-
-        for (let r = 0; r < rows; r++) {
-            const curRow = current[r] ?? [];
-            const inRow = incoming[r] ?? [];
-
-            const cols = Math.max(curRow.length, inRow.length);
-            const newRow: number[] = [];
-
-            for (let c = 0; c < cols; c++) {
-                const cur = curRow[c] ?? 0;
-                const inc = inRow[c] ?? 0;
-
-                // ---- RULES ----
-                if (cur === 12) {
-                    // current already has sticky wild → keep locked
-                    newRow[c] = 12;
-                } else if (inc === 12) {
-                    // incoming wants to add sticky wild → accept it
-                    newRow[c] = 12;
-                } else {
-                    // neither is wild → keep current unchanged
-                    newRow[c] = cur;
-                }
-            }
-
-            result[r] = newRow;
-        }
-
-        return result;
+    private mergeStickyWilds( current: number[][], incoming: number[][]): number[][] {
+        return mergeWildType(current, incoming);
     }
-
 
 
 }

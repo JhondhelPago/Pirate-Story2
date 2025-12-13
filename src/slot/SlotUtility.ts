@@ -705,3 +705,104 @@ export function mergeClusterPositions(
     return result;
 }
 
+
+//  PIRATE GRID UTILITIES
+export function mergeNonZero(
+    current: number[][],
+    incoming: number[][]
+): number[][] {
+    const rows = Math.max(current.length, incoming.length);
+    const result: number[][] = [];
+
+    for (let r = 0; r < rows; r++) {
+        const curRow = current[r] ?? [];
+        const inRow = incoming[r] ?? [];
+
+        const cols = Math.max(curRow.length, inRow.length);
+        const newRow: number[] = [];
+
+        for (let c = 0; c < cols; c++) {
+            const cur = curRow[c] ?? 0;
+            const inc = inRow[c] ?? 0;
+
+            if (cur === 0 && inc !== 0) {
+                newRow[c] = inc;
+            } else {
+                newRow[c] = cur;
+            }
+        }
+
+        result[r] = newRow;
+    }
+
+    return result;
+}
+
+export function mergeWildType(
+    current: number[][],
+    incoming: number[][]
+): number[][] {
+    const rows = Math.max(current.length, incoming.length);
+    const result: number[][] = [];
+
+    for (let r = 0; r < rows; r++) {
+        const curRow = current[r] ?? [];
+        const inRow = incoming[r] ?? [];
+
+        const cols = Math.max(curRow.length, inRow.length);
+        const newRow: number[] = [];
+
+        for (let c = 0; c < cols; c++) {
+            const cur = curRow[c] ?? 0;
+            const inc = inRow[c] ?? 0;
+
+            // ---- RULES ----
+            if (cur === WILD) {
+                // current already has sticky wild → keep locked
+                newRow[c] = WILD;
+            } else if (inc === WILD) {
+                // incoming wants to add sticky wild → accept it
+                newRow[c] = WILD;
+            } else {
+                // neither is wild → keep current unchanged
+                newRow[c] = cur;
+            }
+        }
+
+        result[r] = newRow;
+    }
+
+    return result;
+}
+
+export function mergeReels(
+    current: number[][],
+    incoming: number[][]
+): number[][] {
+    const rows = Math.max(current.length, incoming.length);
+    const result: number[][] = [];
+
+    for (let r = 0; r < rows; r++) {
+        const curRow = current[r] ?? [];
+        const inRow = incoming[r] ?? [];
+
+        const cols = Math.max(curRow.length, inRow.length);
+        const newRow: number[] = [];
+
+        for (let c = 0; c < cols; c++) {
+            const cur = curRow[c] ?? 0;
+            const inc = inRow[c] ?? 0;
+
+            // accept incoming unless current is locked (12)
+            if (cur !== 12) {
+                newRow[c] = inc;
+            } else {
+                newRow[c] = cur;
+            }
+        }
+
+        result[r] = newRow;
+    }
+
+    return result;
+}
