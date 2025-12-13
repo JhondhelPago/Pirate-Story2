@@ -1,7 +1,7 @@
 import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
-import { RoundResult, slotEvaluateClusterWins, mergeClusterPositions, mergeWildType, mergeNonZero, mergeReels } from "./SlotUtility";
+import { RoundResult, slotEvaluateClusterWins, flattenClusterPositions, mergeWildType, mergeNonZero, mergeReels } from "./SlotUtility";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -124,15 +124,8 @@ export class Match3Process {
         
         await this.runProcessRound();
 
-        // set the reference of the stiucky wild to this process object, it board will refrence to this
-        this.wildReels = this.mergeStickyWilds(
-                this.match3.board.getWildReels(),
-                result.reels
-            )
         
         await this.match3.board.finishSpin();
-
-        this.match3.board.testAnimateAllWildSymbols();
 
         this.processing = false;
     }
@@ -152,9 +145,18 @@ export class Match3Process {
                     positions: r.positions,
                 })) ?? [];
 
-            const winningPositions = mergeClusterPositions(winningCluster);
-            this.winningPositions = winningPositions;
-        });
+            this.winningPositions = flattenClusterPositions(winningCluster);
+            console.log("WINNING POSITIONS", this.winningPositions);
+
+            // set the reference of the stiucky wild to this process object, it board will refrence to this
+            this.wildReels = this.mergeStickyWilds(
+                    this.match3.board.getWildReels(),
+                    reels
+                )
+
+            console.log("wild Reels from Process", this.wildReels)
+                
+            });
     }
 
     public updateStats() {

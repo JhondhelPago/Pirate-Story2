@@ -146,7 +146,7 @@ export class Match3Board {
         // Keep wild layer definitely on top
         this.ensureWildLayerOnTop();
 
-        this.wildLayer.visible = false;
+        this.wildLayer.visible = true;
     }
 
     public setInitialReels(reels: number[][], multipliers: number[][]) {
@@ -436,6 +436,7 @@ export class Match3Board {
     }
 
     public async startSpin(): Promise<void> {
+        this.resetWildSymbolsToIdle();
         const maskH = this.rows * this.tileSize;
 
         // destroys blur/real only, wild stays intact
@@ -484,7 +485,7 @@ export class Match3Board {
         this.animateWinningSymbols(wins);
 
         this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols();
+        this.testAnimateAllWildSymbols(wins);
     }
 
     public initialPieceMutliplier(symbolType: number) {
@@ -645,29 +646,47 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
     }
 
-    public testAnimateAllWildSymbols() {
+    public testAnimateAllWildSymbols(
+        positions: { row: number; column: number }[]
+    ) {
+        let animatedCount = 0;
+
+        for (const { row, column } of positions) {
+            const reel = this.wildReels[column];
+            if (!reel) continue;
+
+            const cell = reel.symbols[row];
+            if (!(cell instanceof SlotSymbol)) continue;
+
+            // safety checks
+            if (!cell.visible) continue;
+            if ((cell as any).type === 0) continue; // non-zero type only
+
+            cell.animatePlay(true);
+            animatedCount++;
+        }
+
+        console.log("animated wild symbols:", animatedCount);
+    }
+
+    private resetWildSymbolsToIdle() {
         for (let c = 0; c < this.wildReels.length; c++) {
             const reel = this.wildReels[c];
             if (!reel) continue;
 
             for (let r = 0; r < reel.symbols.length; r++) {
                 const cell = reel.symbols[r];
-
-                // Only SlotSymbol can animatePlay
                 if (!(cell instanceof SlotSymbol)) continue;
 
-                // Optional: skip invisible
-                if (!cell.visible) continue;
+                // stop any gsap pulses if you ever use them
+                gsap.killTweensOf(cell);
+                gsap.killTweensOf(cell.scale);
+                cell.scale.set(1);
 
-                cell.animatePlay(false);
             }
         }
-
-        console.log("wild slot symbol count:", this.wildReels
-            .flatMap(r => r.symbols)
-            .filter(s => s instanceof SlotSymbol).length
-        );
-
     }
+
+
 
 }

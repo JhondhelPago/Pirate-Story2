@@ -685,7 +685,7 @@ export function slotEvaluateClusterWins(
  * @param clusters Array of cluster result objects with `positions`
  * @returns Array<{ row: number, column: number }>
  */
-export function mergeClusterPositions(
+export function flattenClusterPositions(
     clusters: { positions: { row: number, column: number }[] }[]
 ) {
     const seen = new Set<string>();
