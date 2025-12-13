@@ -121,6 +121,8 @@ export class Match3Process {
         // this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
         this.match3.board.applyBackendResults(result.reels, result.bonusReels);
         
+        // evaluate wins and wait for queue work to finish
+        await this.runProcessRound();
         
         await this.match3.board.finishSpin();
         
@@ -130,8 +132,6 @@ export class Match3Process {
                 result.reels
             )
         );
-        // evaluate wins and wait for queue work to finish
-        await this.runProcessRound();
 
 
         this.processing = false;
@@ -140,7 +140,8 @@ export class Match3Process {
     public async runProcessRound(): Promise<void> {
         return this.queue.add(async () => {
             this.round += 1;
-
+            
+            // update stats here
             const reels = this.match3.board.getBackendReels();
             const multipliers = this.match3.board.getBackendMultipliers();
 
@@ -153,8 +154,6 @@ export class Match3Process {
 
             const winningPositions = mergeClusterPositions(winningCluster);
             this.winningPositions = winningPositions;
-
-            // update stats here
         });
     }
 

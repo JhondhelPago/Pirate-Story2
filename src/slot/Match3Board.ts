@@ -146,7 +146,7 @@ export class Match3Board {
         // Keep wild layer definitely on top
         this.ensureWildLayerOnTop();
 
-        this.wildLayer.visible = false;
+        // this.wildLayer.visible = false;
     }
 
     public setInitialReels(reels: number[][], multipliers: number[][]) {
