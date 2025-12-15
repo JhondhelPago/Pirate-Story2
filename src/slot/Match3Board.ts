@@ -31,7 +31,6 @@ export class Match3Board {
     // WILD OVERLAY (PERSISTENT) ----------------------
     private wildGrid: number[][] = [];
 
-
     // LAYERS -----------------------------------------
     public piecesContainer: Container;
     public piecesMask: Graphics;
@@ -47,7 +46,6 @@ export class Match3Board {
     private realReels: ReelColumn[] = [];
     private wildReels: ReelColumn[] = [];
 
-
     // SPIN CONTROL -----------------------------------
     private ticker?: Ticker;
     private _blurSpinning = false;
@@ -56,8 +54,23 @@ export class Match3Board {
     private initialMultipliers: number[][] = [];
     private isTubroSpin = true;
 
-    // ANIMATION CONTROL
+    // =========================================================================
+    // LOOP-BY-REPLAY ANIMATION CONTROL (NEW)
+    // =========================================================================
+    /** True if a spin request came in while animations are replaying */
+    public hasIncomingSpinTrigger = false;
+
+    /** True while replay loops are active (spin should wait) */
     private animating = false;
+
+    private winLoopTween?: gsap.core.Tween;
+    private wildLoopTween?: gsap.core.Tween;
+
+    /** MUST match your win animation length (ms) */
+    private readonly WIN_ANIM_MS = 900;
+
+    private animationGate: Promise<void> | null = null;
+    private resolveAnimationGate: (() => void) | null = null;
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -220,6 +233,9 @@ export class Match3Board {
     // REBUILD LAYERS BEFORE SPIN (DO NOT TOUCH WILD LAYER)
     // =========================================================================
     private destroyAllLayers() {
+        // stop any replay loops before destroying symbols
+        this.killLoops();
+
         if (this.ticker) {
             this.ticker.stop();
             this.ticker.destroy();
@@ -384,7 +400,6 @@ export class Match3Board {
         this.backendMultipliers = multipliers;
     }
 
-
     public getBackendReels() {
         return this.backendReels;
     }
@@ -427,21 +442,113 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
     }
 
+    // =========================================================================
+    // LOOP-BY-REPLAY HELPERS (NEW)
+    // =========================================================================
+    private openAnimationGate() {
+        if (this.animationGate) return;
+        this.animationGate = new Promise<void>((resolve) => {
+            this.resolveAnimationGate = resolve;
+        });
+        this.animating = true;
+    }
+
+    private closeAnimationGate() {
+        this.animating = false;
+        const r = this.resolveAnimationGate;
+        this.resolveAnimationGate = null;
+        this.animationGate = null;
+        if (r) r();
+    }
+
+    private killLoops() {
+        if (this.winLoopTween) this.winLoopTween.kill();
+        if (this.wildLoopTween) this.wildLoopTween.kill();
+        this.winLoopTween = undefined;
+        this.wildLoopTween = undefined;
+    }
+
+    private async waitForLoopToFinishIfNeeded() {
+        if (!this.animating || !this.animationGate) return;
+        await this.animationGate;
+    }
+
+    /**
+     * Replays animatePlay(false) repeatedly until hasIncomingSpinTrigger becomes true.
+     * When incoming trigger becomes true, it waits for the current cycle to finish,
+     * then resolves the gate so spin can proceed.
+     */
+    private startReplayLoop(getSymbols: () => SlotSymbol[], which: "win" | "wild") {
+        // stop previous loop of that type
+        if (which === "win" && this.winLoopTween) this.winLoopTween.kill();
+        if (which === "wild" && this.wildLoopTween) this.wildLoopTween.kill();
+
+        this.openAnimationGate();
+
+        const tick = () => {
+            const symbols = getSymbols();
+
+            // nothing to animate
+            if (!symbols.length) {
+                this.closeAnimationGate();
+                return;
+            }
+
+            // play once on all
+            for (const s of symbols) {
+                if (!s.visible) continue;
+                if ((s as any).type === 0) continue;
+                s.animatePlay(false);
+            }
+
+            const t = gsap.delayedCall(this.WIN_ANIM_MS / 1000, () => {
+                if (this.hasIncomingSpinTrigger) {
+                    // stop looping AFTER current animation finishes
+                    this.hasIncomingSpinTrigger = false;
+                    this.closeAnimationGate();
+                    return;
+                }
+                tick(); // replay again
+            });
+
+            if (which === "win") this.winLoopTween = t;
+            else this.wildLoopTween = t;
+        };
+
+        tick();
+    }
+
+    // =========================================================================
+    // ANIMATE WINS (NOW REPLAY-LOOPS)
+    // =========================================================================
     public animateWinningSymbols(wins: { row: number; column: number }[]) {
-        for (const pos of wins) {
-            const { row, column } = pos;
+        this.startReplayLoop(() => {
+            const list: SlotSymbol[] = [];
 
-            const reel = this.realReels[column];
-            if (!reel) continue;
+            for (const { row, column } of wins) {
+                const reel = this.realReels[column];
+                if (!reel) continue;
 
-            const symbol = reel.symbols[row] as SlotSymbol;
-            if (!symbol) continue;
+                const symbol = reel.symbols[row];
+                if (!(symbol instanceof SlotSymbol)) continue;
 
-            symbol.animatePlay(true);
-        }
+                list.push(symbol);
+            }
+
+            return list;
+        }, "win");
     }
 
     public async startSpin(): Promise<void> {
+        // ✅ if animations are replaying, request stop and wait for last cycle to finish
+        if (this.animating) {
+            this.hasIncomingSpinTrigger = true;
+            await this.waitForLoopToFinishIfNeeded();
+        }
+
+        // safety: ensure no delayed loops remain
+        this.killLoops();
+
         this.resetWildSymbolsToIdle();
         const maskH = this.rows * this.tileSize;
 
@@ -492,7 +599,6 @@ export class Match3Board {
 
         this.setWildReels(this.match3.process.getWildReels());
         this.testAnimateAllWildSymbols(wins);
-
     }
 
     public initialPieceMutliplier(symbolType: number) {
@@ -561,9 +667,7 @@ export class Match3Board {
 
             // Fill with placeholders (we’ll replace/hide safely in applyWildGridToWildLayer)
             for (let r = 0; r < this.rows; r++) {
-                // Start empty: use a dummy invisible container child (safe)
-                // We'll keep symbol slots consistent per row.
-                const dummy = new Container() as any; // lightweight placeholder
+                const dummy = new Container() as any;
                 dummy.y = r * tile;
                 dummy.visible = false;
 
@@ -581,7 +685,7 @@ export class Match3Board {
         // Make safe even if wildGrid is missing rows/cols
         if (!this.wildReels.length) return;
 
-        console.log("block of WildGridToWildLayer:")
+        console.log("block of WildGridToWildLayer:");
         console.log(this.backendMultipliers);
 
         const tile = this.tileSize;
@@ -597,11 +701,9 @@ export class Match3Board {
 
                 // 0 = empty/invisible (safe)
                 if (type === 0 || !this.typesMap[type]) {
-                    // If there is a real SlotSymbol here, destroy it and replace with placeholder
                     if (current && typeof (current as any).destroy === "function" && current instanceof SlotSymbol) {
                         current.destroy();
                     }
-                    // Ensure a placeholder exists at that slot
                     reel.container.removeChildAt(r);
                     const dummy = new Container() as any;
                     dummy.y = r * tile;
@@ -612,25 +714,18 @@ export class Match3Board {
                 }
 
                 // Need a visible wild symbol at this cell.
-                // If current is not a SlotSymbol, replace it.
                 if (!(current instanceof SlotSymbol)) {
-                    // remove placeholder
                     reel.container.removeChildAt(r);
 
                     const name = this.typesMap[type];
                     const sym = new SlotSymbol();
-                    // multiplier can be 0 for overlay; change later if needed
-                    sym.setup({ name, type, size: tile, multiplier: mult});
+                    sym.setup({ name, type, size: tile, multiplier: mult });
                     sym.y = r * tile;
 
                     reel.container.addChildAt(sym, r);
                     reel.symbols[r] = sym;
                 } else {
-                    // It is already a SlotSymbol; if type changed, rebuild it safely
                     const existing = current as SlotSymbol;
-                    // Best-safe approach: destroy & recreate if type differs
-                    // (avoids relying on internal SlotSymbol update API)
-                    // If you have a "setType" or similar, you can use it instead.
                     if ((existing as any).type !== type) {
                         existing.destroy();
                         reel.container.removeChildAt(r);
@@ -653,27 +748,29 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
     }
 
-    public testAnimateAllWildSymbols(
-        positions: { row: number; column: number }[]
-    ) {
-        let animatedCount = 0;
+    // =========================================================================
+    // WILD OVERLAY ANIMATION (NOW REPLAY-LOOPS)
+    // =========================================================================
+    public testAnimateAllWildSymbols(positions: { row: number; column: number }[]) {
+        this.startReplayLoop(() => {
+            const list: SlotSymbol[] = [];
 
-        for (const { row, column } of positions) {
-            const reel = this.wildReels[column];
-            if (!reel) continue;
+            for (const { row, column } of positions) {
+                const reel = this.wildReels[column];
+                if (!reel) continue;
 
-            const cell = reel.symbols[row];
-            if (!(cell instanceof SlotSymbol)) continue;
+                const cell = reel.symbols[row];
+                if (!(cell instanceof SlotSymbol)) continue;
 
-            // safety checks
-            if (!cell.visible) continue;
-            if ((cell as any).type === 0) continue; // non-zero type only
+                // safety checks
+                if (!cell.visible) continue;
+                if ((cell as any).type === 0) continue;
 
-            cell.animatePlay(true);
-            animatedCount++;
-        }
+                list.push(cell);
+            }
 
-        console.log("animated wild symbols:", animatedCount);
+            return list;
+        }, "wild");
     }
 
     private resetWildSymbolsToIdle() {
@@ -690,10 +787,7 @@ export class Match3Board {
                 gsap.killTweensOf(cell);
                 gsap.killTweensOf(cell.scale);
                 cell.scale.set(1);
-
             }
         }
     }
-
-
 }
