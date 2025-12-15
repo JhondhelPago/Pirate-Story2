@@ -244,6 +244,7 @@ export class GameScreen extends Container {
 
     private async onFreeSpinStart() {
         console.log('FREE SPIN PROCESS STARTING');
+        // call the Match3FreeSpinProcess to Start the buy ree spin rounds
     }
 
     private async onFreeSpinComplete() {
@@ -260,6 +261,9 @@ export class GameScreen extends Container {
         //         },
         //     });
         // });
+
+
+        // show the total win banner with the amount won, 
     }
 
     private async onFreeSpinRoundStart() {

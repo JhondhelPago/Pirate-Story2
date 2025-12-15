@@ -98,14 +98,18 @@ async function preloadFonts() {
 
     const docFonts = (document as any).fonts;
 
-    // Load Nunito once
-    await docFonts.load('18px "Nunito"');
+    // Load fonts explicitly
+    await Promise.all([
+        docFonts.load('18px "Nunito"'),
+        docFonts.load('18px "Bangers"'),
+    ]);
 
     // Wait until ALL fonts are fully ready
     await docFonts.ready;
 
-    console.log('Fonts fully loaded');
+    console.log('Fonts fully loaded (Nunito + Bangers)');
 }
+
 
 
 /** Setup app and initialise assets */
