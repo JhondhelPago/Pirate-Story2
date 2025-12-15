@@ -5,7 +5,6 @@ import { userSettings } from "../utils/userSettings";
 import { RoundResult, slotEvaluateClusterWins, flattenClusterPositions, mergeWildType, mergeNonZero, mergeReels, calculateTotalWin } from "./SlotUtility";
 import { SpinRoundBanner } from "../popups/SpinRoundBanner";
 import { navigation } from "../utils/navigation";
-import { TotalWinBanner } from "../popups/TotalWinBanner";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -246,7 +245,7 @@ export class Match3Process {
     private drawWinBanner(winAmount: number) {
         // to make a call back here
         if (winAmount < 50) return;
-        navigation.presentPopup(TotalWinBanner, { win: winAmount});
+        navigation.presentPopup(SpinRoundBanner, { win: winAmount});
 
     }
 
