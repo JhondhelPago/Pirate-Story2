@@ -3,6 +3,8 @@ import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
 import { userSettings } from "../utils/userSettings"; 
 import { RoundResult, slotEvaluateClusterWins, flattenClusterPositions, mergeWildType, mergeNonZero, mergeReels, calculateTotalWin } from "./SlotUtility";
+import { SpinRoundBanner } from "../popups/SpinRoundBanner";
+import { navigation } from "../utils/navigation";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -21,6 +23,8 @@ export class Match3Process {
     private roundResult: RoundResult | null = null;
     private winningPositions: GridPosition[] | null = null;
     private wildReels: number[][] = [];
+
+    private roundWin = 0;
 
     private delayRemainingMs = 0;
     private delayResolver: (() => void) | null = null;
@@ -127,17 +131,16 @@ export class Match3Process {
         await this.match3.board.finishSpin();
 
         this.processing = false;
+        this.drawWinBanner(this.roundWin);
     }
 
     public async runProcessRound(): Promise<void> {
         return this.queue.add(async () => {
-            this.round += 1;
-            
+            this.round += 1;            
             // update stats here
             const reels = this.match3.board.getBackendReels();
             const multipliers = this.match3.board.getBackendMultipliers();
 
-            // virtual grid here to evaluate for the result
             // merge with the wild reels
             this.roundResult = slotEvaluateClusterWins(reels, multipliers);
             const debugRoundResult =
@@ -149,32 +152,16 @@ export class Match3Process {
                 })) ?? [];
 
             console.log("roundResult:", debugRoundResult);
-
             
-            console.log("total win: " + calculateTotalWin(this.roundResult, userSettings.getBet()));
-
-
-            const winningCluster =
-                this.roundResult?.map(r => ({
-                    positions: r.positions,
-                })) ?? [];
-
+            const winningCluster = this.roundResult?.map(r => ({ positions: r.positions,})) ?? [];
             
+            // holds the simplified winning position of the found cluster
             this.winningPositions = flattenClusterPositions(winningCluster);
-            console.log("WINNING POSITIONS", this.winningPositions);
-
             // set the reference of the sticky wild to this process object, the board will refrence to this
-            this.wildReels = this.mergeStickyWilds(
-                    this.match3.board.getWildReels(),
-                    reels
-                )
+            this.mergeStickyWilds( this.match3.board.getWildReels(), reels)
 
-            console.log("wild Reels from Process", this.wildReels)
-
-            console.log("balance from userSettings:" + userSettings.getBalance());
-            console.log("")
-                
-            });
+            this.setRoundWin();
+        });
     }
 
     public updateStats() {
@@ -185,11 +172,6 @@ export class Match3Process {
         // TODO
     }
 
-    /**
-     * Ticker-driven delay.
-     * - Respects pause (because update(deltaMS) stops when your game loop stops)
-     * - Can be cancelled via token.cancelled = true
-     */
     private createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
         // If there’s already a pending delay, resolve it to avoid deadlocks.
         if (this.delayResolver) {
@@ -230,24 +212,40 @@ export class Match3Process {
         return this.roundResult;
     }
 
-    private async fetchBackendSpin(): Promise<BackendSpinResult> {
+    public async fetchBackendSpin(): Promise<BackendSpinResult> {
         return BetAPI.spin("n");
     }
 
-    private mergeMultipliers( current: number[][], incoming: number[][]): number[][] {
+    public mergeMultipliers( current: number[][], incoming: number[][]): number[][] {
         return mergeNonZero(current, incoming);
     }
 
-    private mergeReels(
+    public mergeReels(
         current: number[][],
         incoming: number[][]
     ): number[][] {
         return mergeReels(current, incoming);
     }
 
-    private mergeStickyWilds( current: number[][], incoming: number[][]): number[][] {
-        return mergeWildType(current, incoming);
+    public mergeStickyWilds( current: number[][], incoming: number[][]): number[][] {
+        return this.wildReels = mergeWildType(current, incoming);
     }
 
+    public setRoundWin(){
+        const bet = userSettings.getBet();
+        this.roundWin = calculateTotalWin(this.roundResult!, bet);
+        console.log("Round Win: " + this.roundWin);
+    }
+
+    public getRoundWin() {
+        return this.roundWin;
+    }
+
+    private drawWinBanner(winAmount: number) {
+        // to make a call back here
+        if (winAmount < 50) return;
+        navigation.presentPopup(SpinRoundBanner, { win: winAmount});
+
+    }
 
 }

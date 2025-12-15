@@ -2,7 +2,7 @@ import { Match3 } from "./Match3";
 import { Match3Process } from "./Match3Process";
 import { RoundResult, slotEvaluateClusterWins } from "./SlotUtility";
 import { waitFor } from "../utils/asyncUtils";
-import { SpinRoundBanner } from "../ui/SpinRoundBanner";
+import { SpinRoundBanner } from "../popups/SpinRoundBanner";
 import { navigation } from "../utils/navigation";
 
 export class Match3FreeSpinProcess extends Match3Process {
