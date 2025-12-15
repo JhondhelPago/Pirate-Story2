@@ -505,7 +505,12 @@ export function getRandomMultiplier(): MultipliersValues {
 // ======================================================
 
 export const WILD = 12;
-
+type ClusterWinResult = {
+    type: number;
+    count: number;
+    multiplier: number;  
+    positions: Match3Position[];
+};
 /**
  * Flood-fill physically connected cluster:
  * - Same type connects
@@ -630,12 +635,7 @@ export function slotEvaluateClusterWins(
     const clusters = slotGetClusters(grid);
     const paytable = gameConfig.getPaytables();
 
-    const results: {
-        type: number;
-        count: number;
-        multiplier: number;   // FINAL multiplier = paytable × wild bonus
-        positions: Match3Position[];
-    }[] = [];
+    const results: ClusterWinResult[] = [];
 
     for (const cluster of clusters) {
         const entry = paytable.find(p => p.type === cluster.type);
@@ -678,6 +678,17 @@ export function slotEvaluateClusterWins(
     return results;
 }
 
+export function calculateTotalWin(
+    results: ClusterWinResult[],
+    baseWinAmount: number
+): number {
+    const totalMultiplier = results.reduce(
+        (sum, r) => sum + r.multiplier,
+        0
+    );
+
+    return baseWinAmount * totalMultiplier;
+}
 
 /**
  * Flattens cluster win results into a single list of unique positions.

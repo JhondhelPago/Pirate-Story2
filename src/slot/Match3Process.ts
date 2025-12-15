@@ -1,7 +1,8 @@
 import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
-import { RoundResult, slotEvaluateClusterWins, flattenClusterPositions, mergeWildType, mergeNonZero, mergeReels } from "./SlotUtility";
+import { userSettings } from "../utils/userSettings"; 
+import { RoundResult, slotEvaluateClusterWins, flattenClusterPositions, mergeWildType, mergeNonZero, mergeReels, calculateTotalWin } from "./SlotUtility";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -136,11 +137,22 @@ export class Match3Process {
             const reels = this.match3.board.getBackendReels();
             const multipliers = this.match3.board.getBackendMultipliers();
 
-
             // virtual grid here to evaluate for the result
             // merge with the wild reels
-
             this.roundResult = slotEvaluateClusterWins(reels, multipliers);
+            const debugRoundResult =
+                this.roundResult?.map(r => ({
+                    type: r.type,
+                    count: r.count,
+                    multiplier: r.multiplier,
+                    positions: r.positions.map(p => `[${p.row},${p.column}]`),
+                })) ?? [];
+
+            console.log("roundResult:", debugRoundResult);
+
+            
+            console.log("total win: " + calculateTotalWin(this.roundResult, userSettings.getBet()));
+
 
             const winningCluster =
                 this.roundResult?.map(r => ({
@@ -151,13 +163,16 @@ export class Match3Process {
             this.winningPositions = flattenClusterPositions(winningCluster);
             console.log("WINNING POSITIONS", this.winningPositions);
 
-            // set the reference of the stiucky wild to this process object, it board will refrence to this
+            // set the reference of the sticky wild to this process object, the board will refrence to this
             this.wildReels = this.mergeStickyWilds(
                     this.match3.board.getWildReels(),
                     reels
                 )
 
             console.log("wild Reels from Process", this.wildReels)
+
+            console.log("balance from userSettings:" + userSettings.getBalance());
+            console.log("")
                 
             });
     }

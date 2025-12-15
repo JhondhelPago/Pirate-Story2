@@ -25,6 +25,9 @@ export class Match3Board {
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
 
+    //validatation reels
+    public validationReels: number[][] = [];
+
     // WILD OVERLAY (PERSISTENT) ----------------------
     private wildGrid: number[][] = [];
 
@@ -52,6 +55,9 @@ export class Match3Board {
     private initialReels: number[][] = [];
     private initialMultipliers: number[][] = [];
     private isTubroSpin = true;
+
+    // ANIMATION CONTROL
+    private animating = false;
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -688,7 +694,6 @@ export class Match3Board {
             }
         }
     }
-
 
 
 }
