@@ -1,6 +1,5 @@
 import { Container, Graphics, Ticker } from "pixi.js";
 import gsap from "gsap";
-import { pool } from "../utils/pool";
 import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import { BlurSymbol } from "../ui/BlurSymbol";
@@ -25,7 +24,7 @@ export class Match3Board {
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
 
-    //validatation reels
+    // validatation reels
     public validationReels: number[][] = [];
 
     // WILD OVERLAY (PERSISTENT) ----------------------
@@ -37,8 +36,6 @@ export class Match3Board {
 
     private blurLayer: Container;
     private realLayer: Container;
-
-    // Persistent overlay
     private wildLayer: Container;
 
     // REELS ------------------------------------------
@@ -55,59 +52,110 @@ export class Match3Board {
     private isTubroSpin = true;
 
     // =========================================================================
-    // LOOP-BY-REPLAY ANIMATION CONTROL (NEW)
+    // LOOP-BY-REPLAY ANIMATION CONTROL
     // =========================================================================
-    /** True if a spin request came in while animations are replaying */
     public hasIncomingSpinTrigger = false;
-
-    /** True while replay loops are active (spin should wait) */
     private animating = false;
 
     private winLoopTween?: gsap.core.Tween;
     private wildLoopTween?: gsap.core.Tween;
 
-    /** MUST match your win animation length (ms) */
     private readonly WIN_ANIM_MS = 900;
 
     private animationGate: Promise<void> | null = null;
     private resolveAnimationGate: (() => void) | null = null;
 
+    // =========================================================================
+    // SMALL HELPERS (NEW)
+    // =========================================================================
+    private get tile() {
+        return this.tileSize;
+    }
+    private get maskH() {
+        return this.rows * this.tileSize;
+    }
+
+    private initGrid(rows: number, cols: number, fill = 0) {
+        return Array.from({ length: rows }, () => Array(cols).fill(fill));
+    }
+
+    private getOffsets() {
+        const tile = this.tileSize;
+        return {
+            offsetX: ((this.columns - 1) * tile) / 2,
+            offsetY: ((this.rows - 1) * tile) / 2,
+        };
+    }
+
+    private forEachCell(fn: (r: number, c: number) => void) {
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.columns; c++) fn(r, c);
+        }
+    }
+
+    private destroyReels(reels: ReelColumn[]) {
+        for (const reel of reels) {
+            for (const sym of reel.symbols) (sym as any)?.destroy?.();
+            reel.container.removeChildren();
+            reel.container.destroy();
+        }
+    }
+
+    private makeDummyCell(y: number) {
+        const dummy = new Container() as any;
+        dummy.y = y;
+        dummy.visible = false;
+        return dummy;
+    }
+
+    private makeSlotSymbol(type: number, multiplier: number) {
+        const sym = new SlotSymbol();
+        sym.setup({
+            name: this.typesMap[type],
+            type,
+            size: this.tileSize,
+            multiplier,
+        });
+        return sym;
+    }
+
+    private createBlur(): BlurSymbol {
+        const types = Object.keys(this.typesMap).map(Number);
+        const rand = types[Math.floor(Math.random() * types.length)];
+        return new BlurSymbol(rand, this.tileSize);
+    }
+
     constructor(match3: Match3) {
         this.match3 = match3;
 
-        // Mask (will be refreshed on setup)
         this.piecesMask = new Graphics();
 
-        // Main container
         this.piecesContainer = new Container();
         this.piecesContainer.mask = this.piecesMask;
 
-        // Add to Match3 root
         this.match3.addChild(this.piecesContainer);
         this.match3.addChild(this.piecesMask);
 
-        // Layers
         this.blurLayer = new Container();
         this.realLayer = new Container();
-        this.backendMultipliers = Array.from({ length: 5 }, () => Array(5).fill(0));
 
-        // Persistent top overlay
+        // defaults (your game is 5x5 now, but will be resized in setup)
+        this.backendMultipliers = this.initGrid(5, 5, 0);
+        this.wildGrid = this.initGrid(5, 5, 0);
+
         this.wildLayer = new Container();
-        this.wildGrid = Array.from({ length: 5 }, () => Array(5).fill(0));
 
-        // IMPORTANT: add wildLayer last so it's on top
         this.piecesContainer.addChild(this.blurLayer);
         this.piecesContainer.addChild(this.realLayer);
         this.piecesContainer.addChild(this.wildLayer);
     }
 
     // =========================================================================
-    // UPDATE MASK TO FIT BOARD EXACTLY
+    // MASK
     // =========================================================================
     private refreshMask() {
         const w = this.columns * this.tileSize;
         const h = this.rows * this.tileSize;
-
         const offsetX = w / 2;
         const offsetY = h / 2;
 
@@ -118,51 +166,43 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // SETUP BOARD
+    // SETUP
     // =========================================================================
     public setup(config: Match3Config) {
         this.rows = config.rows;
         this.columns = config.columns;
         this.tileSize = config.tileSize;
 
+        // ensure backend grids match board size
+        this.backendMultipliers = this.initGrid(this.rows, this.columns, 0);
+
         const blocks = slotGetBlocks();
         this.typesMap = {};
         for (const b of blocks) this.typesMap[b.type] = b.symbol;
 
-        // Generate random initial board if none provided
+        // random initial board if none provided
         if (this.initialReels.length === 0) {
-            this.initialReels = [];
-            this.initialMultipliers = [];
-
             const types = Object.keys(this.typesMap).map(Number);
+            this.initialReels = this.initGrid(this.rows, this.columns, 0);
+            this.initialMultipliers = this.initGrid(this.rows, this.columns, 0);
 
-            for (let r = 0; r < this.rows; r++) {
-                this.initialReels[r] = [];
-                this.initialMultipliers[r] = [];
-                for (let c = 0; c < this.columns; c++) {
-                    this.initialReels[r][c] = types[Math.floor(Math.random() * types.length)];
-                    this.initialMultipliers[r][c] = 0;
-                }
-            }
+            this.forEachCell((r, c) => {
+                this.initialReels[r][c] = types[Math.floor(Math.random() * types.length)];
+                this.initialMultipliers[r][c] = 0;
+            });
         }
 
-        // Default wild grid (all empty) if none set
+        // default wild grid if missing
         if (this.wildGrid.length === 0) {
-            this.wildGrid = Array.from({ length: this.rows }, () =>
-                Array.from({ length: this.columns }, () => 0)
-            );
+            this.wildGrid = this.initGrid(this.rows, this.columns, 0);
         }
 
         this.refreshMask();
 
-        // build initial visible board
         this.buildInitialRealLayer();
 
-        // build persistent wild overlay structure and apply current grid
         this.rebuildWildLayerStructure();
         this.applyWildGridToWildLayer();
-
-        // Keep wild layer definitely on top
         this.ensureWildLayerOnTop();
 
         this.wildLayer.visible = true;
@@ -174,12 +214,10 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // PUBLIC: SET WILD OVERLAY GRID (2D [row][col])
-    // 0 = empty/invisible (safe)
+    // PUBLIC: WILD GRID SETTER
     // =========================================================================
     public setWildReels(wild: number[][]) {
         this.wildGrid = wild ?? [];
-        // If structure already exists, just apply; otherwise it will be applied on setup()
         if (this.rows > 0 && this.columns > 0) {
             this.rebuildWildLayerStructureIfNeeded();
             this.applyWildGridToWildLayer();
@@ -191,33 +229,25 @@ export class Match3Board {
     // INITIAL REAL LAYER
     // =========================================================================
     private buildInitialRealLayer() {
-        const tile = this.tileSize;
-        const offsetX = ((this.columns - 1) * tile) / 2;
-        const offsetY = ((this.rows - 1) * tile) / 2;
+        const { offsetX, offsetY } = this.getOffsets();
 
         this.realLayer.removeChildren();
         this.realReels = [];
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
-            col.x = c * tile - offsetX;
+            col.x = c * this.tile - offsetX;
             col.y = -offsetY;
             this.realLayer.addChild(col);
 
-            const reel: ReelColumn = {
-                container: col,
-                symbols: [],
-                position: 0,
-            };
+            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             for (let r = 0; r < this.rows; r++) {
                 const type = this.initialReels[r][c];
-                const mult = this.initialPieceMutliplier(this.initialReels[r][c]);
-                const name = this.typesMap[type];
+                const mult = this.initialPieceMutliplier(type);
 
-                const sym = new SlotSymbol();
-                sym.setup({ name, type, size: tile, multiplier: mult });
-                sym.y = r * tile;
+                const sym = this.makeSlotSymbol(type, mult);
+                sym.y = r * this.tile;
 
                 reel.symbols.push(sym);
                 col.addChild(sym);
@@ -230,10 +260,9 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // REBUILD LAYERS BEFORE SPIN (DO NOT TOUCH WILD LAYER)
+    // DESTROY/REBUILD BLUR+REAL (WILD STAYS)
     // =========================================================================
     private destroyAllLayers() {
-        // stop any replay loops before destroying symbols
         this.killLoops();
 
         if (this.ticker) {
@@ -245,78 +274,58 @@ export class Match3Board {
         gsap.killTweensOf(this.blurLayer);
         gsap.killTweensOf(this.realLayer);
 
-        for (const reel of this.blurReels) {
-            for (const sym of reel.symbols) sym.destroy();
-            reel.container.removeChildren();
-            reel.container.destroy();
-        }
+        this.destroyReels(this.blurReels);
         this.blurReels = [];
         this.blurLayer.removeChildren();
 
-        for (const reel of this.realReels) {
-            for (const sym of reel.symbols) sym.destroy();
-            reel.container.removeChildren();
-            reel.container.destroy();
-        }
+        this.destroyReels(this.realReels);
         this.realReels = [];
         this.realLayer.removeChildren();
 
-        // Remove old blur/real containers
         if (this.blurLayer.parent) this.blurLayer.parent.removeChild(this.blurLayer);
         if (this.realLayer.parent) this.realLayer.parent.removeChild(this.realLayer);
 
-        // Recreate blur/real
         this.blurLayer = new Container();
         this.realLayer = new Container();
 
-        // IMPORTANT: insert blur/real BELOW wildLayer
-        // Ensure wildLayer remains last/top
+        // insert blur/real below wildLayer
         const wildIndex = this.piecesContainer.children.indexOf(this.wildLayer);
         const insertIndex = wildIndex >= 0 ? wildIndex : this.piecesContainer.children.length;
 
-        this.piecesContainer.addChildAt(this.blurLayer, Math.min(insertIndex, this.piecesContainer.children.length));
-        // After adding blur, wild index may shift; recalc
+        this.piecesContainer.addChildAt(
+            this.blurLayer,
+            Math.min(insertIndex, this.piecesContainer.children.length)
+        );
+
         const wildIndex2 = this.piecesContainer.children.indexOf(this.wildLayer);
         const insertIndex2 = wildIndex2 >= 0 ? wildIndex2 : this.piecesContainer.children.length;
 
-        this.piecesContainer.addChildAt(this.realLayer, Math.min(insertIndex2, this.piecesContainer.children.length));
+        this.piecesContainer.addChildAt(
+            this.realLayer,
+            Math.min(insertIndex2, this.piecesContainer.children.length)
+        );
 
         this.ensureWildLayerOnTop();
-    }
-
-    // =========================================================================
-    // BLUR SYMBOL CREATOR
-    // =========================================================================
-    private createBlur(): BlurSymbol {
-        const types = Object.keys(this.typesMap).map(Number);
-        const rand = types[Math.floor(Math.random() * types.length)];
-        return new BlurSymbol(rand, this.tileSize);
     }
 
     // =========================================================================
     // BUILD BLUR LAYER
     // =========================================================================
     private buildBlurLayer() {
-        const tile = this.tileSize;
-        const offsetX = ((this.columns - 1) * tile) / 2;
-        const offsetY = ((this.rows - 1) * tile) / 2;
+        const { offsetX, offsetY } = this.getOffsets();
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
-            col.x = c * tile - offsetX;
-            col.y = -offsetY - tile;
+            col.x = c * this.tile - offsetX;
+            col.y = -offsetY - this.tile;
             this.blurLayer.addChild(col);
 
-            const reel: ReelColumn = {
-                container: col,
-                symbols: [],
-                position: 0,
-            };
+            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             const total = this.rows + 3;
             for (let i = 0; i < total; i++) {
                 const blur = this.createBlur();
-                blur.y = i * tile;
+                blur.y = i * this.tile;
                 col.addChild(blur);
                 reel.symbols.push(blur);
             }
@@ -335,25 +344,19 @@ export class Match3Board {
     // BUILD REAL LAYER (placeholder blur during spin)
     // =========================================================================
     private buildRealLayer() {
-        const tile = this.tileSize;
-        const offsetX = ((this.columns - 1) * tile) / 2;
-        const offsetY = ((this.rows - 1) * tile) / 2;
+        const { offsetX, offsetY } = this.getOffsets();
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
-            col.x = c * tile - offsetX;
+            col.x = c * this.tile - offsetX;
             col.y = -offsetY;
             this.realLayer.addChild(col);
 
-            const reel: ReelColumn = {
-                container: col,
-                symbols: [],
-                position: 0,
-            };
+            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             for (let r = 0; r < this.rows; r++) {
                 const blur = this.createBlur();
-                blur.y = r * tile;
+                blur.y = r * this.tile;
                 col.addChild(blur);
                 reel.symbols.push(blur);
             }
@@ -392,10 +395,9 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // BACKEND APPLIED HERE
+    // BACKEND STORE/GET
     // =========================================================================
     public applyBackendResults(reels: number[][], multipliers: number[][]) {
-        // store reels directly
         this.backendReels = reels;
         this.backendMultipliers = multipliers;
     }
@@ -416,23 +418,19 @@ export class Match3Board {
     // APPLY BACKEND RESULT TO REAL REELS
     // =========================================================================
     private applyBackendToRealLayer() {
-        const tile = this.tileSize;
-
         for (let c = 0; c < this.columns; c++) {
             const reel = this.realReels[c];
 
-            for (const sym of reel.symbols) sym.destroy();
+            for (const sym of reel.symbols) (sym as any)?.destroy?.();
             reel.symbols = [];
             reel.container.removeChildren();
 
             for (let r = 0; r < this.rows; r++) {
                 const type = this.backendReels[r][c];
                 const mult = this.backendMultipliers[r][c];
-                const name = this.typesMap[type];
 
-                const sym = new SlotSymbol();
-                sym.setup({ name, type, size: tile, multiplier: mult });
-                sym.y = r * tile;
+                const sym = this.makeSlotSymbol(type, mult);
+                sym.y = r * this.tile;
 
                 reel.symbols.push(sym);
                 reel.container.addChild(sym);
@@ -443,7 +441,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // LOOP-BY-REPLAY HELPERS (NEW)
+    // LOOP-BY-REPLAY HELPERS
     // =========================================================================
     private openAnimationGate() {
         if (this.animationGate) return;
@@ -462,8 +460,8 @@ export class Match3Board {
     }
 
     private killLoops() {
-        if (this.winLoopTween) this.winLoopTween.kill();
-        if (this.wildLoopTween) this.wildLoopTween.kill();
+        this.winLoopTween?.kill();
+        this.wildLoopTween?.kill();
         this.winLoopTween = undefined;
         this.wildLoopTween = undefined;
     }
@@ -473,28 +471,20 @@ export class Match3Board {
         await this.animationGate;
     }
 
-    /**
-     * Replays animatePlay(false) repeatedly until hasIncomingSpinTrigger becomes true.
-     * When incoming trigger becomes true, it waits for the current cycle to finish,
-     * then resolves the gate so spin can proceed.
-     */
     private startReplayLoop(getSymbols: () => SlotSymbol[], which: "win" | "wild") {
-        // stop previous loop of that type
-        if (which === "win" && this.winLoopTween) this.winLoopTween.kill();
-        if (which === "wild" && this.wildLoopTween) this.wildLoopTween.kill();
+        if (which === "win") this.winLoopTween?.kill();
+        else this.wildLoopTween?.kill();
 
         this.openAnimationGate();
 
         const tick = () => {
             const symbols = getSymbols();
 
-            // nothing to animate
             if (!symbols.length) {
                 this.closeAnimationGate();
                 return;
             }
 
-            // play once on all
             for (const s of symbols) {
                 if (!s.visible) continue;
                 if ((s as any).type === 0) continue;
@@ -503,12 +493,11 @@ export class Match3Board {
 
             const t = gsap.delayedCall(this.WIN_ANIM_MS / 1000, () => {
                 if (this.hasIncomingSpinTrigger) {
-                    // stop looping AFTER current animation finishes
                     this.hasIncomingSpinTrigger = false;
                     this.closeAnimationGate();
                     return;
                 }
-                tick(); // replay again
+                tick();
             });
 
             if (which === "win") this.winLoopTween = t;
@@ -519,53 +508,43 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // ANIMATE WINS (NOW REPLAY-LOOPS)
+    // ANIMATE WINS
     // =========================================================================
     public animateWinningSymbols(wins: { row: number; column: number }[]) {
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];
-
             for (const { row, column } of wins) {
                 const reel = this.realReels[column];
-                if (!reel) continue;
-
-                const symbol = reel.symbols[row];
-                if (!(symbol instanceof SlotSymbol)) continue;
-
-                list.push(symbol);
+                const symbol = reel?.symbols[row];
+                if (symbol instanceof SlotSymbol) list.push(symbol);
             }
-
             return list;
         }, "win");
     }
 
+    // =========================================================================
+    // SPIN
+    // =========================================================================
     public async startSpin(): Promise<void> {
-        // ✅ if animations are replaying, request stop and wait for last cycle to finish
         if (this.animating) {
             this.hasIncomingSpinTrigger = true;
             await this.waitForLoopToFinishIfNeeded();
         }
 
-        // safety: ensure no delayed loops remain
         this.killLoops();
-
         this.resetWildSymbolsToIdle();
-        const maskH = this.rows * this.tileSize;
 
-        // destroys blur/real only, wild stays intact
         this.destroyAllLayers();
-
         this.buildBlurLayer();
         this.buildRealLayer();
 
-        this.blurLayer.y = -maskH;
+        this.blurLayer.y = -this.maskH;
         this.realLayer.y = 0;
 
-        // keep overlay on top
         this.ensureWildLayerOnTop();
 
         await Promise.all([
-            gsap.to(this.realLayer, { y: maskH, duration: 0.25, ease: "power0.out" }),
+            gsap.to(this.realLayer, { y: this.maskH, duration: 0.25, ease: "power0.out" }),
             gsap.to(this.blurLayer, { y: 0, duration: 0.25, ease: "power0.out" }),
         ]);
 
@@ -576,11 +555,9 @@ export class Match3Board {
         this.stopBlurSpin();
         this.applyBackendToRealLayer();
 
-        const maskH = this.rows * this.tileSize;
-
         await Promise.all([
             gsap.to(this.blurLayer, {
-                y: maskH + this.tileSize * 3,
+                y: this.maskH + this.tileSize * 3,
                 duration: 0.35,
                 ease: "power2.out",
             }),
@@ -591,7 +568,6 @@ export class Match3Board {
             }),
         ]);
 
-        // ensure wild is still top
         this.ensureWildLayerOnTop();
 
         const wins = this.match3.process.getWinningPositions() ?? [];
@@ -612,65 +588,39 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // WILD LAYER HELPERS (PERSISTENT TOP OVERLAY)
+    // WILD LAYER HELPERS
     // =========================================================================
     private ensureWildLayerOnTop() {
-        if (!this.wildLayer.parent) {
-            this.piecesContainer.addChild(this.wildLayer);
-        } else {
-            // Force last/top
-            this.piecesContainer.setChildIndex(this.wildLayer, this.piecesContainer.children.length - 1);
-        }
+        if (!this.wildLayer.parent) this.piecesContainer.addChild(this.wildLayer);
+        this.piecesContainer.setChildIndex(this.wildLayer, this.piecesContainer.children.length - 1);
     }
 
     private rebuildWildLayerStructureIfNeeded() {
-        // If structure doesn't match current board, rebuild it
-        if (this.wildReels.length !== this.columns) {
-            this.rebuildWildLayerStructure();
-            return;
-        }
-        // Also check each column has correct number of slots
+        if (this.wildReels.length !== this.columns) return this.rebuildWildLayerStructure();
+
         for (let c = 0; c < this.columns; c++) {
             const reel = this.wildReels[c];
-            if (!reel || reel.symbols.length !== this.rows) {
-                this.rebuildWildLayerStructure();
-                return;
-            }
+            if (!reel || reel.symbols.length !== this.rows) return this.rebuildWildLayerStructure();
         }
     }
 
     private rebuildWildLayerStructure() {
-        // Clear previous wild symbols/containers but keep wildLayer itself persistent
-        for (const reel of this.wildReels) {
-            for (const sym of reel.symbols) sym.destroy();
-            reel.container.removeChildren();
-            reel.container.destroy();
-        }
+        this.destroyReels(this.wildReels);
         this.wildReels = [];
         this.wildLayer.removeChildren();
 
-        const tile = this.tileSize;
-        const offsetX = ((this.columns - 1) * tile) / 2;
-        const offsetY = ((this.rows - 1) * tile) / 2;
+        const { offsetX, offsetY } = this.getOffsets();
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
-            col.x = c * tile - offsetX;
+            col.x = c * this.tile - offsetX;
             col.y = -offsetY;
             this.wildLayer.addChild(col);
 
-            const reel: ReelColumn = {
-                container: col,
-                symbols: [],
-                position: 0,
-            };
+            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
-            // Fill with placeholders (we’ll replace/hide safely in applyWildGridToWildLayer)
             for (let r = 0; r < this.rows; r++) {
-                const dummy = new Container() as any;
-                dummy.y = r * tile;
-                dummy.visible = false;
-
+                const dummy = this.makeDummyCell(r * this.tile);
                 col.addChild(dummy);
                 reel.symbols.push(dummy);
             }
@@ -682,7 +632,6 @@ export class Match3Board {
     }
 
     private applyWildGridToWildLayer() {
-        // Make safe even if wildGrid is missing rows/cols
         if (!this.wildReels.length) return;
 
         console.log("block of WildGridToWildLayer:");
@@ -690,66 +639,62 @@ export class Match3Board {
 
         const tile = this.tileSize;
 
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.columns; c++) {
-                const reel = this.wildReels[c];
-                if (!reel) continue;
+        this.forEachCell((r, c) => {
+            const reel = this.wildReels[c];
+            if (!reel) return;
 
-                const current = reel.symbols[r];
-                const type = this.wildGrid?.[r]?.[c] ?? 0;
-                const mult = this.backendMultipliers[r]?.[c] ?? 0;
+            const current = reel.symbols[r];
+            const type = this.wildGrid?.[r]?.[c] ?? 0;
+            const mult = this.backendMultipliers?.[r]?.[c] ?? 0;
 
-                // 0 = empty/invisible (safe)
-                if (type === 0 || !this.typesMap[type]) {
-                    if (current && typeof (current as any).destroy === "function" && current instanceof SlotSymbol) {
-                        current.destroy();
-                    }
-                    reel.container.removeChildAt(r);
-                    const dummy = new Container() as any;
-                    dummy.y = r * tile;
-                    dummy.visible = false;
-                    reel.container.addChildAt(dummy, r);
-                    reel.symbols[r] = dummy;
-                    continue;
-                }
+            // empty
+            if (type === 0 || !this.typesMap[type]) {
+                if (current instanceof SlotSymbol) current.destroy();
+                reel.container.removeChildAt(r);
 
-                // Need a visible wild symbol at this cell.
-                if (!(current instanceof SlotSymbol)) {
-                    reel.container.removeChildAt(r);
-
-                    const name = this.typesMap[type];
-                    const sym = new SlotSymbol();
-                    sym.setup({ name, type, size: tile, multiplier: mult });
-                    sym.y = r * tile;
-
-                    reel.container.addChildAt(sym, r);
-                    reel.symbols[r] = sym;
-                } else {
-                    const existing = current as SlotSymbol;
-                    if ((existing as any).type !== type) {
-                        existing.destroy();
-                        reel.container.removeChildAt(r);
-
-                        const name = this.typesMap[type];
-                        const sym = new SlotSymbol();
-                        sym.setup({ name, type, size: tile, multiplier: 0 });
-                        sym.y = r * tile;
-
-                        reel.container.addChildAt(sym, r);
-                        reel.symbols[r] = sym;
-                    } else {
-                        existing.visible = true;
-                        existing.y = r * tile;
-                    }
-                }
+                const dummy = this.makeDummyCell(r * tile);
+                reel.container.addChildAt(dummy, r);
+                reel.symbols[r] = dummy;
+                return;
             }
-        }
+
+            // needs visible symbol
+            if (!(current instanceof SlotSymbol)) {
+                reel.container.removeChildAt(r);
+
+                const sym = this.makeSlotSymbol(type, mult);
+                sym.y = r * tile;
+
+                reel.container.addChildAt(sym, r);
+                reel.symbols[r] = sym;
+                return;
+            }
+
+            const existing = current as SlotSymbol;
+
+            // different type -> replace
+            if ((existing as any).type !== type) {
+                existing.destroy();
+                reel.container.removeChildAt(r);
+
+                const sym = this.makeSlotSymbol(type, 0);
+                sym.y = r * tile;
+
+                reel.container.addChildAt(sym, r);
+                reel.symbols[r] = sym;
+                return;
+            }
+
+            // same -> ensure visible
+            existing.visible = true;
+            existing.y = r * tile;
+        });
 
         this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
-    // WILD OVERLAY ANIMATION (NOW REPLAY-LOOPS)
+    // WILD OVERLAY ANIMATION
     // =========================================================================
     public testAnimateAllWildSymbols(positions: { row: number; column: number }[]) {
         this.startReplayLoop(() => {
@@ -757,12 +702,9 @@ export class Match3Board {
 
             for (const { row, column } of positions) {
                 const reel = this.wildReels[column];
-                if (!reel) continue;
-
-                const cell = reel.symbols[row];
+                const cell = reel?.symbols[row];
                 if (!(cell instanceof SlotSymbol)) continue;
 
-                // safety checks
                 if (!cell.visible) continue;
                 if ((cell as any).type === 0) continue;
 
@@ -783,7 +725,6 @@ export class Match3Board {
                 if (!(cell instanceof SlotSymbol)) continue;
 
                 cell.resetToSetupPose();
-                // stop any gsap pulses if you ever use them
                 gsap.killTweensOf(cell);
                 gsap.killTweensOf(cell.scale);
                 cell.scale.set(1);
