@@ -99,9 +99,12 @@ export class Match3Process {
 
     public async start() {
         if (this.processing) return;
-
         this.processing = true;
-        this.match3.onProcessStart?.();
+
+        this.match3.onProcessStart = () => {
+            console.log("start method is on Process");
+
+        }
 
         const token = { cancelled: false };
         this.cancelToken = token;
@@ -132,7 +135,9 @@ export class Match3Process {
         await this.match3.board.finishSpin();
 
         this.processing = false;
-        this.drawWinBanner(this.roundWin);
+        this.match3.onProcessComplete?.();
+        // this.drawWinBanner(this.roundWin);
+        
     }
 
     public async runProcessRound(): Promise<void> {
@@ -240,13 +245,6 @@ export class Match3Process {
 
     public getRoundWin() {
         return this.roundWin;
-    }
-
-    private drawWinBanner(winAmount: number) {
-        // to make a call back here
-        if (winAmount < 50) return;
-        navigation.presentPopup(SpinRoundBanner, { win: winAmount});
-
     }
 
 }

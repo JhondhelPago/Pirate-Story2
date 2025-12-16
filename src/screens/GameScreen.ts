@@ -17,6 +17,7 @@ import { FreeSpinWinPopup } from '../popups/FreeSpinWinPopup';
 import { JackpotWinPopup } from '../popups/JackpotWinPopup';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
+import { SpinRoundBanner } from '../popups/SpinRoundBanner';
 
 /** The screen that holds the Match3 game */
 export class GameScreen extends Container {
@@ -226,17 +227,6 @@ export class GameScreen extends Container {
         await waitFor(0.3);
     }
 
-    // private async onFreeSpinTrigger(): Promise<void> {
-    //     return new Promise((resolve) => {
-    //         navigation.presentPopup(FreeSpinPopup, async () => {
-    //             await navigation.dismissPopup();
-    //             await waitFor(1);
-    //             this.match3.actions.actionFreeSpin();
-    //             resolve();
-    //         });
-    //     });
-    // }
-
     private async onSpinStart() {
         console.log('SPIN STARTED');
         // Multiplier reset removed
@@ -248,21 +238,6 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinComplete() {
-        // return new Promise((resolve) => {
-        //     navigation.presentPopup(FreeSpinWinPopup, {
-        //         winAmount: 1000,
-        //         spinsCount: 3,
-        //         callBack: async () => {
-        //             await navigation.dismissPopup();
-        //             await waitFor(1);
-        //             if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing())
-        //                 this.finish();
-        //             resolve;
-        //         },
-        //     });
-        // });
-
-
         // show the total win banner with the amount won, 
     }
 
@@ -275,17 +250,29 @@ export class GameScreen extends Container {
     }
 
     private onProcessStart() {
-        console.log('PROCESS STARTING');
+        console.log('PROCESS STARTING from GameSCreen');
     }
 
     private onProcessComplete() {
-        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing())
+        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
             this.finish();
+            this.drawWinBanner(this.match3.process.getRoundWin());
+        }
+
         this.finished = false;
     }
 
     private async finish() {
         if (!this.finished) return;
         this.finished = false;
+    }
+
+    private drawWinBanner(winAmount: number){
+        if (winAmount < 50) return;
+        navigation.presentPopup(SpinRoundBanner, { win: winAmount});
+    }
+
+    private drawTotalWinBanner(winAmount: number){
+        // navigationPresentPopu() calling the TotalWinBanner and passing th3e total win amount
     }
 }

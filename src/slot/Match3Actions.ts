@@ -11,6 +11,7 @@ export class Match3Actions {
     public async actionSpin() {
         this.match3.onSpinStart?.();
 
+        this.match3.onProcessStart?.();
         this.match3.process.start();
 
         //Simulate user interrupt after 500ms

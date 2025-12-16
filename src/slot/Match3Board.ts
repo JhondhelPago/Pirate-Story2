@@ -24,9 +24,6 @@ export class Match3Board {
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
 
-    // validatation reels
-    public validationReels: number[][] = [];
-
     // WILD OVERLAY (PERSISTENT) ----------------------
     private wildGrid: number[][] = [];
 

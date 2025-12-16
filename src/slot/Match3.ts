@@ -62,8 +62,6 @@ export class Match3 extends Container {
     /** Game callbacks */
     public onSpinStart?: () => void;
     public onFreeSpinTrigger?: () => void;
-    public onJackpotMatch?: (data: SlotOnJackpotMatchData) => Promise<void>;
-    public onJackpotTrigger?: (data: SlotOnJackpotTriggerData) => Promise<void>;
 
     public onFreeSpinStart?: (count: number) => void;
     public onFreeSpinComplete?: () => void;
