@@ -48,6 +48,9 @@ export class Match3 extends Container {
     /** Sort out actions that the player can take */
     public actions: Match3Actions;
     
+    /** The normal (base) process */
+    private baseProcess: Match3Process;
+
     /** ⚠️ The active process (normal spin or free spin) */
     private _currentProcess: Match3Process;
 
@@ -83,8 +86,19 @@ export class Match3 extends Container {
         this.actions = new Match3Actions(this);
 
         /** Create process instances */
-        this._currentProcess = new Match3Process(this);       // use direct assign (NO setter here)
+        this.baseProcess = new Match3Process(this);
+        this._currentProcess = this.baseProcess;      // start with normal process
         this.freeSpinProcess = new Match3FreeSpinProcess(this);
+    }
+
+    /** Switch back to normal/base process */
+    public useBaseProcess() {
+        this._currentProcess = this.baseProcess;
+    }
+
+    /** Switch to free spin process */
+    public useFreeSpinProcess() {
+        this._currentProcess = this.freeSpinProcess;
     }
 
     /**
@@ -103,20 +117,20 @@ export class Match3 extends Container {
         this.stats.reset();
         
         // Reset both processes safely
-        this._currentProcess.reset();
+        this.baseProcess.reset();
         this.freeSpinProcess.reset();
+        this.useBaseProcess(); // ensure we go back to normal process after reset
     }
 
     /** Start normal spin */
     public async spin() {
         if (this.spinning) return;
         this.spinning = true;
-        
+
         await this.actions.actionSpin();
 
         this.spinning = false;
     }
-
 
     /** Start free spin sequence */
     public async freeSpin(spins: number) {
@@ -127,7 +141,6 @@ export class Match3 extends Container {
 
         this.spinning = false;
     }
-
 
     /** Start the timer and enable interaction */
     public startPlaying() {
@@ -154,6 +167,6 @@ export class Match3 extends Container {
     /** Update the timer */
     public update(_delta: number) {
         // this.timer.update(delta);
-        this.process.update(_delta);
+        this.process.update(_delta);  // <- will call base or free process depending on current mode
     }
 }

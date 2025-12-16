@@ -3,6 +3,7 @@ import gsap from "gsap";
 import { navigation } from "../utils/navigation";
 import { ConfirmationBuyFreeSpinPopup } from "./BuyFreeConfirmationPopup";
 import { GameScreen } from "../screens/GameScreen";
+import { userSettings } from "../utils/userSettings"; 
 
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
@@ -54,9 +55,9 @@ export class BuyFreeSpinPopup extends Container {
 
         // Create texts using a safe fallback first (so first render is stable),
         // then swap to Pirata One once it’s definitely loaded.
-        this.option10AmountText = this.createAmountText(200, "$", 0);
-        this.option15AmountText = this.createAmountText(500, "$", 0);
-        this.option20AmountText = this.createAmountText(1000, "$", 0);
+        this.option10AmountText = this.createAmountText(100 * userSettings.getBet(), "$", 0);
+        this.option15AmountText = this.createAmountText(500 * userSettings.getBet(), "$", 0);
+        this.option20AmountText = this.createAmountText(1000 * userSettings.getBet(), "$", 0);
 
         this.attachAmountTextToOption(this.option10, this.option10AmountText);
         this.attachAmountTextToOption(this.option15, this.option15AmountText);
@@ -92,21 +93,21 @@ export class BuyFreeSpinPopup extends Container {
                     navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
                         confirmationBoard: "buy-spin-confirm-board",
                         buySpinLabel: "buy-10-label",
-                        amount: 250,
+                        amount: 100 * userSettings.getBet(),
                         currencySymbol: "$",
                         decimals: 0,
                         confirmButton: "confirm-button",
                         cancelButton: "cancel-button",
                         onConfirm: () => {
                             const game = navigation.currentScreen as GameScreen;
-                            game.freeSpinStartSpinning(2);
+                            game.freeSpinStartSpinning(3);
                         },
                     });
                 } else if (s === this.option15) {
                     navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
                         confirmationBoard: "buy-spin-confirm-board",
                         buySpinLabel: "buy-15-label",
-                        amount: 500,
+                        amount: 500 * userSettings.getBet(),
                         currencySymbol: "$",
                         decimals: 0,
                         confirmButton: "confirm-button",
@@ -120,7 +121,7 @@ export class BuyFreeSpinPopup extends Container {
                     navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
                         confirmationBoard: "buy-spin-confirm-board",
                         buySpinLabel: "buy-20-label",
-                        amount: 1000,
+                        amount: 1000 * userSettings.getBet(),
                         currencySymbol: "$",
                         decimals: 0,
                         confirmButton: "confirm-button",

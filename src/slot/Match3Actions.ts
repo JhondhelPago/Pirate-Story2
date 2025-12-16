@@ -9,10 +9,10 @@ export class Match3Actions {
     }
 
     public async actionSpin() {
+        this.match3.useBaseProcess();
         this.match3.onSpinStart?.();
-
-        this.match3.onProcessStart?.();
-        this.match3.process.start();
+        await this.match3.process.start();
+        this.match3.onProcessComplete?.();
 
         //Simulate user interrupt after 500ms
         // setTimeout(() => {
@@ -21,8 +21,14 @@ export class Match3Actions {
         // }, 10);
     }
 
-    public async actionFreeSpin(spins: number) {
 
+    // Action for the Free Spin Round using the Match3FreeSpinProcess
+    /** FREE SPIN */
+    public async actionFreeSpin(spins: number) {
+        // await this.match3.freeSpinProcess.start(5);
+        this.match3.useFreeSpinProcess();
+        this.match3.freeSpinProcess.setSpins(spins);
+        await this.match3.freeSpinProcess.freeSpinStart();
     }
 
     public setup(config: { isFreeSpin: boolean }) {

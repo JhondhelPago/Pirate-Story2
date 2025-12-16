@@ -26,7 +26,7 @@ export class Match3FreeSpinProcess extends Match3Process{
         if(!this.processCheckpoint()) return;
         
         await this.start();
-
+        await this.delay(1000); 
         await this.freeSpinStart();
     }
 
@@ -38,7 +38,6 @@ export class Match3FreeSpinProcess extends Match3Process{
         this.queue.add( async () => this.setWinningPositions());
         this.queue.add( async () => this.setMergeStickyWilds( this.match3.board.getWildReels(), this.match3.board.getBackendReels()));
 
-
     }
 
     public addRoundWin(win: number){
@@ -46,6 +45,15 @@ export class Match3FreeSpinProcess extends Match3Process{
         console.log(this.roundResult);
         this.accumulatedWin += win;
     }
+
+    public setSpins(spins: number){
+        this.remainingSpins = spins;
+    }
+
+    private delay(ms: number) {
+        return new Promise<void>(resolve => setTimeout(resolve, ms));
+    }
+
 
 
 

@@ -20,7 +20,7 @@ export class Match3Process {
     protected cancelToken: { cancelled: boolean } | null = null;
 
     protected roundWin = 0;
-    protected roundResult: RoundResult | null = null;
+    protected roundResult: RoundResult = [];
     protected winningPositions: GridPosition[] | null = null;
     protected wildReels: number[][] = [];
     
@@ -128,7 +128,6 @@ export class Match3Process {
         const reelsTraversed = this.mergeReels(this.match3.board.getBackendReels(), result.reels)
         const multiplierTraversed = this.mergeMultipliers(this.match3.board.getBackendMultipliers(), result.bonusReels)
         this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
-        // this.match3.board.applyBackendResults(result.reels, result.bonusReels);
         
         await this.runProcessRound();
         await this.match3.board.finishSpin();
