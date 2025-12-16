@@ -21,12 +21,8 @@ export class Match3Actions {
         // }, 10);
     }
 
-
-    // Action for the Free Spin Round using the Match3FreeSpinProcess
-    /** FREE SPIN */
     public async actionFreeSpin(spins: number) {
-        // await this.match3.freeSpinProcess.start(5);
-        await this.match3.freeSpinProcess.start(spins);
+
     }
 
     public setup(config: { isFreeSpin: boolean }) {

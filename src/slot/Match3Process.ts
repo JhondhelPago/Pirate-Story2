@@ -11,28 +11,31 @@ export interface BackendSpinResult {
 export type GridPosition = { row: number; column: number };
 
 export class Match3Process {
-    private match3: Match3;
-    private processing = false;
-    private round = 0;
-    private queue: AsyncQueue;
+    protected match3: Match3;
+    protected processing = false;
+    protected round = 0;
+    protected queue: AsyncQueue;
     public onProcessComplete?: () => void;
 
-    private cancelToken: { cancelled: boolean } | null = null;
+    protected cancelToken: { cancelled: boolean } | null = null;
 
-    private roundWin = 0;
-    private roundResult: RoundResult | null = null;
-    private winningPositions: GridPosition[] | null = null;
-    private wildReels: number[][] = [];
-
-    private delayRemainingMs = 0;
-    private delayResolver: (() => void) | null = null;
-    private delayToken: { cancelled: boolean } | null = null;
-
+    protected roundWin = 0;
+    protected roundResult: RoundResult | null = null;
+    protected winningPositions: GridPosition[] | null = null;
+    protected wildReels: number[][] = [];
+    
+    protected delayRemainingMs = 0;
+    protected delayResolver: (() => void) | null = null;
+    protected delayToken: { cancelled: boolean } | null = null;
+    
     constructor(match3: Match3) {
         this.match3 = match3;
         this.queue = new AsyncQueue();
     }
-
+    
+    protected async fetchBackendSpin(): Promise<BackendSpinResult> {
+        return BetAPI.spin("n");
+    }
     public isProcessing() {
         return this.processing;
     }
@@ -73,25 +76,29 @@ export class Match3Process {
     public pause() {
         this.queue.pause();
     }
-
+    
     public resume() {
         this.queue.resume();
     }
-
+    
     public stop() {
         if (!this.processing) return;
-
+        
         this.processing = false;
         this.queue.clear();
-
+        
         // ensure any pending delay resolves so start() can unwind safely
         if (this.delayToken) {
             this.delayToken.cancelled = true;
         }
-
+        
         console.log("[Match3] Sequence rounds:", this.round);
         console.log("[Match3] ======= PROCESSING COMPLETE =======");
         this.match3.onProcessComplete?.();
+    }
+    
+    public updateStats() {
+        // TODO
     }
 
     public async start() {
@@ -130,45 +137,37 @@ export class Match3Process {
         this.match3.onProcessComplete?.();
     }
 
-    public async runProcessRound(): Promise<void> {
-        return this.queue.add(async () => {
-            this.round += 1;            
-            // update stats here
-            const reels = this.match3.board.getBackendReels();
-            const multipliers = this.match3.board.getBackendMultipliers();
+    public runProcessRound(): void {
+        this.round++;
 
-            // merge with the wild reels
-            this.roundResult = slotEvaluateClusterWins(reels, multipliers);
-            const debugRoundResult =
-                this.roundResult?.map(r => ({
-                    type: r.type,
-                    count: r.count,
-                    multiplier: r.multiplier,
-                    positions: r.positions.map(p => `[${p.row},${p.column}]`),
-                })) ?? [];
+        this.queue.add( async () => this.setRoundResult());
+        this.queue.add( async () => this.setWinningPositions());
+        this.queue.add( async () => this.setMergeStickyWilds( this.match3.board.getWildReels(), this.match3.board.getBackendReels()));
 
-            console.log("roundResult:", debugRoundResult);
-            
-            const winningCluster = this.roundResult?.map(r => ({ positions: r.positions,})) ?? [];
-            
-            // holds the simplified winning position of the found cluster
-            this.winningPositions = flattenClusterPositions(winningCluster);
-            // set the reference of the sticky wild to this process object, the board will refrence to this
-            this.mergeStickyWilds( this.match3.board.getWildReels(), reels)
-
-            this.setRoundWin();
-        });
     }
 
-    public updateStats() {
-        // TODO
+    protected setRoundResult(){
+        const reels = this.match3.board.getBackendReels();
+        const multipliers = this.match3.board.getBackendMultipliers();
+        // merge with the wild reels
+        this.roundResult = slotEvaluateClusterWins(reels, multipliers);
+        const debugRoundResult =
+            this.roundResult?.map(r => ({
+                type: r.type,
+                count: r.count,
+                multiplier: r.multiplier,
+                positions: r.positions.map(p => `[${p.row},${p.column}]`),
+            })) ?? [];
+        console.log("roundResult:", debugRoundResult);
     }
 
-    public processCheckpoint() {
-        // TODO
+    protected setWinningPositions(){
+        const winningCluster = this.roundResult?.map(r => ({ positions: r.positions,})) ?? [];
+        this.winningPositions = flattenClusterPositions(winningCluster);
     }
 
-    private createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
+
+    protected createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
         // If there’s already a pending delay, resolve it to avoid deadlocks.
         if (this.delayResolver) {
             const prev = this.delayResolver;
@@ -208,9 +207,6 @@ export class Match3Process {
         return this.roundResult;
     }
 
-    public async fetchBackendSpin(): Promise<BackendSpinResult> {
-        return BetAPI.spin("n");
-    }
 
     public mergeMultipliers( current: number[][], incoming: number[][]): number[][] {
         return mergeNonZero(current, incoming);
@@ -223,8 +219,8 @@ export class Match3Process {
         return mergeReels(current, incoming);
     }
 
-    public mergeStickyWilds( current: number[][], incoming: number[][]): number[][] {
-        return this.wildReels = mergeWildType(current, incoming);
+    public setMergeStickyWilds( current: number[][], incoming: number[][]): void {
+        this.wildReels = mergeWildType(current, incoming);
     }
 
     public setRoundWin(){

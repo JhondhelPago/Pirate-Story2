@@ -102,7 +102,6 @@ export class Match3 extends Container {
         this.interactiveChildren = false;
         this.stats.reset();
         
-
         // Reset both processes safely
         this._currentProcess.reset();
         this.freeSpinProcess.reset();

@@ -134,9 +134,10 @@ export class GameScreen extends Container {
 
 
     public freeSpinStartSpinning(spins: number) {
+        // call back here to trigger the Match3FreSpinProcess
         if (this.finished) return;
-        this.finished = true;
         this.match3.freeSpin(spins);
+        this.finished = true;
     }
 
     public prepare() {
@@ -251,6 +252,7 @@ export class GameScreen extends Container {
         console.log("Round Result:");
         console.log(this.match3.process.getRoundResult());
 
+        this.controlPanel.setTitle("Win: 100");
         this.messageMatchQueuing(this.match3.process.getRoundResult()!);
 
         if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {

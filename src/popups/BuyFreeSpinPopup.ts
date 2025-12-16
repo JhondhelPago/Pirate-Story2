@@ -74,23 +74,20 @@ export class BuyFreeSpinPopup extends Container {
                     repeat: 1,
                 });
 
-                // =====================================================
-                // 🔥 ADD TRIGGER TO OPEN CONFIRMATION POPUP
-                // =====================================================
                 if (s === this.option10) {
                     navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
                         confirmationBoard: "buy-spin-confirm-board",
                         buySpinLabel: "buy-10-label",
-                        amountLabel: "amount-200",
+                        amount: 250,              // ✅ number now
+                        currencySymbol: "$",       // optional
+                        decimals: 0,               // optional (if you want "$200" instead of "$200.00")
                         confirmButton: "confirm-button",
                         cancelButton: "cancel-button",
                         onConfirm: () => {
                             const game = navigation.currentScreen as GameScreen;
-                            // process here to validate purchase, deduct currency,
-                            game.freeSpinStartSpinning(2); 
-                        }
+                            game.freeSpinStartSpinning(2);
+                        },
                     });
-
                 }
                 else if (s === this.option15) {
                     navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
