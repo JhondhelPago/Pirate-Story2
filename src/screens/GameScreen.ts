@@ -12,12 +12,10 @@ import { BuyFreeSpin } from '../ui/BuyFreeSpin';
 import { ControlPanel } from '../ui/ControlPanel';
 import { BetAction, userSettings } from '../utils/userSettings';
 import { GoldRoger } from '../ui/GoldRoger';
-import { FreeSpinPopup } from '../popups/FreeSpinPopup';
-import { FreeSpinWinPopup } from '../popups/FreeSpinWinPopup';
-import { JackpotWinPopup } from '../popups/JackpotWinPopup';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
 import { SpinRoundBanner } from '../popups/SpinRoundBanner';
+import { RoundResult } from '../slot/SlotUtility';
 
 /** The screen that holds the Match3 game */
 export class GameScreen extends Container {
@@ -127,15 +125,11 @@ export class GameScreen extends Container {
         });
 
         this.finished = false;
-        console.log("GameScreen constructed (multiplier system removed)");
     }
 
     public async startSpinning() {
         if (this.match3.spinning) return;
         await this.match3.spin();
-        console.log("round result");
-        console.log(this.match3.process.getRoundResult)
-        console.log("current bet: " + userSettings.getBet());
     }
 
 
@@ -250,10 +244,15 @@ export class GameScreen extends Container {
     }
 
     private onProcessStart() {
-        console.log('PROCESS STARTING from GameSCreen');
+        console.log('ON PROCESS START');
     }
 
     private onProcessComplete() {
+        console.log("Round Result:");
+        console.log(this.match3.process.getRoundResult());
+
+        this.messageMatchQueuing(this.match3.process.getRoundResult()!);
+
         if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
             this.finish();
             this.drawWinBanner(this.match3.process.getRoundWin());
@@ -274,5 +273,13 @@ export class GameScreen extends Container {
 
     private drawTotalWinBanner(winAmount: number){
         // navigationPresentPopu() calling the TotalWinBanner and passing th3e total win amount
+    }
+
+    private messageMatchQueuing(roundResult: RoundResult) {
+        roundResult.map(r => {
+            this.controlPanel.addMatchMessage(r.multiplier, r.type, userSettings.getBet() * r.multiplier, 'krw');
+        });
+
+        this.controlPanel.playMatchMessages();
     }
 }

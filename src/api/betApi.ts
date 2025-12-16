@@ -28,8 +28,6 @@ export class BetAPI {
             // Parse the JSON response body
             const data: { reels: number[][], bonusReels: number[][] } = await response.json();
 
-            console.log(`Spin type: ${type}`);
-
             return data;
         } catch (error: any) {
             console.error('Bet API spin failed:', error);

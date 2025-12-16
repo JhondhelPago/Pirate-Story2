@@ -631,9 +631,6 @@ export class Match3Board {
     private applyWildGridToWildLayer() {
         if (!this.wildReels.length) return;
 
-        console.log("block of WildGridToWildLayer:");
-        console.log(this.backendMultipliers);
-
         const tile = this.tileSize;
 
         this.forEachCell((r, c) => {

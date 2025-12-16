@@ -116,7 +116,6 @@ export class Match3 extends Container {
         await this.actions.actionSpin();
 
         this.spinning = false;
-        console.log('spinng state from the Matcch3: ', this.spinning);
     }
 
 

@@ -3,8 +3,6 @@ import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
 import { userSettings } from "../utils/userSettings"; 
 import { RoundResult, slotEvaluateClusterWins, flattenClusterPositions, mergeWildType, mergeNonZero, mergeReels, calculateTotalWin } from "./SlotUtility";
-import { SpinRoundBanner } from "../popups/SpinRoundBanner";
-import { navigation } from "../utils/navigation";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -21,11 +19,10 @@ export class Match3Process {
 
     private cancelToken: { cancelled: boolean } | null = null;
 
+    private roundWin = 0;
     private roundResult: RoundResult | null = null;
     private winningPositions: GridPosition[] | null = null;
     private wildReels: number[][] = [];
-
-    private roundWin = 0;
 
     private delayRemainingMs = 0;
     private delayResolver: (() => void) | null = null;
@@ -101,11 +98,6 @@ export class Match3Process {
         if (this.processing) return;
         this.processing = true;
 
-        this.match3.onProcessStart = () => {
-            console.log("start method is on Process");
-
-        }
-
         const token = { cancelled: false };
         this.cancelToken = token;
 
@@ -136,8 +128,6 @@ export class Match3Process {
 
         this.processing = false;
         this.match3.onProcessComplete?.();
-        // this.drawWinBanner(this.roundWin);
-        
     }
 
     public async runProcessRound(): Promise<void> {
