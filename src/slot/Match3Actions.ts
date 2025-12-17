@@ -12,7 +12,6 @@ export class Match3Actions {
         this.match3.useBaseProcess();
         this.match3.onSpinStart?.();
         await this.match3.process.start();
-        this.match3.onProcessComplete?.();
 
         //Simulate user interrupt after 500ms
         // setTimeout(() => {

@@ -241,7 +241,8 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinRoundComplete() {
-        console.log('FREE SPIN ROUND COMPLETE');
+        console.log("Total Won in 5 Free Spin: ", this.match3.freeSpinProcess.getAccumulatedWin());
+        //show the pop here for the total won in free spins
     }
 
     private onProcessStart() {
@@ -249,9 +250,6 @@ export class GameScreen extends Container {
     }
 
     private onProcessComplete() {
-        console.log("Round Result:");
-        console.log(this.match3.process.getRoundResult());
-
         this.controlPanel.setTitle("Win: 100");
         this.messageMatchQueuing(this.match3.process.getRoundResult()!);
 
@@ -259,7 +257,6 @@ export class GameScreen extends Container {
             this.finish();
             this.drawWinBanner(this.match3.process.getRoundWin());
         }
-
         this.finished = false;
     }
 

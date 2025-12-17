@@ -150,14 +150,7 @@ export class Match3Process {
         const multipliers = this.match3.board.getBackendMultipliers();
         // merge with the wild reels
         this.roundResult = slotEvaluateClusterWins(reels, multipliers);
-        const debugRoundResult =
-            this.roundResult?.map(r => ({
-                type: r.type,
-                count: r.count,
-                multiplier: r.multiplier,
-                positions: r.positions.map(p => `[${p.row},${p.column}]`),
-            })) ?? [];
-        console.log("roundResult:", debugRoundResult);
+        
     }
 
     protected setWinningPositions(){
