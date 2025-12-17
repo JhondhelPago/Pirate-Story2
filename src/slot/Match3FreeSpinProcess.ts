@@ -31,7 +31,7 @@ export class Match3FreeSpinProcess extends Match3Process{
             
         
         await this.start();
-        await this.delay(500); 
+        await this.delay(); 
         await this.freeSpinStart();
     }
 
@@ -67,7 +67,9 @@ export class Match3FreeSpinProcess extends Match3Process{
         return this.accumulatedWin;
     }
 
-    private delay(ms: number) {
+    private delay() {
+        const ms = this.roundResult.length > 0 ? 2000 : 1000;
+
         return new Promise<void>(resolve => setTimeout(resolve, ms));
     }
 

@@ -270,7 +270,8 @@ export class GameScreen extends Container {
 
     private async drawWinBannerAsync(winAmount: number): Promise<void> {
         if (winAmount < 50) return;
-
+        
+        await waitFor(2);
         await new Promise<void>((resolve) => {
             navigation.presentPopup(SpinRoundBanner, {
                 win: winAmount,
