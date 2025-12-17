@@ -16,6 +16,14 @@ import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
 import { SpinRoundBanner } from '../popups/SpinRoundBanner';
 import { RoundResult } from '../slot/SlotUtility';
+import { SettingsPopup } from '../popups/SettingsPopup';
+import { gameConfig } from '../utils/gameConfig';
+
+export type SettingsPopupData = {
+    finished: boolean;
+    onBetSettingChanged: () => void;
+    onAudioSettingChanged: (isOn: boolean) => void;
+};
 
 /** The screen that holds the Match3 game */
 export class GameScreen extends Container {
@@ -99,6 +107,22 @@ export class GameScreen extends Container {
         this.controlPanel.onSpin(() => this.startSpinning());
         this.controlPanel.onSpacebar(() => this.startSpinning());
         this.controlPanel.onAutoplay(() => {});
+
+        this.controlPanel.onSettings(() => {
+            navigation.presentPopup<SettingsPopupData>(SettingsPopup, {
+                finished: this.finished,
+                onBetSettingChanged: () => {
+                    this.controlPanel.setBet(userSettings.getBet());
+                    
+                    // function to be resolved
+                    // this.updateMultiplierAmounts();
+                    // this.updateBuyFreeSpinAmount();
+                },
+                onAudioSettingChanged: (isOn: boolean) => {
+                    this.controlPanel.audioButton.setToggleState(isOn);
+                },
+            });
+        });
 
         this.controlPanel.onInfo(() => {
             navigation.presentPopup<InfoPopupData>(InfoPopup, {
@@ -270,7 +294,7 @@ export class GameScreen extends Container {
 
     private async drawWinBannerAsync(winAmount: number): Promise<void> {
         if (winAmount < 50) return;
-        
+
         await waitFor(2);
         await new Promise<void>((resolve) => {
             navigation.presentPopup(SpinRoundBanner, {

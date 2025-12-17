@@ -226,4 +226,9 @@ export class Match3Process {
         return this.roundWin;
     }
 
+
+    // function here to set clear the wild reels and the multiplier reels from the match3 board
+    // this function will be called after every spin
+    // for the extended free spin process it will be called at the end of the recursion  
+
 }
