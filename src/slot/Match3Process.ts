@@ -125,12 +125,11 @@ export class Match3Process {
             return;
         }
 
-        const reelsTraversed = this.mergeReels(this.match3.board.getBackendReels(), result.reels)
-        const multiplierTraversed = this.mergeMultipliers(this.match3.board.getBackendMultipliers(), result.bonusReels)
-        this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
+        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
         
         await this.runProcessRound();
         await this.match3.board.finishSpin();
+        this.match3.board.clearWildLayerAndMultipliers();
 
         this.processing = false;
         await this.match3.onProcessComplete?.();
@@ -142,7 +141,7 @@ export class Match3Process {
         this.queue.add( async () => this.setRoundResult());
         this.queue.add( async () => this.setRoundWin());
         this.queue.add( async () => this.setWinningPositions());
-        this.queue.add( async () => this.setMergeStickyWilds( this.match3.board.getWildReels(), this.match3.board.getBackendReels()));
+        //this.queue.add( async () => this.setMergeStickyWilds( this.match3.board.getWildReels(), this.match3.board.getBackendReels()));
 
     }
 
@@ -229,6 +228,6 @@ export class Match3Process {
 
     // function here to set clear the wild reels and the multiplier reels from the match3 board
     // this function will be called after every spin
-    // for the extended free spin process it will be called at the end of the recursion  
+    // for the extended free spin process it will be called at the end of the recursion
 
 }

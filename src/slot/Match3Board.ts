@@ -4,6 +4,7 @@ import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import { BlurSymbol } from "../ui/BlurSymbol";
 import { SlotSymbol } from "./SlotSymbol";
+import { gridRandomTypeReset, gridZeroReset } from "./SlotUtility";
 
 interface ReelColumn {
     container: Container;
@@ -414,7 +415,7 @@ export class Match3Board {
     // =========================================================================
     // APPLY BACKEND RESULT TO REAL REELS
     // =========================================================================
-    private applyBackendToRealLayer() {
+    public applyBackendToRealLayer() {
         for (let c = 0; c < this.columns; c++) {
             const reel = this.realReels[c];
 
@@ -541,8 +542,8 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
 
         await Promise.all([
-            gsap.to(this.realLayer, { y: this.maskH, duration: 0.25, ease: "power0.out" }),
-            gsap.to(this.blurLayer, { y: 0, duration: 0.25, ease: "power0.out" }),
+            gsap.to(this.realLayer, { y: this.maskH, duration: 0.2, ease: "power0.out" }),
+            gsap.to(this.blurLayer, { y: 0, duration: 0.2, ease: "power0.out" }),
         ]);
 
         this.startBlurSpin();
@@ -641,10 +642,14 @@ export class Match3Board {
             const type = this.wildGrid?.[r]?.[c] ?? 0;
             const mult = this.backendMultipliers?.[r]?.[c] ?? 0;
 
+            const removeCurrent = () => {
+                if (current?.parent === reel.container) reel.container.removeChild(current);
+            };
+
             // empty
             if (type === 0 || !this.typesMap[type]) {
                 if (current instanceof SlotSymbol) current.destroy();
-                reel.container.removeChildAt(r);
+                removeCurrent();
 
                 const dummy = this.makeDummyCell(r * tile);
                 reel.container.addChildAt(dummy, r);
@@ -654,7 +659,7 @@ export class Match3Board {
 
             // needs visible symbol
             if (!(current instanceof SlotSymbol)) {
-                reel.container.removeChildAt(r);
+                removeCurrent();
 
                 const sym = this.makeSlotSymbol(type, mult);
                 sym.y = r * tile;
@@ -669,9 +674,10 @@ export class Match3Board {
             // different type -> replace
             if ((existing as any).type !== type) {
                 existing.destroy();
-                reel.container.removeChildAt(r);
+                removeCurrent();
 
-                const sym = this.makeSlotSymbol(type, 0);
+                // ✅ use mult (you had 0 here)
+                const sym = this.makeSlotSymbol(type, mult);
                 sym.y = r * tile;
 
                 reel.container.addChildAt(sym, r);
@@ -686,6 +692,7 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
     }
+
 
     // =========================================================================
     // WILD OVERLAY ANIMATION
@@ -725,4 +732,23 @@ export class Match3Board {
             }
         }
     }
+
+    /** Clears multipliers + wild overlay to 0-grid and refreshes the wildLayer visuals. */
+    public clearWildLayerAndMultipliers() {
+        // if setup() hasn't run yet, just reset the 5x5 defaults
+        const rows = this.rows > 0 ? this.rows : 5;
+        const cols = this.columns > 0 ? this.columns : 5;
+
+        this.backendMultipliers = this.initGrid(rows, cols, 0);
+        this.wildGrid = this.initGrid(rows, cols, 0);
+        this.backendReels = gridRandomTypeReset();
+        
+        // reflect to wild layer if we're already built
+        if (this.rows > 0 && this.columns > 0) {
+            this.rebuildWildLayerStructureIfNeeded();
+            this.applyWildGridToWildLayer();
+            this.ensureWildLayerOnTop();
+        }
+    }
+
 }

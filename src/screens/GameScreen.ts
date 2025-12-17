@@ -260,8 +260,9 @@ export class GameScreen extends Container {
         // show the total win banner with the amount won, 
     }
 
-    private async onFreeSpinRoundStart() {
-        console.log('FREE SPIN ROUND STARTING');
+    private async onFreeSpinRoundStart(current: number, remaining: number) {
+        console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
+        this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
     }
 
     private async onFreeSpinRoundComplete() {

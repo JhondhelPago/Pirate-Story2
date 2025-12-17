@@ -817,3 +817,13 @@ export function mergeReels(
 
     return result;
 }
+
+export function gridZeroReset(){
+    return Array.from({ length: 5 }, () => Array(5).fill(0));
+}
+
+export function gridRandomTypeReset(){
+    return Array.from({ length: 5 }, () =>
+        Array.from({ length: 5 }, () => Math.floor(Math.random() * 10) + 1)
+    );
+}
