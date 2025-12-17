@@ -31,7 +31,7 @@ export class Match3FreeSpinProcess extends Match3Process{
             
         
         await this.start();
-        await this.delay(1000); 
+        await this.delay(500); 
         await this.freeSpinStart();
     }
 

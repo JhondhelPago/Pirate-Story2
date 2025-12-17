@@ -133,7 +133,7 @@ export class Match3Process {
         await this.match3.board.finishSpin();
 
         this.processing = false;
-        this.match3.onProcessComplete?.();
+        await this.match3.onProcessComplete?.();
     }
 
     public runProcessRound(): void {

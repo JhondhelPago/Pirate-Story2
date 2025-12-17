@@ -249,26 +249,36 @@ export class GameScreen extends Container {
         console.log('ON PROCESS START');
     }
 
-    private onProcessComplete() { // this block need to async and resolved before triggering the next spin
+    private async onProcessComplete() {
         this.controlPanel.setTitle("Win: 100");
         this.messageMatchQueuing(this.match3.process.getRoundResult());
 
+        // when both processes are not processing (end of a round)
         if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
-            this.finish();
-            this.drawWinBanner(this.match3.process.getRoundWin());
+            await this.finish();
+            await this.drawWinBannerAsync(this.match3.process.getRoundWin()); // ✅ wait banner close
         }
+
         this.finished = false;
     }
+
 
     private async finish() {
         if (!this.finished) return;
         this.finished = false;
     }
 
-    private drawWinBanner(winAmount: number){
+    private async drawWinBannerAsync(winAmount: number): Promise<void> {
         if (winAmount < 50) return;
-        navigation.presentPopup(SpinRoundBanner, { win: winAmount});
+
+        await new Promise<void>((resolve) => {
+            navigation.presentPopup(SpinRoundBanner, {
+                win: winAmount,
+                onClosed: resolve, // ✅ resolves when SpinRoundBanner.hide() finishes
+            });
+        });
     }
+
 
     private drawTotalWinBanner(winAmount: number){
         // navigationPresentPopu() calling the TotalWinBanner and passing th3e total win amount

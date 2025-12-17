@@ -8,61 +8,69 @@ type BannerItem = {
     text: string;
 };
 
+export type SpinRoundBannerData = {
+    win: number;
+    onClosed?: () => void;
+};
+
 export class SpinRoundBanner extends Container {
     public static currentInstance: SpinRoundBanner | null = null;
-    
+
     private bg: Sprite;
     private panel: Container;
-    
+
     private banner!: Sprite;
     private headerText!: Sprite;
-    
+
     private valueText!: Text;
     private currentDisplayValue = 0;
     private targetDisplayValue = 0;
-    
+
     private winValue: number = 0;
     private canClickAnywhere = false;
-    
+
+    private onClosed?: () => void;
+    private timeouts: number[] = [];
+
     private readonly HEADER_OFFSET_Y = -180;
     private readonly HEADER_OFFSET_X = 20;
-    
+
     constructor() {
         super();
-        
-        // ⭐ Register instance
+
         SpinRoundBanner.currentInstance = this;
-        
+
         this.eventMode = "static";
         this.interactiveChildren = true;
-        
-        // Background
+
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
         this.bg.eventMode = "static";
         this.addChild(this.bg);
-        
+
         this.bg.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
             this.hide();
         });
-        
+
         this.panel = new Container();
         this.addChild(this.panel);
     }
-    
+
     public static forceDismiss() {
         if (SpinRoundBanner.currentInstance) {
-            SpinRoundBanner.currentInstance.hide(true); // fast hide
+            SpinRoundBanner.currentInstance.hide(true);
             SpinRoundBanner.currentInstance = null;
         }
     }
 
     public prepare<T>(data?: T) {
-        const anyData = data as any;
+        const anyData = data as SpinRoundBannerData;
+
         this.winValue = anyData?.win ?? 0;
         this.targetDisplayValue = this.winValue;
+        this.onClosed = anyData?.onClosed;
 
         this.createBanner();
         this.createHeaderText();
@@ -71,18 +79,23 @@ export class SpinRoundBanner extends Container {
         this.animateEntrance();
         this.animateHeaderPulse();
 
-        setTimeout(() => this.animateValue(), 500);
-        setTimeout(() => (this.canClickAnywhere = true), 1200);
+        this.timeouts.push(window.setTimeout(() => this.animateValue(), 500));
+        this.timeouts.push(window.setTimeout(() => (this.canClickAnywhere = true), 1200));
 
-        setTimeout(() => {
-            if (SpinRoundBanner.currentInstance === this) {
-                if (this.canClickAnywhere) this.hide();
-            }
-        }, 4500);
+        this.timeouts.push(
+            window.setTimeout(() => {
+                if (SpinRoundBanner.currentInstance === this) {
+                    if (this.canClickAnywhere) this.hide();
+                }
+            }, 4500)
+        );
     }
 
     private createBanner() {
-        if (this.banner) this.banner.destroy();
+        if (this.banner) {
+            this.banner.removeFromParent();
+            this.banner.destroy();
+        }
 
         const tex = this.getBannerTexture(this.winValue);
 
@@ -95,7 +108,10 @@ export class SpinRoundBanner extends Container {
     }
 
     private createHeaderText() {
-        if (this.headerText) this.headerText.destroy();
+        if (this.headerText) {
+            this.headerText.removeFromParent();
+            this.headerText.destroy();
+        }
 
         const tex = this.getBannerTexture(this.winValue);
 
@@ -108,9 +124,6 @@ export class SpinRoundBanner extends Container {
         this.panel.addChild(this.headerText);
     }
 
-    // ==================================================
-    // HEADER PULSE
-    // ==================================================
     private animateHeaderPulse() {
         gsap.killTweensOf(this.headerText.scale);
 
@@ -122,15 +135,15 @@ export class SpinRoundBanner extends Container {
             duration: 1.2,
             repeat: -1,
             yoyo: true,
-            ease: "sine.inOut"
+            ease: "sine.inOut",
         });
     }
 
-    // ==================================================
-    // VALUE TEXT + GRADIENT
-    // ==================================================
     private createValueText() {
-        if (this.valueText) this.valueText.destroy();
+        if (this.valueText) {
+            this.valueText.removeFromParent();
+            this.valueText.destroy();
+        }
 
         const gradientCanvas = document.createElement("canvas");
         gradientCanvas.width = 512;
@@ -158,14 +171,8 @@ export class SpinRoundBanner extends Container {
             fontFamily: "Pirata One",
             fontSize: 150,
             align: "center",
-            fill: {
-                texture: gradientTexture,
-                matrix: mat
-            },
-            stroke: {
-                color: 0x4C1B05,
-                width: 6
-            }
+            fill: { texture: gradientTexture, matrix: mat },
+            stroke: { color: 0x4c1b05, width: 6 },
         });
 
         this.valueText.anchor.set(0.5);
@@ -179,9 +186,10 @@ export class SpinRoundBanner extends Container {
         const bannerDict: BannerItem[] = [
             { max: 80, board: "green-banner-board", text: "green-banner-text" },
             { max: 150, board: "blue-banner-board", text: "blue-banner-text" },
-            { max: Infinity, board: "red-banner-board", text: "red-banner-text" }
+            { max: Infinity, board: "red-banner-board", text: "red-banner-text" }, // ✅ FIXED
         ];
-        return bannerDict.find(x => win < x.max)!;
+
+        return bannerDict.find((x) => win < x.max)!;
     }
 
     private animateEntrance() {
@@ -201,22 +209,23 @@ export class SpinRoundBanner extends Container {
         this.headerText.y = finalHeaderY + startOffset;
         this.valueText.y = finalValueY + startOffset;
 
-        gsap.to(this.banner, {
-            alpha: 1, y: finalBannerY, duration: 0.7, ease: "bounce.out"
-        });
-
+        gsap.to(this.banner, { alpha: 1, y: finalBannerY, duration: 0.7, ease: "bounce.out" });
         gsap.to(this.headerText, {
-            alpha: 1, y: finalHeaderY, duration: 0.7, ease: "bounce.out", delay: 0.05
+            alpha: 1,
+            y: finalHeaderY,
+            duration: 0.7,
+            ease: "bounce.out",
+            delay: 0.05,
         });
-
         gsap.to(this.valueText, {
-            alpha: 1, y: finalValueY, duration: 0.7, ease: "bounce.out", delay: 0.1
+            alpha: 1,
+            y: finalValueY,
+            duration: 0.7,
+            ease: "bounce.out",
+            delay: 0.1,
         });
     }
 
-    // ==================================================
-    // VALUE COUNT + POP + NEW PULSE
-    // ==================================================
     private animateValue() {
         this.currentDisplayValue = 0;
 
@@ -228,7 +237,6 @@ export class SpinRoundBanner extends Container {
                 this.valueText.text = this.formatCurrency(this.currentDisplayValue);
             },
             onComplete: () => {
-                // POP animation
                 gsap.fromTo(
                     this.valueText.scale,
                     { x: 0.85, y: 0.85 },
@@ -237,13 +245,10 @@ export class SpinRoundBanner extends Container {
                         y: 1,
                         duration: 0.6,
                         ease: "elastic.out(1, 0.6)",
-                        onComplete: () => {
-                            // ⭐ continuous pulse
-                            this.animateValuePulse();
-                        }
+                        onComplete: () => this.animateValuePulse(),
                     }
                 );
-            }
+            },
         });
     }
 
@@ -258,7 +263,7 @@ export class SpinRoundBanner extends Container {
             duration: 1.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut"
+            ease: "sine.inOut",
         });
     }
 
@@ -281,23 +286,33 @@ export class SpinRoundBanner extends Container {
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
+        for (const t of this.timeouts) clearTimeout(t);
+        this.timeouts = [];
+
         gsap.killTweensOf(this.headerText.scale);
         gsap.killTweensOf(this.valueText.scale);
 
-        // ⭐ instant hide (for when spin starts again)
         if (forceInstant) {
             this.alpha = 0;
             SpinRoundBanner.currentInstance = null;
             await navigation.dismissPopup();
+
+            const cb = this.onClosed;
+            this.onClosed = undefined;
+            cb?.();
             return;
         }
 
-        await gsap.to(
-            [this.banner, this.headerText, this.valueText, this.bg],
-            { alpha: 0, duration: 0.25 }
-        );
+        await gsap.to([this.banner, this.headerText, this.valueText, this.bg], {
+            alpha: 0,
+            duration: 0.25,
+        });
 
         SpinRoundBanner.currentInstance = null;
         await navigation.dismissPopup();
+
+        const cb = this.onClosed;
+        this.onClosed = undefined;
+        cb?.();
     }
 }
