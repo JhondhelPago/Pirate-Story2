@@ -140,6 +140,7 @@ export class Match3Process {
         this.round++;
 
         this.queue.add( async () => this.setRoundResult());
+        this.queue.add( async () => this.setRoundWin());
         this.queue.add( async () => this.setWinningPositions());
         this.queue.add( async () => this.setMergeStickyWilds( this.match3.board.getWildReels(), this.match3.board.getBackendReels()));
 
@@ -217,7 +218,7 @@ export class Match3Process {
 
     public setRoundWin(){
         const bet = userSettings.getBet();
-        this.roundWin = calculateTotalWin(this.roundResult!, bet);
+        this.roundWin = calculateTotalWin(this.roundResult, bet);
         console.log("Round Win: " + this.roundWin);
     }
 

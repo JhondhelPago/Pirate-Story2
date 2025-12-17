@@ -249,9 +249,9 @@ export class GameScreen extends Container {
         console.log('ON PROCESS START');
     }
 
-    private onProcessComplete() {
+    private onProcessComplete() { // this block need to async and resolved before triggering the next spin
         this.controlPanel.setTitle("Win: 100");
-        this.messageMatchQueuing(this.match3.process.getRoundResult()!);
+        this.messageMatchQueuing(this.match3.process.getRoundResult());
 
         if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
             this.finish();

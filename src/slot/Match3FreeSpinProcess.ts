@@ -39,13 +39,14 @@ export class Match3FreeSpinProcess extends Match3Process{
         this.round++;
 
         this.queue.add( async () => this.setRoundResult());
-        this.queue.add( async () => this.addRoundWin(100));
+        this.queue.add( async () => this.setRoundWin());
+        this.queue.add( async () => this.addRoundWin());
         this.queue.add( async () => this.setWinningPositions());
         this.queue.add( async () => this.setMergeStickyWilds( this.match3.board.getWildReels(), this.match3.board.getBackendReels()));
 
     }
 
-    public addRoundWin(win: number){
+    public addRoundWin(){
         console.log("Remaining Spins: ",  this.remainingSpins);
         console.log(this.roundResult);
 
