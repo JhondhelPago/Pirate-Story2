@@ -38,6 +38,13 @@ export class TotalWinBanner extends Container {
     private readonly AMOUNT_OFFSET_Y = 40;
     private readonly HEADER_LINE_GAP = 10;
 
+    // ✅ Keyboard handling
+    private keyListenerAdded = false;
+    private readonly keyDownHandler = (e: KeyboardEvent) => {
+        if (!this.canClickAnywhere) return;
+        this.hide();
+    };
+
     constructor() {
         super();
 
@@ -91,12 +98,18 @@ export class TotalWinBanner extends Container {
 
         setTimeout(() => this.animateAmount(), 500);
 
+        // ✅ attach keyboard listener once
+        if (!this.keyListenerAdded && typeof window !== "undefined") {
+            window.addEventListener("keydown", this.keyDownHandler);
+            this.keyListenerAdded = true;
+        }
+
         // ✅ Only allow dismiss after animations settle
         setTimeout(() => {
             this.canClickAnywhere = true;
         }, 1200);
 
-        // ❌ Removed auto-disappear timeout (now only closes on click)
+        // ❌ Removed auto-disappear timeout (now only closes on click / key)
         // setTimeout(() => {
         //     if (TotalWinBanner.currentInstance === this && this.canClickAnywhere) {
         //         this.hide();
@@ -151,7 +164,7 @@ export class TotalWinBanner extends Container {
         });
         this.headerLine1.anchor.set(0.5);
 
-        // Line 2 (✅ different gradient)
+        // Line 2
         this.headerLine2 = new Text("YOU HAVE WON", {
             ...this.createSubHeaderGradientStyle(64),
             fontFamily: "Bangers",
@@ -161,7 +174,6 @@ export class TotalWinBanner extends Container {
 
         this.headerGroup.addChild(this.headerLine1, this.headerLine2);
 
-        // Place group (centered)
         this.headerGroup.x = 0;
         this.headerGroup.y = this.HEADER_OFFSET_Y;
 
@@ -230,7 +242,6 @@ export class TotalWinBanner extends Container {
         const ctx = canvas.getContext("2d")!;
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
-        // main header gradient (strong)
         gradient.addColorStop(0.0, "#ECAC18");
         gradient.addColorStop(0.19, "#FFFFFF");
         gradient.addColorStop(0.34, "#FDD44F");
@@ -254,7 +265,6 @@ export class TotalWinBanner extends Container {
         };
     }
 
-    // ✅ Sub-header gradient for "YOU HAVE WON" (and continue text)
     private createSubHeaderGradientStyle(fontSize: number): Partial<TextStyle> {
         const canvas = document.createElement("canvas");
         canvas.width = 512;
@@ -263,7 +273,6 @@ export class TotalWinBanner extends Container {
         const ctx = canvas.getContext("2d")!;
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
-        // softer secondary gradient
         gradient.addColorStop(0.0, "#ECAC18");
         gradient.addColorStop(0.19, "#FFFFFF");
         gradient.addColorStop(0.34, "#FDD44F");
@@ -328,7 +337,6 @@ export class TotalWinBanner extends Container {
         this.headerGroup.scale.set(1);
         if (this.continueText) this.continueText.scale.set(1);
 
-        // header group pulse
         gsap.to(this.headerGroup.scale, {
             x: 1.08,
             y: 1.08,
@@ -338,7 +346,6 @@ export class TotalWinBanner extends Container {
             ease: "sine.inOut",
         });
 
-        // continue text pulses with same effect
         if (this.continueText) {
             gsap.to(this.continueText.scale, {
                 x: 1.08,
@@ -393,7 +400,12 @@ export class TotalWinBanner extends Container {
     }
 
     private animateEntrance() {
-        gsap.killTweensOf([this.banner, this.headerGroup, this.amountText, this.continueText]);
+        gsap.killTweensOf([
+            this.banner,
+            this.headerGroup,
+            this.amountText,
+            this.continueText,
+        ]);
 
         const startOffset = -900;
 
@@ -465,6 +477,12 @@ export class TotalWinBanner extends Container {
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
+        // 🔻 remove keyboard listener
+        if (this.keyListenerAdded && typeof window !== "undefined") {
+            window.removeEventListener("keydown", this.keyDownHandler);
+            this.keyListenerAdded = false;
+        }
+
         gsap.killTweensOf(this.headerGroup.scale);
         gsap.killTweensOf(this.amountText.scale);
         if (this.continueText) gsap.killTweensOf(this.continueText.scale);
@@ -490,6 +508,11 @@ export class TotalWinBanner extends Container {
     }
 
     public override destroy(options?: any) {
+        if (this.keyListenerAdded && typeof window !== "undefined") {
+            window.removeEventListener("keydown", this.keyDownHandler);
+            this.keyListenerAdded = false;
+        }
+
         gsap.killTweensOf(this.headerGroup?.scale);
         gsap.killTweensOf(this.amountText?.scale);
         if (this.continueText) gsap.killTweensOf(this.continueText.scale);

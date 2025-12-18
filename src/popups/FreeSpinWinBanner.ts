@@ -40,6 +40,13 @@ export class FreeSpinWinBanner extends Container {
     private readonly CENTER_NUMBER_Y = -5;
     private readonly BOTTOM_TEXT_Y = 155;
 
+    // ✅ Keyboard handling
+    private keyListenerAdded = false;
+    private readonly keyDownHandler = (e: KeyboardEvent) => {
+        if (!this.canClickAnywhere) return;
+        this.hide();
+    };
+
     constructor() {
         super();
 
@@ -54,6 +61,7 @@ export class FreeSpinWinBanner extends Container {
         this.bg.eventMode = "static";
         this.addChild(this.bg);
 
+        // close on click anywhere
         this.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
             this.hide();
@@ -83,9 +91,15 @@ export class FreeSpinWinBanner extends Container {
         this.createContinueText();
 
         this.animateEntrance();
-        this.animateWoodPulse(); // now applies to continueText too
+        this.animateWoodPulse();
 
         setTimeout(() => this.animateNumber(), 350);
+
+        // ✅ attach keyboard listener once
+        if (!this.keyListenerAdded && typeof window !== "undefined") {
+            window.addEventListener("keydown", this.keyDownHandler);
+            this.keyListenerAdded = true;
+        }
 
         // enable "press anywhere"
         setTimeout(() => {
@@ -165,7 +179,7 @@ export class FreeSpinWinBanner extends Container {
 
         this.continueText.anchor.set(0.5);
         this.continueText.y = this.BOTTOM_TEXT_Y + 110;
-        this.continueText.alpha = 1; // no opacity effect
+        this.continueText.alpha = 1;
 
         this.panel.addChild(this.continueText);
     }
@@ -234,7 +248,13 @@ export class FreeSpinWinBanner extends Container {
     // ==================================================
     private animateEntrance() {
         const startOffset = -900;
-        const items = [this.banner, this.topText, this.spinsText, this.bottomText, this.continueText];
+        const items = [
+            this.banner,
+            this.topText,
+            this.spinsText,
+            this.bottomText,
+            this.continueText,
+        ];
 
         items.forEach((i) => {
             i.alpha = 0;
@@ -252,14 +272,9 @@ export class FreeSpinWinBanner extends Container {
         });
     }
 
-    // wood pulse now affects CONTINUE TEXT too
     private animateWoodPulse() {
         gsap.to(
-            [
-                this.topText.scale,
-                this.bottomText.scale,
-                this.continueText.scale,
-            ],
+            [this.topText.scale, this.bottomText.scale, this.continueText.scale],
             {
                 x: 1.06,
                 y: 1.06,
@@ -307,6 +322,12 @@ export class FreeSpinWinBanner extends Container {
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
+        // 🔻 remove keyboard listener
+        if (this.keyListenerAdded && typeof window !== "undefined") {
+            window.removeEventListener("keydown", this.keyDownHandler);
+            this.keyListenerAdded = false;
+        }
+
         if (forceInstant) {
             this.alpha = 0;
             const cb = this.onClosed;
@@ -332,5 +353,23 @@ export class FreeSpinWinBanner extends Container {
         FreeSpinWinBanner.currentInstance = null;
         await navigation.dismissPopup();
         cb?.();
+    }
+
+    public override destroy(options?: any) {
+        if (this.keyListenerAdded && typeof window !== "undefined") {
+            window.removeEventListener("keydown", this.keyDownHandler);
+            this.keyListenerAdded = false;
+        }
+
+        gsap.killTweensOf(this.topText?.scale);
+        gsap.killTweensOf(this.bottomText?.scale);
+        gsap.killTweensOf(this.continueText?.scale);
+        gsap.killTweensOf(this);
+
+        super.destroy(options);
+
+        if (FreeSpinWinBanner.currentInstance === this) {
+            FreeSpinWinBanner.currentInstance = null;
+        }
     }
 }
