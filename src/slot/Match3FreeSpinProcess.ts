@@ -27,6 +27,7 @@ export class Match3FreeSpinProcess extends Match3Process{
     public async freeSpinStart(){
 
         if(!this.processCheckpoint()){
+            this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
             this.reset();
             return; // free spin end session
         };
@@ -113,7 +114,6 @@ export class Match3FreeSpinProcess extends Match3Process{
     }
 
     public reset(){
-        this.match3.onFreeSpinRoundComplete?.(this.currentSpin, this.remainingSpins);
         this.wildReels = gridZeroReset();
         this.match3.board.setWildReels(this.wildReels);
         this.match3.board.clearWildLayerAndMultipliers();

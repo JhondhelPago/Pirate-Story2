@@ -1,3 +1,5 @@
+// Define the URL of your Express server endpoint
+const url = 'http://192.168.68.125:3000/spin';
 export class BetAPI {
     /**
      * Calls the backend API to perform a spin operation.
@@ -7,9 +9,6 @@ export class BetAPI {
     static async spin(type: 'n' | 'r' | 'f'): Promise<{ reels: number[][], bonusReels: number[][] }> {
         try {
             await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Define the URL of your Express server endpoint
-            const url = 'http://192.168.68.126:3000/spin';
 
             // Make a GET request to the Express server
             const response = await fetch(url, {

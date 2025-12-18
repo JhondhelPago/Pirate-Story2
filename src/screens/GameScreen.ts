@@ -18,6 +18,7 @@ import { SpinRoundBanner } from '../popups/SpinRoundBanner';
 import { RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { gameConfig } from '../utils/gameConfig';
+import { TotalWinBanner } from '../popups/TotalWinBanner';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -249,6 +250,8 @@ export class GameScreen extends Container {
     private async onSpinStart() {
         console.log('SPIN STARTED');
         // Multiplier reset removed
+        this.controlPanel.disableBetting();
+
     }
 
     private async onFreeSpinStart() {
@@ -256,18 +259,23 @@ export class GameScreen extends Container {
         // call the Match3FreeSpinProcess to Start the buy ree spin rounds
     }
 
-    private async onFreeSpinComplete() {
+    private async onFreeSpinComplete(current: number, remaining:number) {
         // show the total win banner with the amount won, 
-    }
+        console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
+        console.log("navigation pop for the total won banner");
+        navigation.presentPopup(TotalWinBanner, {win: this.match3.freeSpinProcess.getAccumulatedWin()});
 
+    }
+    
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
+        
+        this.controlPanel.disableBetting();
     }
+    
+    private async onFreeSpinRoundComplete(current: number, remaining: number) {
 
-    private async onFreeSpinRoundComplete() {
-        console.log("Total Won in 5 Free Spin: ", this.match3.freeSpinProcess.getAccumulatedWin());
-        //show the pop here for the total won in free spins
     }
 
     private onProcessStart() {
@@ -275,7 +283,14 @@ export class GameScreen extends Container {
     }
 
     private async onProcessComplete() {
-        this.controlPanel.setTitle("Win: 100");
+        const roundWin = this.match3.process.getRoundWin()
+
+        if (roundWin > 0){
+            this.controlPanel.setTitle(`Win ${this.match3.process.getRoundWin()}`);    
+        } else {
+            this.controlPanel.setTitle(`GOOD LUCK`);
+        }
+
         this.messageMatchQueuing(this.match3.process.getRoundResult());
 
         // when both processes are not processing (end of a round)
@@ -284,6 +299,7 @@ export class GameScreen extends Container {
             await this.drawWinBannerAsync(this.match3.process.getRoundWin()); // ✅ wait banner close
         }
 
+        this.controlPanel.enableBetting();
         this.finished = false;
     }
 
