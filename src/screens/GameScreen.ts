@@ -19,6 +19,7 @@ import { RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { gameConfig } from '../utils/gameConfig';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
+import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -263,7 +264,8 @@ export class GameScreen extends Container {
         // show the total win banner with the amount won, 
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
         console.log("navigation pop for the total won banner");
-        navigation.presentPopup(TotalWinBanner, {win: this.match3.freeSpinProcess.getAccumulatedWin()});
+        // navigation.presentPopup(TotalWinBanner, {win: this.match3.freeSpinProcess.getAccumulatedWin()});
+        navigation.presentPopup(FreeSpinWinBanner, {spins: 10});
 
     }
     
