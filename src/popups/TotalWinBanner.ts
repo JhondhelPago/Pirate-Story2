@@ -24,6 +24,9 @@ export class TotalWinBanner extends Container {
     private headerLine1!: Text;
     private headerLine2!: Text;
 
+    // ✅ New: "PRESS ANYWHERE TO CONTINUE"
+    private continueText!: Text;
+
     // ✅ Amount (counting)
     private amountText!: Text;
     private currentDisplayValue = 0;
@@ -49,7 +52,8 @@ export class TotalWinBanner extends Container {
         this.bg.eventMode = "static";
         this.addChild(this.bg);
 
-        this.bg.on("pointertap", () => {
+        // 🔹 Close when clicking anywhere (background or panel/children)
+        this.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
             this.hide();
         });
@@ -74,24 +78,30 @@ export class TotalWinBanner extends Container {
 
         this.targetDisplayValue = win;
 
-        // ✅ Key fix: ensure fonts are loaded before measuring Text heights
+        // ✅ Ensure fonts are loaded before measuring Text heights
         await this.waitForFonts(["Bangers", "Pirata One"]);
 
         this.createBanner();
         this.createHeaderText();
         this.createAmountText();
+        this.createContinueText();
 
         this.animateEntrance();
         this.animateHeaderPulse();
 
         setTimeout(() => this.animateAmount(), 500);
-        setTimeout(() => (this.canClickAnywhere = true), 1200);
 
+        // ✅ Only allow dismiss after animations settle
         setTimeout(() => {
-            if (TotalWinBanner.currentInstance === this && this.canClickAnywhere) {
-                this.hide();
-            }
-        }, 4500);
+            this.canClickAnywhere = true;
+        }, 1200);
+
+        // ❌ Removed auto-disappear timeout (now only closes on click)
+        // setTimeout(() => {
+        //     if (TotalWinBanner.currentInstance === this && this.canClickAnywhere) {
+        //         this.hide();
+        //     }
+        // }, 4500);
     }
 
     // ==================================================
@@ -161,7 +171,6 @@ export class TotalWinBanner extends Container {
     private layoutHeaderLines() {
         if (!this.headerLine1 || !this.headerLine2) return;
 
-        // Force bounds calculation (Pixi v7-safe)
         this.headerLine1.getBounds();
         this.headerLine2.getBounds();
 
@@ -170,12 +179,12 @@ export class TotalWinBanner extends Container {
 
         const gap = this.HEADER_LINE_GAP;
 
-        // Line 2 directly beneath line 1 (height-based)
         this.headerLine2.x = 0;
         this.headerLine2.y =
             this.headerLine1.height * 0.5 +
             gap +
-            this.headerLine2.height * 0.5 - 20;
+            this.headerLine2.height * 0.5 -
+            20;
     }
 
     // ==================================================
@@ -190,6 +199,24 @@ export class TotalWinBanner extends Container {
         this.amountText.y = this.AMOUNT_OFFSET_Y;
 
         this.panel.addChild(this.amountText);
+    }
+
+    // ==================================================
+    // "PRESS ANYWHERE TO CONTINUE"
+    // ==================================================
+    private createContinueText() {
+        if (this.continueText) this.continueText.destroy();
+
+        this.continueText = new Text("PRESS ANYWHERE TO CONTINUE", {
+            ...this.createSubHeaderGradientStyle(48),
+            fontFamily: "Bangers",
+            letterSpacing: 4,
+        });
+        this.continueText.anchor.set(0.5);
+        this.continueText.x = 0;
+        this.continueText.y = this.AMOUNT_OFFSET_Y + 150;
+
+        this.panel.addChild(this.continueText);
     }
 
     // ==================================================
@@ -227,7 +254,7 @@ export class TotalWinBanner extends Container {
         };
     }
 
-    // ✅ Sub-header gradient for "YOU HAVE WON"
+    // ✅ Sub-header gradient for "YOU HAVE WON" (and continue text)
     private createSubHeaderGradientStyle(fontSize: number): Partial<TextStyle> {
         const canvas = document.createElement("canvas");
         canvas.width = 512;
@@ -296,9 +323,12 @@ export class TotalWinBanner extends Container {
     // ==================================================
     private animateHeaderPulse() {
         gsap.killTweensOf(this.headerGroup.scale);
+        if (this.continueText) gsap.killTweensOf(this.continueText.scale);
 
         this.headerGroup.scale.set(1);
+        if (this.continueText) this.continueText.scale.set(1);
 
+        // header group pulse
         gsap.to(this.headerGroup.scale, {
             x: 1.08,
             y: 1.08,
@@ -307,6 +337,18 @@ export class TotalWinBanner extends Container {
             yoyo: true,
             ease: "sine.inOut",
         });
+
+        // continue text pulses with same effect
+        if (this.continueText) {
+            gsap.to(this.continueText.scale, {
+                x: 1.08,
+                y: 1.08,
+                duration: 1.2,
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
+            });
+        }
     }
 
     private animateAmount() {
@@ -351,21 +393,24 @@ export class TotalWinBanner extends Container {
     }
 
     private animateEntrance() {
-        gsap.killTweensOf([this.banner, this.headerGroup, this.amountText]);
+        gsap.killTweensOf([this.banner, this.headerGroup, this.amountText, this.continueText]);
 
         const startOffset = -900;
 
         const bannerY = this.banner.y;
         const headerY = this.headerGroup.y;
         const amountY = this.amountText.y;
+        const continueY = this.continueText.y;
 
         this.banner.alpha = 0;
         this.headerGroup.alpha = 0;
         this.amountText.alpha = 0;
+        this.continueText.alpha = 0;
 
         this.banner.y = bannerY + startOffset;
         this.headerGroup.y = headerY + startOffset;
         this.amountText.y = amountY + startOffset;
+        this.continueText.y = continueY + startOffset;
 
         gsap.to(this.banner, {
             alpha: 1,
@@ -387,6 +432,14 @@ export class TotalWinBanner extends Container {
             y: amountY,
             duration: 0.7,
             delay: 0.1,
+            ease: "bounce.out",
+        });
+
+        gsap.to(this.continueText, {
+            alpha: 1,
+            y: continueY,
+            duration: 0.7,
+            delay: 0.15,
             ease: "bounce.out",
         });
     }
@@ -414,6 +467,7 @@ export class TotalWinBanner extends Container {
 
         gsap.killTweensOf(this.headerGroup.scale);
         gsap.killTweensOf(this.amountText.scale);
+        if (this.continueText) gsap.killTweensOf(this.continueText.scale);
         gsap.killTweensOf(this);
 
         if (forceInstant) {
@@ -423,10 +477,13 @@ export class TotalWinBanner extends Container {
             return;
         }
 
-        await gsap.to([this.banner, this.headerGroup, this.amountText, this.bg], {
-            alpha: 0,
-            duration: 0.25,
-        });
+        await gsap.to(
+            [this.banner, this.headerGroup, this.amountText, this.continueText, this.bg],
+            {
+                alpha: 0,
+                duration: 0.25,
+            }
+        );
 
         TotalWinBanner.currentInstance = null;
         await navigation.dismissPopup();
@@ -435,6 +492,7 @@ export class TotalWinBanner extends Container {
     public override destroy(options?: any) {
         gsap.killTweensOf(this.headerGroup?.scale);
         gsap.killTweensOf(this.amountText?.scale);
+        if (this.continueText) gsap.killTweensOf(this.continueText.scale);
         gsap.killTweensOf(this);
 
         super.destroy(options);
