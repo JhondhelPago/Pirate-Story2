@@ -1,6 +1,11 @@
 import { Container, Texture, AnimatedSprite, Text, Sprite } from 'pixi.js';
 import gsap from 'gsap';
-import { resolveAndKillTweens, registerCustomEase, pauseTweens, resumeTweens } from '../utils/animation';
+import {
+    resolveAndKillTweens,
+    registerCustomEase,
+    pauseTweens,
+    resumeTweens,
+} from '../utils/animation';
 import { Physics, Spine } from '@esotericsoftware/spine-pixi-v8';
 
 /** Default piece options */
@@ -41,7 +46,6 @@ export class SlotSymbol extends Container {
 
     public textLabel: Text;
 
-
     /** Test multiplier: 0 = none, 2/3/5 = show sprite */
     public multiplier: number = 0;
 
@@ -51,10 +55,11 @@ export class SlotSymbol extends Container {
     /** Tween reference for animation */
     private multiplierTween?: gsap.core.Tween | gsap.core.Timeline;
 
+    /** One-shot “trigger” effect tween for multiplier (jump + shake-on-air + shake-on-land) */
+    private multiplierTriggerTween?: gsap.core.Tween | gsap.core.Timeline;
+
     public _isLooping: boolean = false;
     public __match3ProcessRef: any = null;
-
-
 
     constructor() {
         super();
@@ -165,16 +170,18 @@ export class SlotSymbol extends Container {
             this.multiplierTween.kill();
             this.multiplierTween = undefined;
         }
+        if (this.multiplierTriggerTween) {
+            this.multiplierTriggerTween.kill();
+            this.multiplierTriggerTween = undefined;
+        }
 
         this.multiplier = opts.multiplier ?? 0;
-
 
         // ⭐ After multiplier is assigned
         this.updateMultiplierSprite();
 
         this.unlock();
     }
-
 
     /** Fall to position animation */
     public async animateFall(x: number, y: number, onStart?: () => void, onComplete?: () => void) {
@@ -185,9 +192,6 @@ export class SlotSymbol extends Container {
         this.unlock();
     }
 
-    /** Reel spin animation — moves down repeatedly then lands on final position */
-    /** Reel spin animation — smooth scrolling with random temporary symbols */
-    /** Reel spin animation — smooth scrolling with random temporary symbols */
     /** Reel spin animation — smooth scrolling with random temporary symbols */
     public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number): Promise<void> {
         this.lock();
@@ -197,16 +201,6 @@ export class SlotSymbol extends Container {
         const scrollSpeed = 900;               // pixels per second
         const stagger = spinIndex * 0.15;      // delay per column
 
-        // ------------------------------
-        // 1. Find reel container safely
-        // ------------------------------
-        //
-        // Your Match3Board creates:
-        // match3
-        //   └── piecesContainer  <--- real pieces
-        //
-        // Reel container MUST be: piecesContainer of Board
-        //
         const reelContainer = this.parent; // SlotSymbol parent = piecesContainer
         if (!reelContainer) {
             console.warn("animateColumnSpin(): Missing reelContainer");
@@ -214,18 +208,14 @@ export class SlotSymbol extends Container {
             return;
         }
 
-        // board height = mask height
         const boardHeight = reelContainer.height ?? 600;
         const symbolHeight = this.height * 1.1;
 
-        // ------------------------------
-        // 2. Build temporary fake symbols
-        // ------------------------------
         const tempSymbols: SlotSymbol[] = [];
         const needed = Math.ceil(boardHeight / symbolHeight) + 3;
 
         for (let i = 0; i < needed; i++) {
-            const fake = new SlotSymbol();   // ✔ safe (no pool)
+            const fake = new SlotSymbol();
             fake.setup({
                 name: this.name,
                 type: this.type,
@@ -236,25 +226,19 @@ export class SlotSymbol extends Container {
             fake.x = finalX;
             fake.y = finalY - symbolHeight * i - 200;
 
-            reelContainer.addChild(fake);     // ✔ safe parent add
-
+            reelContainer.addChild(fake);
             tempSymbols.push(fake);
         }
 
-        // Hide real symbol while reel spins
         this.visible = false;
 
         return new Promise(async (resolve) => {
             await gsap.delayedCall(stagger, async () => {
                 let elapsed = 0;
 
-                // ------------------------------
-                // 3. Vertical scrolling loop
-                // ------------------------------
                 while (elapsed < spinDuration) {
                     const dist = symbolHeight;
 
-                    // scroll down all fake symbols
                     const movs = tempSymbols.map(sym =>
                         gsap.to(sym, {
                             y: sym.y + dist,
@@ -264,7 +248,6 @@ export class SlotSymbol extends Container {
                     );
                     await Promise.all(movs);
 
-                    // wrap to top for seamless scrolling
                     tempSymbols.forEach(sym => {
                         if (sym.y > boardHeight + 100) {
                             sym.y -= symbolHeight * needed;
@@ -274,15 +257,11 @@ export class SlotSymbol extends Container {
                     elapsed += dist / scrollSpeed;
                 }
 
-                // ------------------------------
-                // 4. Cleanup and show real symbol
-                // ------------------------------
                 tempSymbols.forEach(sym => sym.destroy());
 
                 this.x = finalX;
                 this.y = finalY;
 
-                // Fade or bounce real symbol
                 this.visible = true;
                 gsap.fromTo(this, { y: finalY - 50 }, {
                     y: finalY,
@@ -298,9 +277,7 @@ export class SlotSymbol extends Container {
 
     /** Play animation */
     public animatePlay(loop: boolean = false): Promise<void> {
-
         return new Promise((resolve) => {
-
             const process = (((this.parent as any)?.parent) as any)?.__match3ProcessRef;
 
             // Prevent infinite invalid loops
@@ -315,7 +292,6 @@ export class SlotSymbol extends Container {
             if (loop) this._isLooping = true;
 
             const playOnce = () => {
-
                 // Stop immediately if clustering stopped
                 if (loop && process && process.clusterAnimating === false) {
                     this._isLooping = false;
@@ -323,15 +299,20 @@ export class SlotSymbol extends Container {
                     return;
                 }
 
+                // ✅ Trigger multiplier effect and WAIT for it on final resolve
+                const multiplierDone = this.playMultiplierTriggerEffect();
+
                 const listener = {
                     complete: () => {
                         this.spine.state.removeListener(listener);
 
                         if (loop && this._isLooping) {
-                            playOnce();              // keep looping
+                            playOnce(); // keep looping (do not block loop cadence)
                         } else {
-                            this._isLooping = false;  // stop permanently
-                            resolve();
+                            this._isLooping = false;
+
+                            // ✅ IMPORTANT: don't resolve until multiplier has landed too
+                            multiplierDone.then(() => resolve());
                         }
                     },
                 };
@@ -344,15 +325,20 @@ export class SlotSymbol extends Container {
         });
     }
 
-
     /** Play animation */
     public async animateSpecialPlay(): Promise<void> {
         this.lock();
+
+        // ✅ Trigger multiplier effect and WAIT before resolve
+        const multiplierDone = this.playMultiplierTriggerEffect();
+
         return new Promise((resolve) => {
             const listener = {
                 complete: () => {
                     this.spine.state.removeListener(listener);
-                    resolve();
+
+                    // ✅ wait multiplier too
+                    multiplierDone.then(() => resolve());
                 },
             };
 
@@ -425,6 +411,17 @@ export class SlotSymbol extends Container {
         if (this.spine) {
             resolveAndKillTweens(this.spine);
         }
+        if (this.multiplierSprite) {
+            resolveAndKillTweens(this.multiplierSprite);
+        }
+        if (this.multiplierTween) {
+            this.multiplierTween.kill();
+            this.multiplierTween = undefined;
+        }
+        if (this.multiplierTriggerTween) {
+            this.multiplierTriggerTween.kill();
+            this.multiplierTriggerTween = undefined;
+        }
     }
 
     /** Pause all current tweens */
@@ -440,6 +437,9 @@ export class SlotSymbol extends Container {
         if (this.explosionSprite) {
             this.explosionSprite.stop();
         }
+        if (this.multiplierSprite) {
+            pauseTweens(this.multiplierSprite);
+        }
     }
 
     /** Resume pending tweens */
@@ -454,6 +454,9 @@ export class SlotSymbol extends Container {
         }
         if (this.explosionSprite && this.explosionSprite.visible) {
             this.explosionSprite.play();
+        }
+        if (this.multiplierSprite) {
+            resumeTweens(this.multiplierSprite);
         }
     }
 
@@ -483,6 +486,10 @@ export class SlotSymbol extends Container {
             this.multiplierTween.kill();
             this.multiplierTween = undefined;
         }
+        if (this.multiplierTriggerTween) {
+            this.multiplierTriggerTween.kill();
+            this.multiplierTriggerTween = undefined;
+        }
         if (this.multiplierSprite) {
             this.removeChild(this.multiplierSprite);
             this.multiplierSprite.destroy();
@@ -497,9 +504,6 @@ export class SlotSymbol extends Container {
         }
         super.destroy();
     }
-
-
-
 
     /** Create or update the multiplier sprite */
     private updateMultiplierSprite() {
@@ -516,9 +520,9 @@ export class SlotSymbol extends Container {
         // Pick correct asset based on multiplier value
         const assetName =
             this.multiplier === 2 ? '2XMutliplier' :
-                this.multiplier === 3 ? '3XMutliplier' :
-                    this.multiplier === 5 ? '5XMutliplier' :
-                        null;
+            this.multiplier === 3 ? '3XMutliplier' :
+            this.multiplier === 5 ? '5XMutliplier' :
+            null;
 
         if (!assetName) return;
 
@@ -557,14 +561,12 @@ export class SlotSymbol extends Container {
 
         // Timeline
         this.multiplierTween = gsap.timeline({ repeat: 0 })
-            // ⭐ FADE-IN + ZOOM-IN INTRO
             .to(target, {
                 alpha: 1,
                 scale: .68,
                 duration: 0.35,
                 ease: "back.out(1.8)",
             })
-            // ⭐ AFTER intro → start floating idle animation
             .to(target, {
                 y: baseY - 8,
                 duration: 0.8,
@@ -574,10 +576,119 @@ export class SlotSymbol extends Container {
             });
     }
 
+    /**
+     * ✅ CLEAR behavior:
+     * - While the multiplier is in the air (jumping up & coming down): it shakes.
+     * - When it lands back to its original position: it shakes again (impact).
+     *
+     * ✅ NOW RETURNS Promise:
+     * - So your spin gating can wait for multiplier to finish too.
+     */
+    private playMultiplierTriggerEffect(): Promise<void> {
+        const target = this.multiplierSprite;
+        if (!target) return Promise.resolve();
+        if (this.multiplier === 0) return Promise.resolve();
+        if (this.paused) return Promise.resolve();
+
+        if (this.multiplierTriggerTween) {
+            this.multiplierTriggerTween.kill();
+            this.multiplierTriggerTween = undefined;
+        }
+
+        const baseY = target.y;
+        const baseX = target.x;
+        const baseRot = target.rotation;
+
+        const jumpUpPx = 22;
+
+        const airShakeX = 10;
+        const airShakeRot = 0.10;
+        const airShakeStep = 0.08;
+
+        const landShakeX = 14;
+        const landShakeRot = 0.14;
+        const landShakeStep = 0.06;
+        const landShakeRepeats = 6;
+
+        const isTargetAlive = () => {
+            return !!this.multiplierSprite && this.multiplierSprite === target && !target.destroyed;
+        };
+
+        const startAirShake = () => {
+            if (!isTargetAlive()) return null;
+            gsap.killTweensOf(target, 'x,rotation');
+            return gsap.to(target, {
+                x: baseX + airShakeX,
+                rotation: baseRot + airShakeRot,
+                duration: airShakeStep,
+                ease: 'sine.inOut',
+                yoyo: true,
+                repeat: -1,
+            });
+        };
+
+        let airShakeTween: gsap.core.Tween | null = null;
+
+        return new Promise((done) => {
+            this.multiplierTriggerTween = gsap.timeline({
+                repeat: 0,
+                onComplete: () => {
+                    if (airShakeTween) {
+                        airShakeTween.kill();
+                        airShakeTween = null;
+                    }
+                    if (isTargetAlive()) {
+                        target.y = baseY;
+                        target.x = baseX;
+                        target.rotation = baseRot;
+                    }
+                    done();
+                },
+                onInterrupt: () => {
+                    if (airShakeTween) {
+                        airShakeTween.kill();
+                        airShakeTween = null;
+                    }
+                    done();
+                },
+            });
+
+            this.multiplierTriggerTween
+                .add(() => {
+                    if (!isTargetAlive()) return;
+                    airShakeTween = startAirShake();
+                })
+                .to(target, { y: baseY - jumpUpPx, duration: 0.18, ease: 'power2.out' }, 0)
+                .to(target, { y: baseY, duration: 0.22, ease: 'power2.in' })
+                .add(() => {
+                    if (airShakeTween) {
+                        airShakeTween.kill();
+                        airShakeTween = null;
+                    }
+                    if (!isTargetAlive()) return;
+                    target.x = baseX;
+                    target.rotation = baseRot;
+                })
+                .to(target, {
+                    x: baseX + landShakeX,
+                    rotation: baseRot + landShakeRot,
+                    duration: landShakeStep,
+                    ease: 'sine.inOut',
+                    yoyo: true,
+                    repeat: landShakeRepeats,
+                })
+                .to(target, {
+                    x: baseX,
+                    rotation: baseRot,
+                    duration: 0.10,
+                    ease: 'power2.out',
+                });
+        });
+    }
+
     public getSpine() {
         return this.spine;
     }
-
 
     public stopAnimationImmediately() {
         this._isLooping = false;
@@ -586,7 +697,6 @@ export class SlotSymbol extends Container {
             this.spine.state.clearTracks();        // remove all animations immediately
             this.spine.state.setEmptyAnimation(0, 0); // reset animation track
         }
-
     }
 
     public resetToSetupPose() {
@@ -603,16 +713,10 @@ export class SlotSymbol extends Container {
         // apply + refresh transforms
         this.spine.state.apply(this.spine.skeleton);
         this.spine.skeleton.updateWorldTransform(Physics.update);
-
     }
 
-
-    
-
-
     public showBlurSprite() {
-        if (!this.sprite) { 
-
+        if (!this.sprite) {
             const assetName = "blur_" + this.type.toString();
 
             const spr = Sprite.from(assetName);
@@ -643,9 +747,7 @@ export class SlotSymbol extends Container {
         }
     }
 
-    public setType(type: number){
+    public setType(type: number) {
         this.type = type;
     }
-
-
 }
