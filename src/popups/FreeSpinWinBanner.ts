@@ -19,7 +19,6 @@ export type FreeSpinWinBannerData = {
 export class FreeSpinWinBanner extends Container {
     public static currentInstance: FreeSpinWinBanner | null = null;
 
-    // 🔧 set this to your real texture key
     private static readonly BANNER_BOARD_TEX = "freeSpinWinBoard";
 
     private bg: Sprite;
@@ -29,6 +28,7 @@ export class FreeSpinWinBanner extends Container {
     private topText!: Text;
     private bottomText!: Text;
     private spinsText!: Text;
+    private continueText!: Text;
 
     private currentDisplayValue = 0;
     private targetDisplayValue = 0;
@@ -36,7 +36,6 @@ export class FreeSpinWinBanner extends Container {
     private canClickAnywhere = false;
     private onClosed?: () => void;
 
-    // layout (tuned for your Figma)
     private readonly TOP_TEXT_Y = -160;
     private readonly CENTER_NUMBER_Y = -5;
     private readonly BOTTOM_TEXT_Y = 155;
@@ -55,7 +54,7 @@ export class FreeSpinWinBanner extends Container {
         this.bg.eventMode = "static";
         this.addChild(this.bg);
 
-        this.bg.on("pointertap", () => {
+        this.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
             this.hide();
         });
@@ -81,18 +80,17 @@ export class FreeSpinWinBanner extends Container {
         this.createBanner();
         this.createWoodTexts(topLabel, bottomLabel);
         this.createCenterNumber();
+        this.createContinueText();
 
         this.animateEntrance();
-        this.animateWoodPulse();
+        this.animateWoodPulse(); // now applies to continueText too
 
         setTimeout(() => this.animateNumber(), 350);
-        setTimeout(() => (this.canClickAnywhere = true), 900);
 
+        // enable "press anywhere"
         setTimeout(() => {
-            if (FreeSpinWinBanner.currentInstance === this && this.canClickAnywhere) {
-                this.hide();
-            }
-        }, 4500);
+            this.canClickAnywhere = true;
+        }, 900);
     }
 
     // ==================================================
@@ -110,7 +108,7 @@ export class FreeSpinWinBanner extends Container {
     }
 
     // ==================================================
-    // BUILD
+    // UI BUILD
     // ==================================================
     private createBanner() {
         this.banner?.destroy();
@@ -156,8 +154,24 @@ export class FreeSpinWinBanner extends Container {
         this.panel.addChild(this.spinsText);
     }
 
+    private createContinueText() {
+        this.continueText?.destroy();
+
+        this.continueText = new Text("PRESS ANYWHERE TO CONTINUE", {
+            ...this.createWoodLabelStyle(36),
+            fontFamily: "Bangers",
+            letterSpacing: 2,
+        });
+
+        this.continueText.anchor.set(0.5);
+        this.continueText.y = this.BOTTOM_TEXT_Y + 110;
+        this.continueText.alpha = 1; // no opacity effect
+
+        this.panel.addChild(this.continueText);
+    }
+
     // ==================================================
-    // STYLES
+    // TEXT STYLES
     // ==================================================
     private createWoodLabelStyle(fontSize: number): Partial<TextStyle> {
         const canvas = document.createElement("canvas");
@@ -220,7 +234,7 @@ export class FreeSpinWinBanner extends Container {
     // ==================================================
     private animateEntrance() {
         const startOffset = -900;
-        const items = [this.banner, this.topText, this.spinsText, this.bottomText];
+        const items = [this.banner, this.topText, this.spinsText, this.bottomText, this.continueText];
 
         items.forEach((i) => {
             i.alpha = 0;
@@ -238,15 +252,23 @@ export class FreeSpinWinBanner extends Container {
         });
     }
 
+    // wood pulse now affects CONTINUE TEXT too
     private animateWoodPulse() {
-        gsap.to([this.topText.scale, this.bottomText.scale], {
-            x: 1.06,
-            y: 1.06,
-            duration: 1.2,
-            yoyo: true,
-            repeat: -1,
-            ease: "sine.inOut",
-        });
+        gsap.to(
+            [
+                this.topText.scale,
+                this.bottomText.scale,
+                this.continueText.scale,
+            ],
+            {
+                x: 1.06,
+                y: 1.06,
+                duration: 1.2,
+                yoyo: true,
+                repeat: -1,
+                ease: "sine.inOut",
+            }
+        );
     }
 
     private animateNumber() {
@@ -270,7 +292,7 @@ export class FreeSpinWinBanner extends Container {
     }
 
     // ==================================================
-    // RESIZE / HIDE
+    // RESIZE & HIDE
     // ==================================================
     public resize(width: number, height: number) {
         this.bg.width = width;
@@ -294,10 +316,17 @@ export class FreeSpinWinBanner extends Container {
             return;
         }
 
-        await gsap.to([this.banner, this.topText, this.spinsText, this.bottomText, this.bg], {
-            alpha: 0,
-            duration: 0.25,
-        });
+        await gsap.to(
+            [
+                this.banner,
+                this.topText,
+                this.spinsText,
+                this.bottomText,
+                this.continueText,
+                this.bg,
+            ],
+            { alpha: 0, duration: 0.25 }
+        );
 
         const cb = this.onClosed;
         FreeSpinWinBanner.currentInstance = null;
