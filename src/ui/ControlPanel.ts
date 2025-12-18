@@ -427,22 +427,41 @@ export class ControlPanel extends Container {
     /** Play all queued match patterns sequentially */
     public async playMatchMessages() {
         this.shouldStopMatches = false;
+
+        // ✅ NO WINS
+        if (this.winMatchPatterns.length === 0) {
+            this.setTitle('HOLD SPACE FOR TURBO SPIN');
+            this.messageText.visible = false;
+            return;
+        }
+
+        // ✅ HAS WINS
+        this.messageText.visible = true;
+
         for (const pattern of this.winMatchPatterns) {
-            if (this.shouldStopMatches) {
-                break;
-            }
-            this.matchPattern.setup(pattern.times, `symbol-${pattern.type}`, pattern.amount, pattern.currency);
-            this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
-            this.matchPattern.y = this.panelHeight - this.matchPattern.height - 20;
+            if (this.shouldStopMatches) break;
+
+            this.matchPattern.setup(
+                pattern.times,
+                `symbol-${pattern.type}`,
+                pattern.amount,
+                pattern.currency
+            );
+
+            this.matchPattern.x =
+                this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
+            this.matchPattern.y =
+                this.panelHeight - this.matchPattern.height - 20;
+
             this.messageText.alpha = 0;
             await this.matchPattern.show();
             this.messageText.alpha = 1;
         }
 
-        // Clear the queue after playing all
         this.winMatchPatterns = [];
         this.shouldStopMatches = false;
     }
+
 
     public stopMatchMessages() {
         this.shouldStopMatches = true;
@@ -453,7 +472,17 @@ export class ControlPanel extends Container {
     }
 
     /** Set match pattern result */
-    public async addMatchMessage(times: number, type: number, amount: number, currency: string) {
+    public async addMatchMessage(
+        times: number,
+        type: number,
+        amount: number,
+        currency: string
+    ) {
+        // 🚫 No win → do nothing
+        if (!amount || amount <= 0 || Number.isNaN(amount)) {
+            return;
+        }
+
         this.winMatchPatterns.push({
             times,
             type,
@@ -461,6 +490,7 @@ export class ControlPanel extends Container {
             currency,
         });
     }
+
 
     /** Disabled betting */
     public disableBetting() {
