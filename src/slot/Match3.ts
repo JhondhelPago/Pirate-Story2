@@ -69,7 +69,7 @@ export class Match3 extends Container {
     public onFreeSpinStart?: (count: number) => void;
     public onFreeSpinComplete?: (current: number, remaining: number) => void;
     public onFreeSpinRoundStart?: (current: number, remaining: number) => void;
-    public onFreeSpinRoundComplete?: (current: number, remaining: number) => void;
+    public onFreeSpinRoundComplete?: () => void;
 
     public onProcessStart?: () => void;
     public onProcessComplete?: () => void | void;

@@ -261,12 +261,12 @@ export class GameScreen extends Container {
         // call the Match3FreeSpinProcess to Start the buy ree spin rounds
     }
 
-    private async onFreeSpinComplete(current: number, remaining:number) {
+    private async onFreeSpinComplete(current: number, remaining:number) { // spins complete trigger
         // show the total win banner with the amount won, 
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
         console.log("navigation pop for the total won banner");
-        //navigation.presentPopup(TotalWinBanner, {win: this.match3.freeSpinProcess.getAccumulatedWin()});
-        navigation.presentPopup(FreeSpinWinBanner, {spins: 10});
+        navigation.presentPopup(TotalWinBanner, {win: this.match3.freeSpinProcess.getAccumulatedWin()});
+        //navigation.presentPopup(FreeSpinWinBanner, {spins: 10});
 
     }
     
@@ -277,7 +277,25 @@ export class GameScreen extends Container {
         this.controlPanel.disableBetting();
     }
     
-    private async onFreeSpinRoundComplete(current: number, remaining: number) {
+    private async onFreeSpinRoundComplete() { // spin round complete trigger for buy free spin feature
+        console.log("onFreeSpinRoundComplete trigger uysing the freespinprocess");
+        const TotalWon = this.match3.freeSpinProcess.getAccumulatedWin();
+        // change this to display the accumulated win
+        if (TotalWon > 0){
+            this.controlPanel.setTitle(`Win ${TotalWon}`);    
+        } else {
+            this.controlPanel.setTitle(`GOOD LUCK`);
+        }
+
+        this.messageMatchQueuing(this.match3.process.getRoundResult());
+        // when both processes are not processing (end of a round)
+        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
+            await this.finish();
+            await this.drawWinBannerAsync(this.match3.process.getRoundWin()); // ✅ wait banner close
+        }
+
+        this.controlPanel.enableBetting();
+        this.finished = false;
 
     }
 

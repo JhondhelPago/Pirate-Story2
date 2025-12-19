@@ -72,7 +72,8 @@ export class Match3FreeSpinProcess extends Match3Process{
         await this.match3.board.finishSpin();
 
         this.processing = false;
-        await this.match3.onProcessComplete?.();
+        //await this.match3.onProcessComplete?.();
+        await this.match3.onFreeSpinRoundComplete?.();
     }
 
     public runProcessRound(): void {
