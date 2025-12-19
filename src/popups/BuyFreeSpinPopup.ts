@@ -4,6 +4,9 @@ import { navigation } from "../utils/navigation";
 import { ConfirmationBuyFreeSpinPopup } from "./BuyFreeConfirmationPopup";
 import { GameScreen } from "../screens/GameScreen";
 import { userSettings } from "../utils/userSettings";
+import { ConfigAPI } from "../api/configApi";
+
+const config = await ConfigAPI.config();
 
 // ✅ updated imports (letter type)
 import {
@@ -50,7 +53,7 @@ export class BuyFreeSpinPopup extends Container {
         // ✅ reusable options now use typeLetter A/B/C
         this.option10 = new BuyFreeSpinOptionBanner({
             typeLetter: "A",
-            amount: 100 * userSettings.getBet(),
+            amount: config.feature.A.buyFeatureBetMultiplier * userSettings.getBet(),
             currencySymbol: "$",
             decimals: 0,
             amountFontSize: 76,
@@ -59,7 +62,7 @@ export class BuyFreeSpinPopup extends Container {
 
         this.option15 = new BuyFreeSpinOptionBanner({
             typeLetter: "B",
-            amount: 500 * userSettings.getBet(),
+            amount: config.feature.B.buyFeatureBetMultiplier * userSettings.getBet(),
             currencySymbol: "$",
             decimals: 0,
             amountFontSize: 76,
@@ -68,7 +71,7 @@ export class BuyFreeSpinPopup extends Container {
 
         this.option20 = new BuyFreeSpinOptionBanner({
             typeLetter: "C",
-            amount: 1000 * userSettings.getBet(),
+            amount: config.feature.C.buyFeatureBetMultiplier * userSettings.getBet(),
             currencySymbol: "$",
             decimals: 0,
             amountFontSize: 76,

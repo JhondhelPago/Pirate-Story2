@@ -1,5 +1,8 @@
 import { Container, Sprite, Texture, Text, Matrix } from "pixi.js";
 import gsap from "gsap";
+import { ConfigAPI } from "../api/configApi";
+
+const config = await ConfigAPI.config();
 
 export type BuyFreeTypeLetter = "A" | "B" | "C";
 
@@ -64,9 +67,9 @@ export class BuyFreeSpinOptionBanner extends Container {
 
         // ✅ default mapping (edit if your scatters differ)
         this.typeMap = {
-            A: { bannerTextureKey: "green-spin-banner", spins: 10, scatters: 3 },
-            B: { bannerTextureKey: "red-spin-banner", spins: 15, scatters: 4 },
-            C: { bannerTextureKey: "blue-spin-banner", spins: 20, scatters: 5 },
+            A: { bannerTextureKey: "green-spin-banner", spins: config.feature.A.spins, scatters: config.feature.A.scatters },
+            B: { bannerTextureKey: "red-spin-banner", spins: config.feature.B.spins, scatters: config.feature.B.scatters },
+            C: { bannerTextureKey: "blue-spin-banner", spins: config.feature.C.spins , scatters: config.feature.C.scatters },
             ...(cfg.typeMap as any),
         };
 
