@@ -19,6 +19,7 @@ export class SpinRoundBanner extends Container {
     private bg: Sprite;
     private panel: Container;
 
+    private glow?: Sprite;       // 🔥 glow sprite behind the board
     private banner!: Sprite;
     private headerText!: Sprite;
 
@@ -72,7 +73,11 @@ export class SpinRoundBanner extends Container {
         this.targetDisplayValue = this.winValue;
         this.onClosed = anyData?.onClosed;
 
+        // 1. Banner (position reference)
+        // 2. Glow (aligned to banner, behind it)
+        // 3. Header + value
         this.createBanner();
+        this.createGlow();
         this.createHeaderText();
         this.createValueText();
 
@@ -91,6 +96,42 @@ export class SpinRoundBanner extends Container {
         );
     }
 
+    // 🔥 Glow creation – aligned to banner and placed behind it
+    private createGlow() {
+        if (this.glow) {
+            this.glow.removeFromParent();
+            this.glow.destroy();
+        }
+
+        // IMPORTANT: replace "glow" with your actual texture id if different
+        const glowTexture = Texture.from("glow");
+
+        this.glow = new Sprite(glowTexture);
+        this.glow.anchor.set(0.5);
+
+        // Same position as the banner
+        this.glow.x = this.banner.x;
+        this.glow.y = this.banner.y;
+
+        // Make glow clearly bigger than the banner
+        // Use banner size to compute a scale factor
+        const bannerWidth = this.banner.width;
+        const bannerHeight = this.banner.height;
+
+        const targetWidth = bannerWidth * 1.7;
+        const targetHeight = bannerHeight * 1.7;
+
+        const scaleX = targetWidth / this.glow.texture.width;
+        const scaleY = targetHeight / this.glow.texture.height;
+        const finalScale = Math.max(scaleX, scaleY);
+
+        this.glow.scale.set(finalScale);
+        this.glow.alpha = 1;
+
+        // Put glow behind banner
+        this.panel.addChildAt(this.glow, 0);
+    }
+
     private createBanner() {
         if (this.banner) {
             this.banner.removeFromParent();
@@ -103,6 +144,7 @@ export class SpinRoundBanner extends Container {
         this.banner.anchor.set(0.5);
         this.banner.x = 0;
         this.banner.y = 0;
+        this.banner.visible = true; // ensure the board is visible
 
         this.panel.addChild(this.banner);
     }
@@ -152,12 +194,12 @@ export class SpinRoundBanner extends Container {
 
         const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.height);
 
-        gradient.addColorStop(0.00, "#FFF39C");
+        gradient.addColorStop(0.0, "#FFF39C");
         gradient.addColorStop(0.19, "#FFF39C");
         gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.40, "#FDD44F");
+        gradient.addColorStop(0.4, "#FDD44F");
         gradient.addColorStop(0.51, "#FDD44F");
-        gradient.addColorStop(1.00, "#D79600");
+        gradient.addColorStop(1.0, "#D79600");
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
@@ -186,21 +228,29 @@ export class SpinRoundBanner extends Container {
         const bannerDict: BannerItem[] = [
             { max: 80, board: "green-banner-board", text: "green-banner-text" },
             { max: 150, board: "blue-banner-board", text: "blue-banner-text" },
-            { max: Infinity, board: "red-banner-board", text: "red-banner-text" }, // ✅ FIXED
+            { max: Infinity, board: "red-banner-board", text: "red-banner-text" },
         ];
 
         return bannerDict.find((x) => win < x.max)!;
     }
 
     private animateEntrance() {
-        gsap.killTweensOf([this.banner, this.headerText, this.valueText]);
+        gsap.killTweensOf([this.banner, this.headerText, this.valueText, this.glow]);
 
         const startOffset = -900;
 
         const finalBannerY = this.banner.y;
         const finalHeaderY = this.headerText.y;
         const finalValueY = this.valueText.y;
+        const finalGlowY = this.glow ? this.glow.y : 0;
 
+        // Glow
+        if (this.glow) {
+            this.glow.alpha = 0;
+            this.glow.y = finalGlowY + startOffset;
+        }
+
+        // Text + banner
         this.banner.alpha = 0;
         this.headerText.alpha = 0;
         this.valueText.alpha = 0;
@@ -208,6 +258,15 @@ export class SpinRoundBanner extends Container {
         this.banner.y = finalBannerY + startOffset;
         this.headerText.y = finalHeaderY + startOffset;
         this.valueText.y = finalValueY + startOffset;
+
+        if (this.glow) {
+            gsap.to(this.glow, {
+                alpha: 1,
+                y: finalGlowY,
+                duration: 0.7,
+                ease: "bounce.out",
+            });
+        }
 
         gsap.to(this.banner, { alpha: 1, y: finalBannerY, duration: 0.7, ease: "bounce.out" });
         gsap.to(this.headerText, {
@@ -281,6 +340,23 @@ export class SpinRoundBanner extends Container {
         this.banner.scale.set(1.3);
         this.headerText.scale.set(0.9);
         this.valueText.scale.set(1);
+
+        if (this.glow) {
+            // Recalculate glow scale to stay larger after resize
+            const bannerWidth = this.banner.width;
+            const bannerHeight = this.banner.height;
+
+            const targetWidth = bannerWidth * 1.7;
+            const targetHeight = bannerHeight * 1.7;
+
+            const scaleX = targetWidth / this.glow.texture.width;
+            const scaleY = targetHeight / this.glow.texture.height;
+            const finalScale = Math.max(scaleX, scaleY);
+
+            this.glow.scale.set(finalScale);
+            this.glow.x = this.banner.x;
+            this.glow.y = this.banner.y;
+        }
     }
 
     public async hide(forceInstant = false) {
@@ -303,10 +379,13 @@ export class SpinRoundBanner extends Container {
             return;
         }
 
-        await gsap.to([this.banner, this.headerText, this.valueText, this.bg], {
-            alpha: 0,
-            duration: 0.25,
-        });
+        await gsap.to(
+            [this.banner, this.headerText, this.valueText, this.bg, this.glow].filter(Boolean),
+            {
+                alpha: 0,
+                duration: 0.25,
+            }
+        );
 
         SpinRoundBanner.currentInstance = null;
         await navigation.dismissPopup();

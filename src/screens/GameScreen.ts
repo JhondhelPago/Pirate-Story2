@@ -251,7 +251,7 @@ export class GameScreen extends Container {
     private async onSpinStart() {
         console.log('SPIN STARTED');
         // Multiplier reset removed
-        this.controlPanel.addMatchMessage("");
+
         this.controlPanel.disableBetting();
 
     }
