@@ -1,35 +1,33 @@
-import { Container, Sprite, Texture, Text, Matrix } from "pixi.js";
+import { Container, Sprite, Texture } from "pixi.js";
 import gsap from "gsap";
 import { navigation } from "../utils/navigation";
 import { ConfirmationBuyFreeSpinPopup } from "./BuyFreeConfirmationPopup";
 import { GameScreen } from "../screens/GameScreen";
-import { userSettings } from "../utils/userSettings"; 
+import { userSettings } from "../utils/userSettings";
+
+// ✅ updated imports (letter type)
+import {
+    BuyFreeSpinOptionBanner,
+    type BuyFreeTypeLetter,
+} from "../ui/FeatureBanner";
 
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
     private panel: Container;
 
     private buyLabel: Sprite;
-    private option10: Sprite;
-    private option15: Sprite;
-    private option20: Sprite;
 
-    private option10AmountText!: Text;
-    private option15AmountText!: Text;
-    private option20AmountText!: Text;
+    // (names kept for minimal refactor)
+    private option10: BuyFreeSpinOptionBanner;
+    private option15: BuyFreeSpinOptionBanner;
+    private option20: BuyFreeSpinOptionBanner;
 
     private exitButton: Sprite;
 
     private canClickAnywhere = false;
-    private onSelect?: (value: number) => void;
+    private onSelect?: (value: string) => void; // ✅ now letter
 
     private pulseTween?: gsap.core.Tween;
-
-    private amountGradientTexture?: Texture;
-    private amountGradientMatrix?: Matrix;
-
-    private fontReady = false;
-    private pirataLoadPromise: Promise<void> | null = null;
 
     constructor() {
         super();
@@ -49,91 +47,54 @@ export class BuyFreeSpinPopup extends Container {
         this.buyLabel.anchor.set(0.5);
         this.panel.addChild(this.buyLabel);
 
-        this.option10 = Sprite.from("10-spin-banner");
-        this.option15 = Sprite.from("15-spin-banner");
-        this.option20 = Sprite.from("20-spin-banner");
+        // ✅ reusable options now use typeLetter A/B/C
+        this.option10 = new BuyFreeSpinOptionBanner({
+            typeLetter: "A",
+            amount: 100 * userSettings.getBet(),
+            currencySymbol: "$",
+            decimals: 0,
+            amountFontSize: 76,
+            spinsFontSize: 140,
+        });
 
-        // Create texts using a safe fallback first (so first render is stable),
-        // then swap to Pirata One once it’s definitely loaded.
-        this.option10AmountText = this.createAmountText(100 * userSettings.getBet(), "$", 0);
-        this.option15AmountText = this.createAmountText(500 * userSettings.getBet(), "$", 0);
-        this.option20AmountText = this.createAmountText(1000 * userSettings.getBet(), "$", 0);
+        this.option15 = new BuyFreeSpinOptionBanner({
+            typeLetter: "B",
+            amount: 500 * userSettings.getBet(),
+            currencySymbol: "$",
+            decimals: 0,
+            amountFontSize: 76,
+            spinsFontSize: 140,
+        });
 
-        this.attachAmountTextToOption(this.option10, this.option10AmountText);
-        this.attachAmountTextToOption(this.option15, this.option15AmountText);
-        this.attachAmountTextToOption(this.option20, this.option20AmountText);
+        this.option20 = new BuyFreeSpinOptionBanner({
+            typeLetter: "C",
+            amount: 1000 * userSettings.getBet(),
+            currencySymbol: "$",
+            decimals: 0,
+            amountFontSize: 76,
+            spinsFontSize: 140,
+        });
 
         const optionList = [this.option10, this.option15, this.option20];
-        for (const s of optionList) {
-            s.anchor.set(0.5);
-            s.eventMode = "static";
-            s.cursor = "pointer";
-            this.panel.addChild(s);
-
-            s.on("pointerover", () => {
-                gsap.killTweensOf(s.scale);
-                gsap.to(s.scale, { x: 1.08, y: 1.08, duration: 0.15 });
-            });
-            s.on("pointerout", () => {
-                gsap.killTweensOf(s.scale);
-                gsap.to(s.scale, { x: 1, y: 1, duration: 0.15 });
-            });
-
-            s.on("pointertap", () => {
-                gsap.killTweensOf(s.scale);
-                gsap.to(s.scale, {
-                    x: 1.2,
-                    y: 1.2,
-                    duration: 0.1,
-                    yoyo: true,
-                    repeat: 1,
-                });
-
-                if (s === this.option10) {
-                    navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
-                        confirmationBoard: "buy-spin-confirm-board",
-                        buySpinLabel: "buy-10-label",
-                        amount: 100 * userSettings.getBet(),
-                        currencySymbol: "$",
-                        decimals: 0,
-                        confirmButton: "confirm-button",
-                        cancelButton: "cancel-button",
-                        onConfirm: () => {
-                            const game = navigation.currentScreen as GameScreen;
-                            game.freeSpinStartSpinning(5);
-                        },
-                    });
-                } else if (s === this.option15) {
-                    navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
-                        confirmationBoard: "buy-spin-confirm-board",
-                        buySpinLabel: "buy-15-label",
-                        amount: 500 * userSettings.getBet(),
-                        currencySymbol: "$",
-                        decimals: 0,
-                        confirmButton: "confirm-button",
-                        cancelButton: "cancel-button",
-                        onConfirm: () => {
-                            const game = navigation.currentScreen as GameScreen;
-                            game.freeSpinStartSpinning(15);
-                        },
-                    });
-                } else if (s === this.option20) {
-                    navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
-                        confirmationBoard: "buy-spin-confirm-board",
-                        buySpinLabel: "buy-20-label",
-                        amount: 1000 * userSettings.getBet(),
-                        currencySymbol: "$",
-                        decimals: 0,
-                        confirmButton: "confirm-button",
-                        cancelButton: "cancel-button",
-                        onConfirm: () => {
-                            const game = navigation.currentScreen as GameScreen;
-                            game.freeSpinStartSpinning(20);
-                        },
-                    });
-                }
-            });
+        for (const opt of optionList) {
+            this.panel.addChild(opt);
         }
+
+        // ✅ tap handlers now derive spins from the banner itself
+        this.option10.setOnTap(() => {
+            const amount = 100 * userSettings.getBet();
+            this.openConfirm("A", amount, this.option10.getSpins());
+        });
+
+        this.option15.setOnTap(() => {
+            const amount = 500 * userSettings.getBet();
+            this.openConfirm("B", amount, this.option15.getSpins());
+        });
+
+        this.option20.setOnTap(() => {
+            const amount = 1000 * userSettings.getBet();
+            this.openConfirm("C", amount, this.option20.getSpins());
+        });
 
         this.bg.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
@@ -163,138 +124,50 @@ export class BuyFreeSpinPopup extends Container {
             });
             this.hide();
         });
+    }
 
-        this.ensurePirataOneLoaded();
+    private openConfirm(typeLetter: BuyFreeTypeLetter, amount: number, spinCount: number) {
+        // ✅ optional hook now passes the letter
+        this.onSelect?.(typeLetter);
+
+        navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
+            confirmationBoard: "buy-spin-confirm-board",
+
+            // ✅ if your confirmation label assets are still 10/15/20 based,
+            // map the letter -> label key
+            buySpinLabel:
+                typeLetter === "A"
+                    ? "buy-10-label"
+                    : typeLetter === "B"
+                    ? "buy-15-label"
+                    : "buy-20-label",
+
+            amount,
+            currencySymbol: "$",
+            decimals: 0,
+            confirmButton: "confirm-button",
+            cancelButton: "cancel-button",
+            onConfirm: () => {
+                const game = navigation.currentScreen as GameScreen;
+                game.freeSpinStartSpinning(spinCount);
+            },
+        });
     }
 
     public setOptionAmounts(
-        v10: number,
-        v15: number,
-        v20: number,
+        vA: number,
+        vB: number,
+        vC: number,
         currencySymbol = "$",
         decimals = 0
     ) {
-        this.option10AmountText.text = this.formatAmount(v10, currencySymbol, decimals);
-        this.option15AmountText.text = this.formatAmount(v15, currencySymbol, decimals);
-        this.option20AmountText.text = this.formatAmount(v20, currencySymbol, decimals);
+        this.option10.setAmount(vA, currencySymbol, decimals);
+        this.option15.setAmount(vB, currencySymbol, decimals);
+        this.option20.setAmount(vC, currencySymbol, decimals);
 
-        this.attachAmountTextToOption(this.option10, this.option10AmountText);
-        this.attachAmountTextToOption(this.option15, this.option15AmountText);
-        this.attachAmountTextToOption(this.option20, this.option20AmountText);
-    }
-
-    private createAmountText(amount: number, currencySymbol = "$", decimals = 0) {
-        this.ensureAmountGradient();
-
-        const style: any = {
-            fontFamily: this.fontReady ? "Pirata One" : "Arial",
-            fontSize: 86,
-            align: "center",
-            fill: {
-                texture: this.amountGradientTexture!,
-                matrix: this.amountGradientMatrix!,
-            },
-            stroke: {
-                color: 0x4c1b05,
-                width: 6,
-            },
-        };
-
-        const t = new Text(this.formatAmount(amount, currencySymbol, decimals), style);
-        t.anchor.set(0.5);
-        t.eventMode = "none";
-        return t;
-    }
-
-    private formatAmount(amount: number, currencySymbol: string, decimals: number) {
-        return `${currencySymbol}${amount.toFixed(decimals)}`;
-    }
-
-    private ensureAmountGradient() {
-        if (this.amountGradientTexture && this.amountGradientMatrix) return;
-
-        const gradientCanvas = document.createElement("canvas");
-        gradientCanvas.width = 512;
-        gradientCanvas.height = 256;
-        const ctx = gradientCanvas.getContext("2d")!;
-
-        const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.height);
-        gradient.addColorStop(0.0, "#FFF39C");
-        gradient.addColorStop(0.19, "#FFF39C");
-        gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.40, "#FDD44F");
-        gradient.addColorStop(0.51, "#FDD44F");
-        gradient.addColorStop(1.0, "#D79600");
-
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
-
-        this.amountGradientTexture = Texture.from(gradientCanvas);
-
-        const mat = new Matrix();
-        mat.scale(1 / gradientCanvas.width, 1 / gradientCanvas.height);
-        this.amountGradientMatrix = mat;
-    }
-
-    private attachAmountTextToOption(optionSprite: Sprite, text: Text) {
-        if (text.parent !== optionSprite) optionSprite.addChild(text);
-
-        const texH =
-            optionSprite.texture?.orig?.height ??
-            optionSprite.texture?.height ??
-            optionSprite.height;
-
-        const bottomPadding = 14;
-
-        text.x = 0;
-        text.y = texH * 0.3 - bottomPadding;
-    }
-
-    private ensurePirataOneLoaded() {
-        if (this.pirataLoadPromise) return this.pirataLoadPromise;
-
-        this.pirataLoadPromise = (async () => {
-            try {
-                const fonts: any = (document as any).fonts;
-                if (!fonts?.load) {
-                    this.fontReady = true;
-                    this.applyPirataOneToTexts();
-                    return;
-                }
-
-                // Load multiple sizes to reduce “first render not Pirata One” issues
-                await Promise.all([
-                    fonts.load(`48px "Pirata One"`),
-                    fonts.load(`68px "Pirata One"`),
-                    fonts.load(`76px "Pirata One"`),
-                ]);
-                await fonts.ready;
-
-                this.fontReady = true;
-                this.applyPirataOneToTexts();
-            } catch {
-                // ignore
-            }
-        })();
-
-        return this.pirataLoadPromise;
-    }
-
-    private applyPirataOneToTexts() {
-        const texts = [this.option10AmountText, this.option15AmountText, this.option20AmountText];
-
-        for (const t of texts) {
-            if (!t) continue;
-
-            // Force a rebuild: set style + nudge text to trigger internal update reliably
-            (t.style as any).fontFamily = "Pirata One";
-            t.text = `${t.text} `;
-            t.text = t.text.trimEnd();
-        }
-
-        this.attachAmountTextToOption(this.option10, this.option10AmountText);
-        this.attachAmountTextToOption(this.option15, this.option15AmountText);
-        this.attachAmountTextToOption(this.option20, this.option20AmountText);
+        this.option10.relayout();
+        this.option15.relayout();
+        this.option20.relayout();
     }
 
     private startLabelPulse() {
@@ -397,21 +270,27 @@ export class BuyFreeSpinPopup extends Container {
             this.option15.scale.set(1.25);
             this.option20.scale.set(1.25);
 
-            this.option10AmountText.style.fontSize = 68;
-            this.option15AmountText.style.fontSize = 68;
-            this.option20AmountText.style.fontSize = 68;
+            this.option10.setAmountFontSize(68);
+            this.option15.setAmountFontSize(68);
+            this.option20.setAmountFontSize(68);
+
+            // ✅ center spins can shrink too on mobile
+            this.option10.setSpinsFontSize(120);
+            this.option15.setSpinsFontSize(120);
+            this.option20.setSpinsFontSize(120);
         } else {
             this.option10.scale.set(1);
             this.option15.scale.set(1);
             this.option20.scale.set(1);
 
-            this.option10AmountText.style.fontSize = 76;
-            this.option15AmountText.style.fontSize = 76;
-            this.option20AmountText.style.fontSize = 76;
-        }
+            this.option10.setAmountFontSize(76);
+            this.option15.setAmountFontSize(76);
+            this.option20.setAmountFontSize(76);
 
-        // If size changed, re-load font at this size (helps some browsers)
-        this.ensurePirataOneLoaded();
+            this.option10.setSpinsFontSize(140);
+            this.option15.setSpinsFontSize(140);
+            this.option20.setSpinsFontSize(140);
+        }
 
         this.option10.x = -spacing;
         this.option15.x = 0;
@@ -421,9 +300,9 @@ export class BuyFreeSpinPopup extends Container {
         this.option15.y = bannerY;
         this.option20.y = bannerY;
 
-        this.attachAmountTextToOption(this.option10, this.option10AmountText);
-        this.attachAmountTextToOption(this.option15, this.option15AmountText);
-        this.attachAmountTextToOption(this.option20, this.option20AmountText);
+        this.option10.relayout();
+        this.option15.relayout();
+        this.option20.relayout();
     }
 
     public async hide() {

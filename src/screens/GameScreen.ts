@@ -19,7 +19,6 @@ import { RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { gameConfig } from '../utils/gameConfig';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
-import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 
 export type SettingsPopupData = {
     finished: boolean;

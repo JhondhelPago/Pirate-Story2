@@ -10,6 +10,7 @@ export class ConfigAPI {
                 feature: {
                     multiplier: 100,
                 },
+                buyFeatureBetMultiplier: 100,
 
                 // ------------------------------
                 // PAYTABLE
