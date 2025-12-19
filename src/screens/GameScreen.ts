@@ -264,7 +264,7 @@ export class GameScreen extends Container {
         // show the total win banner with the amount won, 
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
         console.log("navigation pop for the total won banner");
-        navigation.presentPopup(TotalWinBanner, {win: this.match3.freeSpinProcess.getAccumulatedWin()});
+        this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
         //navigation.presentPopup(FreeSpinWinBanner, {spins: 10});
 
     }
@@ -343,7 +343,7 @@ export class GameScreen extends Container {
 
 
     private drawTotalWinBanner(winAmount: number){
-        // navigationPresentPopu() calling the TotalWinBanner and passing th3e total win amount
+        navigation.presentPopup(TotalWinBanner, {win: winAmount});
     }
 
     private messageMatchQueuing(roundResult: RoundResult) {

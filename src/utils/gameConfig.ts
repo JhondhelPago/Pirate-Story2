@@ -1,5 +1,7 @@
 import { Block, Paytable } from '../slot/Match3Config';
 
+const defaultBuyFeatureBetMultiplier: number = 100;
+
 // Default fallbacks (keep your existing arrays as fallbacks)
 const defaultBlocks: Block[] = [
     { type: 1,  symbol: 'symbol-anchor',   name: 'Anchor' },
@@ -12,14 +14,17 @@ const defaultBlocks: Block[] = [
     { type: 8,  symbol: 'symbol-canon',    name: 'Canon' },
     { type: 9,  symbol: 'symbol-apple',    name: 'Apple' },
     { type: 10,  symbol: 'symbol-goldbar',  name: 'Gold-bar'},
-    { type: 11,  symbol: 'symbol-coin',     name: 'Coin' },
-    { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
+    // { type: 11,  symbol: 'symbol-coin',     name: 'Coin' },
+    // { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
 ];
+
+const bonusBlocks: Block[] = [
+    { type: 11,  symbol: 'symbol-coin', name: 'Coin' },
+]
 
 const wildBlocks: Block[] = [
     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
 ]
-
 
 const defaultPaytable: Paytable[] = [
     {
@@ -132,31 +137,37 @@ const defaultPaytable: Paytable[] = [
             { min: 20, max: 25, multiplier: 50 },
         ],
     },
-    {
-        type: 11,
-        patterns: [
-            { min: 0, max: 0, multiplier: 0 },
-            { min: 0, max: 0, multiplier: 0 },
-            { min: 0, max: 0, multiplier: 0 },
-        ],
-    },
-    {
-        type: 12,
-        patterns: [
-            { min: 0, max: 0, multiplier: 0 },
-            { min: 0, max: 0, multiplier: 0 },
-            { min: 0, max: 0, multiplier: 0 },
-        ],
-    },
+    // {
+    //     type: 11,
+    //     patterns: [
+    //         { min: 0, max: 0, multiplier: 0 },
+    //         { min: 0, max: 0, multiplier: 0 },
+    //         { min: 0, max: 0, multiplier: 0 },
+    //     ],
+    // },
+    // {
+    //     type: 12,
+    //     patterns: [
+    //         { min: 0, max: 0, multiplier: 0 },
+    //         { min: 0, max: 0, multiplier: 0 },
+    //         { min: 0, max: 0, multiplier: 0 },
+    //     ],
+    // },
 ];
 
 class GameConfig {
     // Configuration data
     private blocks: Block[] = defaultBlocks;
     private paytable: Paytable[] = defaultPaytable;
+    private bonusBlock: Block[] = bonusBlocks;
     private wildBlock: Block[] = wildBlocks;
+    private buyFeatureBetMultiplier: number = defaultBuyFeatureBetMultiplier;
 
     public constructor() {}
+
+    public getBuyFeatureBetMultiplier(): number {
+        return this.buyFeatureBetMultiplier;
+    }
 
     // Setters
     setBlocks(blocks: Block[]) {
@@ -170,6 +181,10 @@ class GameConfig {
     // Getters
     getBlocks(): Block[] {
         return this.blocks;
+    }
+
+    getBonusBlocks(): Block[] {
+        return this.bonusBlock;
     }
 
     getWildBlocks(): Block[] {
