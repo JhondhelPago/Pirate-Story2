@@ -19,7 +19,11 @@ export class SpinRoundBanner extends Container {
     private bg: Sprite;
     private panel: Container;
 
-    private glow?: Sprite;       // 🔥 glow sprite behind the board
+    // 🔥 two glow instances behind the board
+    private glowA?: Sprite;
+    private glowB?: Sprite;
+    private glowBaseScale = 1;
+
     private banner!: Sprite;
     private headerText!: Sprite;
 
@@ -32,6 +36,8 @@ export class SpinRoundBanner extends Container {
 
     private onClosed?: () => void;
     private timeouts: number[] = [];
+
+    private glowEntranceTween?: gsap.core.Tween;
 
     private readonly HEADER_OFFSET_Y = -180;
     private readonly HEADER_OFFSET_X = 20;
@@ -96,40 +102,79 @@ export class SpinRoundBanner extends Container {
         );
     }
 
+    // ✅ ensure glow is EXACTLY the same local position as banner (center)
+    private syncGlowToBanner() {
+        if (!this.banner) return;
+        const bx = this.banner.x;
+        const by = this.banner.y;
+
+        if (this.glowA) {
+            this.glowA.x = bx;
+            this.glowA.y = by;
+        }
+        if (this.glowB) {
+            this.glowB.x = bx;
+            this.glowB.y = by;
+        }
+    }
+
+    private getGlows(): Sprite[] {
+        const arr: Sprite[] = [];
+        if (this.glowA) arr.push(this.glowA);
+        if (this.glowB) arr.push(this.glowB);
+        return arr;
+    }
+
     // 🔥 Glow creation – aligned to banner and placed behind it
     private createGlow() {
-        if (this.glow) {
-            this.glow.removeFromParent();
-            this.glow.destroy();
+        // cleanup old
+        for (const g of this.getGlows()) {
+            g.removeFromParent();
+            g.destroy();
         }
+        this.glowA = undefined;
+        this.glowB = undefined;
 
-        // IMPORTANT: replace "glow" with your actual texture id if different
         const glowTexture = Texture.from("glow");
 
-        this.glow = new Sprite(glowTexture);
-        this.glow.anchor.set(0.5);
+        const makeGlow = () => {
+            const s = new Sprite(glowTexture);
+            s.anchor.set(0.5);
+            return s;
+        };
 
-        // Same position as the banner
-        this.glow.x = this.banner.x;
-        this.glow.y = this.banner.y;
+        this.glowA = makeGlow();
+        this.glowB = makeGlow();
 
-        // Make glow clearly bigger than the banner
-        // Use banner size to compute a scale factor
+        // Put glows behind banner (A below B, both below board)
+        this.panel.addChildAt(this.glowA, 0);
+        this.panel.addChildAt(this.glowB, 1);
+
+        // ✅ MUST sync position AFTER adding to panel (same space as banner)
+        this.syncGlowToBanner();
+
+        // sizing (same logic as before)
         const bannerWidth = this.banner.width;
         const bannerHeight = this.banner.height;
 
         const targetWidth = bannerWidth * 1.7;
         const targetHeight = bannerHeight * 1.7;
 
-        const scaleX = targetWidth / this.glow.texture.width;
-        const scaleY = targetHeight / this.glow.texture.height;
+        const scaleX = targetWidth / glowTexture.width;
+        const scaleY = targetHeight / glowTexture.height;
         const finalScale = Math.max(scaleX, scaleY);
 
-        this.glow.scale.set(finalScale);
-        this.glow.alpha = 1;
+        this.glowBaseScale = finalScale;
 
-        // Put glow behind banner
-        this.panel.addChildAt(this.glow, 0);
+        this.glowA.scale.set(finalScale);
+        this.glowB.scale.set(finalScale * 0.97);
+
+        // Start hidden; reveal once banner lands
+        this.glowA.alpha = 0;
+        this.glowB.alpha = 0;
+
+        this.glowA.rotation = 0;
+        this.glowB.rotation = 0;
     }
 
     private createBanner() {
@@ -144,7 +189,7 @@ export class SpinRoundBanner extends Container {
         this.banner.anchor.set(0.5);
         this.banner.x = 0;
         this.banner.y = 0;
-        this.banner.visible = true; // ensure the board is visible
+        this.banner.visible = true;
 
         this.panel.addChild(this.banner);
     }
@@ -235,22 +280,32 @@ export class SpinRoundBanner extends Container {
     }
 
     private animateEntrance() {
-        gsap.killTweensOf([this.banner, this.headerText, this.valueText, this.glow]);
+        gsap.killTweensOf([this.banner, this.headerText, this.valueText, ...this.getGlows()]);
+        gsap.killTweensOf([this.headerText.scale, this.valueText.scale]);
+        for (const g of this.getGlows()) gsap.killTweensOf(g);
+
+        if (this.glowEntranceTween) {
+            this.glowEntranceTween.kill();
+            this.glowEntranceTween = undefined;
+        }
 
         const startOffset = -900;
 
         const finalBannerY = this.banner.y;
         const finalHeaderY = this.headerText.y;
         const finalValueY = this.valueText.y;
-        const finalGlowY = this.glow ? this.glow.y : 0;
 
-        // Glow
-        if (this.glow) {
-            this.glow.alpha = 0;
-            this.glow.y = finalGlowY + startOffset;
+        // ✅ Always keep glow locked to banner center before animations
+        this.syncGlowToBanner();
+
+        // Start hidden; reveal after banner lands
+        for (const g of this.getGlows()) {
+            g.alpha = 0;
+            g.rotation = 0;
+            g.scale.set(g === this.glowB ? this.glowBaseScale * 0.97 : this.glowBaseScale);
         }
 
-        // Text + banner
+        // Text + banner entrance (unchanged)
         this.banner.alpha = 0;
         this.headerText.alpha = 0;
         this.valueText.alpha = 0;
@@ -259,16 +314,22 @@ export class SpinRoundBanner extends Container {
         this.headerText.y = finalHeaderY + startOffset;
         this.valueText.y = finalValueY + startOffset;
 
-        if (this.glow) {
-            gsap.to(this.glow, {
-                alpha: 1,
-                y: finalGlowY,
-                duration: 0.7,
-                ease: "bounce.out",
-            });
-        }
+        gsap.to(this.banner, {
+            alpha: 1,
+            y: finalBannerY,
+            duration: 0.7,
+            ease: "bounce.out",
+            onUpdate: () => {
+                // ✅ if banner moves, glows stay perfectly centered with it
+                this.syncGlowToBanner();
+            },
+            onComplete: () => {
+                // ✅ once banner is in final position, glow appears + starts effects
+                this.syncGlowToBanner();
+                this.showGlowEffects();
+            },
+        });
 
-        gsap.to(this.banner, { alpha: 1, y: finalBannerY, duration: 0.7, ease: "bounce.out" });
         gsap.to(this.headerText, {
             alpha: 1,
             y: finalHeaderY,
@@ -276,12 +337,104 @@ export class SpinRoundBanner extends Container {
             ease: "bounce.out",
             delay: 0.05,
         });
+
         gsap.to(this.valueText, {
             alpha: 1,
             y: finalValueY,
             duration: 0.7,
             ease: "bounce.out",
             delay: 0.1,
+        });
+    }
+
+    private showGlowEffects() {
+        const gA = this.glowA;
+        const gB = this.glowB;
+        if (!gA || !gB) return;
+
+        // ✅ lock center right before showing
+        this.syncGlowToBanner();
+
+        gsap.killTweensOf([gA, gB, gA.scale, gB.scale]);
+
+        gA.alpha = 0;
+        gB.alpha = 0;
+
+        // fade in (no bounce)
+        this.glowEntranceTween = gsap.to([gA, gB], {
+            alpha: 0.85,
+            duration: 0.25,
+            ease: "power2.out",
+            onComplete: () => {
+                this.glowEntranceTween = undefined;
+                this.animateGlowIdle();
+            },
+        });
+    }
+
+    // two glows rotate opposite directions + opacity breathing (never fully invisible)
+    private animateGlowIdle() {
+        const gA = this.glowA;
+        const gB = this.glowB;
+        if (!gA || !gB) return;
+
+        // ✅ keep in same place (center) always
+        this.syncGlowToBanner();
+
+        gsap.killTweensOf([gA, gB, gA.scale, gB.scale]);
+
+        gA.scale.set(this.glowBaseScale);
+        gB.scale.set(this.glowBaseScale * 0.97);
+
+        // continuous rotations
+        gsap.to(gA, {
+            rotation: Math.PI * 2,
+            duration: 10,
+            repeat: -1,
+            ease: "none",
+        });
+
+        gsap.to(gB, {
+            rotation: -Math.PI * 2,
+            duration: 12,
+            repeat: -1,
+            ease: "none",
+        });
+
+        // opacity breathing (never 0)
+        gsap.to(gA, {
+            alpha: 0.95,
+            duration: 1.4,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
+        });
+
+        gsap.to(gB, {
+            alpha: 0.65,
+            duration: 1.7,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
+        });
+
+        // subtle breathing scale
+        gsap.to(gA.scale, {
+            x: this.glowBaseScale * 1.04,
+            y: this.glowBaseScale * 1.04,
+            duration: 2.2,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
+        });
+
+        gsap.to(gB.scale, {
+            x: this.glowBaseScale * 1.01,
+            y: this.glowBaseScale * 1.01,
+            duration: 2.6,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
         });
     }
 
@@ -341,21 +494,27 @@ export class SpinRoundBanner extends Container {
         this.headerText.scale.set(0.9);
         this.valueText.scale.set(1);
 
-        if (this.glow) {
-            // Recalculate glow scale to stay larger after resize
+        const gA = this.glowA;
+        const gB = this.glowB;
+
+        if (gA && gB) {
             const bannerWidth = this.banner.width;
             const bannerHeight = this.banner.height;
 
             const targetWidth = bannerWidth * 1.7;
             const targetHeight = bannerHeight * 1.7;
 
-            const scaleX = targetWidth / this.glow.texture.width;
-            const scaleY = targetHeight / this.glow.texture.height;
+            const scaleX = targetWidth / gA.texture.width;
+            const scaleY = targetHeight / gA.texture.height;
             const finalScale = Math.max(scaleX, scaleY);
 
-            this.glow.scale.set(finalScale);
-            this.glow.x = this.banner.x;
-            this.glow.y = this.banner.y;
+            this.glowBaseScale = finalScale;
+
+            gA.scale.set(finalScale);
+            gB.scale.set(finalScale * 0.97);
+
+            // ✅ lock to banner center after resize
+            this.syncGlowToBanner();
         }
     }
 
@@ -367,6 +526,16 @@ export class SpinRoundBanner extends Container {
 
         gsap.killTweensOf(this.headerText.scale);
         gsap.killTweensOf(this.valueText.scale);
+
+        if (this.glowEntranceTween) {
+            this.glowEntranceTween.kill();
+            this.glowEntranceTween = undefined;
+        }
+
+        for (const g of this.getGlows()) {
+            gsap.killTweensOf(g);
+            gsap.killTweensOf(g.scale);
+        }
 
         if (forceInstant) {
             this.alpha = 0;
@@ -380,7 +549,7 @@ export class SpinRoundBanner extends Container {
         }
 
         await gsap.to(
-            [this.banner, this.headerText, this.valueText, this.bg, this.glow].filter(Boolean),
+            [this.banner, this.headerText, this.valueText, this.bg, ...this.getGlows()].filter(Boolean),
             {
                 alpha: 0,
                 duration: 0.25,
