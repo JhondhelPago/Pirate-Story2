@@ -130,20 +130,13 @@ export class BuyFreeSpinPopup extends Container {
     }
 
     private openConfirm(typeLetter: BuyFreeTypeLetter, amount: number, spinCount: number) {
-        // ✅ optional hook now passes the letter
         this.onSelect?.(typeLetter);
 
         navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
             confirmationBoard: "buy-spin-confirm-board",
 
-            // ✅ if your confirmation label assets are still 10/15/20 based,
-            // map the letter -> label key
-            buySpinLabel:
-                typeLetter === "A"
-                    ? "buy-10-label"
-                    : typeLetter === "B"
-                    ? "buy-15-label"
-                    : "buy-20-label",
+            // ✅ NEW
+            spins: spinCount,
 
             amount,
             currencySymbol: "$",
@@ -156,6 +149,7 @@ export class BuyFreeSpinPopup extends Container {
             },
         });
     }
+
 
     public setOptionAmounts(
         vA: number,

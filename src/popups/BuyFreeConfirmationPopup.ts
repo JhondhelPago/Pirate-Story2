@@ -1,24 +1,19 @@
-import {
-    Container,
-    Sprite,
-    Texture,
-    Graphics,
-    Text,
-    Matrix,
-} from "pixi.js";
+import { Container, Sprite, Texture, Graphics, Text, Matrix } from "pixi.js";
 import gsap from "gsap";
 import { navigation } from "../utils/navigation";
 
 export interface BuyConfirmData {
     confirmationBoard: string;
-    buySpinLabel: string;
 
-    // ✅ now numeric
+    // ✅ NEW: dynamic spins for "BUY {SPINS} FREE SPINS"
+    spins: number;
+
+    // ✅ amount (still numeric)
     amount: number;
 
-    // ✅ optional formatting
+    // ✅ optional formatting for amount
     currencySymbol?: string; // default "$"
-    decimals?: number;       // default 2
+    decimals?: number; // default 2
 
     confirmButton: string;
     cancelButton: string;
@@ -31,11 +26,15 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     private bg!: Sprite;
     private board!: Sprite;
 
-    private buyLabel!: Sprite;
+    // ✅ NEW: text label container (replaces sprite label)
+    private buyLabelContainer?: Container;
+    private buyPrefixText?: Text;
+    private buyNumberText?: Text;
+    private buySuffixText?: Text;
 
     private amtBg!: Graphics;
 
-    // ✅ Text amount (Pirata One)
+    // ✅ Text amount (Pirata One gradient)
     private valueText?: Text;
     private amtPulseTween?: gsap.core.Tween;
 
@@ -47,6 +46,10 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     // formatting prefs
     private currencySymbol = "$";
     private decimals = 2;
+
+    // ✅ shared gradient for label + amount (same look)
+    private static labelGradientTexture?: Texture;
+    private static labelGradientMatrix?: Matrix;
 
     constructor() {
         super();
@@ -76,9 +79,8 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.board.anchor.set(0.5);
         this.panel.addChild(this.board);
 
-        this.buyLabel = Sprite.from(d.buySpinLabel);
-        this.buyLabel.anchor.set(0.5);
-        this.board.addChild(this.buyLabel);
+        // ✅ build "BUY {SPINS} FREE SPINS" (Pirata One + gradient, number plain white)
+        this.createBuyLabel(d.spins);
 
         this.amtBg = new Graphics();
         this.amtBg.alpha = 0.75;
@@ -118,11 +120,14 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.updateAmountBg();
     }
 
+    // ✅ optional: update the spins label later
+    public setSpins(spins: number) {
+        this.createBuyLabel(spins);
+    }
+
     private formatAmount(amount: number): string {
-        // safe defaults
         const n = Number.isFinite(amount) ? amount : 0;
 
-        // e.g. "$1,234.00"
         const formatted = new Intl.NumberFormat("en-US", {
             minimumFractionDigits: this.decimals,
             maximumFractionDigits: this.decimals,
@@ -131,10 +136,16 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         return `${this.currencySymbol}${formatted}`;
     }
 
-    private createValueText(initialText: string) {
-        if (this.valueText) {
-            this.valueText.destroy();
-            this.valueText = undefined;
+    // -------------------------
+    // ✅ BUY LABEL (TEXT)
+    // -------------------------
+
+    private ensureLabelGradient() {
+        if (
+            ConfirmationBuyFreeSpinPopup.labelGradientTexture &&
+            ConfirmationBuyFreeSpinPopup.labelGradientMatrix
+        ) {
+            return;
         }
 
         const gradientCanvas = document.createElement("canvas");
@@ -144,20 +155,109 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         const ctx = gradientCanvas.getContext("2d")!;
         const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.height);
 
-        gradient.addColorStop(0.00, "#FFF39C");
+        // same palette you already use
+        gradient.addColorStop(0.0, "#FFF39C");
         gradient.addColorStop(0.19, "#FFF39C");
         gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.40, "#FDD44F");
         gradient.addColorStop(0.51, "#FDD44F");
-        gradient.addColorStop(1.00, "#D79600");
+        gradient.addColorStop(1.0, "#D79600");
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
 
-        const gradientTexture = Texture.from(gradientCanvas);
+        ConfirmationBuyFreeSpinPopup.labelGradientTexture = Texture.from(gradientCanvas);
 
         const mat = new Matrix();
         mat.scale(1 / gradientCanvas.width, 1 / gradientCanvas.height);
+        ConfirmationBuyFreeSpinPopup.labelGradientMatrix = mat;
+    }
+
+    private createBuyLabel(spins: number) {
+        // clean previous
+        if (this.buyLabelContainer) {
+            this.buyLabelContainer.destroy({ children: true });
+            this.buyLabelContainer = undefined;
+            this.buyPrefixText = undefined;
+            this.buyNumberText = undefined;
+            this.buySuffixText = undefined;
+        }
+
+        this.ensureLabelGradient();
+
+        const tex = ConfirmationBuyFreeSpinPopup.labelGradientTexture!;
+        const mat = ConfirmationBuyFreeSpinPopup.labelGradientMatrix!;
+
+        const container = new Container();
+        container.eventMode = "none";
+
+        const stroke = { color: 0x4c1b05, width: 6 };
+
+        // You can tweak this if the board is tight
+        const fontSize = 92;
+
+        const prefix = new Text("BUY ", {
+            fontFamily: "Pirata One",
+            fontSize,
+            align: "center",
+            fill: { texture: tex, matrix: mat },
+            stroke,
+        });
+        prefix.anchor.set(0, 0.5);
+
+        const number = new Text(String(spins), {
+            fontFamily: "Pirata One",
+            fontSize,
+            align: "center",
+            fill: 0xffffff, // ✅ plain white, no gradient
+            stroke,
+        });
+        number.anchor.set(0, 0.5);
+
+        const suffix = new Text(" FREE SPINS", {
+            fontFamily: "Pirata One",
+            fontSize,
+            align: "center",
+            fill: { texture: tex, matrix: mat },
+            stroke,
+        });
+        suffix.anchor.set(0, 0.5);
+
+        container.addChild(prefix, number, suffix);
+
+        // lay out horizontally, then center the whole container
+        prefix.x = 0;
+        number.x = prefix.x + prefix.width;
+        suffix.x = number.x + number.width;
+
+        const totalW = prefix.width + number.width + suffix.width;
+        container.pivot.set(totalW * 0.5, 0);
+
+        // same behavior as old label: centered on board
+        container.x = 0;
+        container.y = 0;
+
+        this.board.addChild(container);
+
+        this.buyLabelContainer = container;
+        this.buyPrefixText = prefix;
+        this.buyNumberText = number;
+        this.buySuffixText = suffix;
+    }
+
+    // -------------------------
+    // ✅ AMOUNT (TEXT)
+    // -------------------------
+
+    private createValueText(initialText: string) {
+        if (this.valueText) {
+            this.valueText.destroy();
+            this.valueText = undefined;
+        }
+
+        // reuse same gradient look
+        this.ensureLabelGradient();
+        const gradientTexture = ConfirmationBuyFreeSpinPopup.labelGradientTexture!;
+        const mat = ConfirmationBuyFreeSpinPopup.labelGradientMatrix!;
 
         this.valueText = new Text(initialText, {
             fontFamily: "Pirata One",
@@ -175,7 +275,6 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
 
         this.valueText.anchor.set(0.5);
 
-        // ✅ keep same position behavior as old amtLabel
         this.valueText.x = 0;
         this.valueText.y = 0;
 
@@ -198,13 +297,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
 
         this.amtBg.clear();
         this.amtBg.beginFill(0x000000, 0.6);
-        this.amtBg.drawRoundedRect(
-            -amtW * 0.5,
-            -amtH * 0.5,
-            amtW,
-            amtH,
-            40
-        );
+        this.amtBg.drawRoundedRect(-amtW * 0.5, -amtH * 0.5, amtW, amtH, 40);
         this.amtBg.endFill();
 
         this.amtBg.x = this.valueText.x;
@@ -238,10 +331,10 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         const bw = this.board.width;
         const bh = this.board.height;
 
-        if (isMobile) {
-            this.buyLabel.y = -bh * 0.25;
-        } else {
-            this.buyLabel.y = -bh * 0.3;
+        // ✅ label position (replaces old sprite label y)
+        if (this.buyLabelContainer) {
+            this.buyLabelContainer.y = isMobile ? -bh * 0.25 : -bh * 0.3;
+            this.buyLabelContainer.x = 0;
         }
 
         if (this.valueText) {
@@ -295,6 +388,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
             duration: 0.2,
         });
 
-        setTimeout(() => navigation.dismissPopup(), 200);
+        // browser setTimeout returns number
+        window.setTimeout(() => navigation.dismissPopup(), 200);
     }
 }
