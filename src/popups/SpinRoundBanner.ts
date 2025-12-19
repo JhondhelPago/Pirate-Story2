@@ -38,6 +38,7 @@ export class SpinRoundBanner extends Container {
     private timeouts: number[] = [];
 
     private glowEntranceTween?: gsap.core.Tween;
+    private glowOpacityTween?: gsap.core.Tween; // ✅ alternating opacity controller
 
     private readonly HEADER_OFFSET_Y = -180;
     private readonly HEADER_OFFSET_X = 20;
@@ -288,6 +289,10 @@ export class SpinRoundBanner extends Container {
             this.glowEntranceTween.kill();
             this.glowEntranceTween = undefined;
         }
+        if (this.glowOpacityTween) {
+            this.glowOpacityTween.kill();
+            this.glowOpacityTween = undefined;
+        }
 
         const startOffset = -900;
 
@@ -356,6 +361,10 @@ export class SpinRoundBanner extends Container {
         this.syncGlowToBanner();
 
         gsap.killTweensOf([gA, gB, gA.scale, gB.scale]);
+        if (this.glowOpacityTween) {
+            this.glowOpacityTween.kill();
+            this.glowOpacityTween = undefined;
+        }
 
         gA.alpha = 0;
         gB.alpha = 0;
@@ -372,7 +381,7 @@ export class SpinRoundBanner extends Container {
         });
     }
 
-    // two glows rotate opposite directions + opacity breathing (never fully invisible)
+    // two glows rotate opposite directions + ✅ alternating opacity between them
     private animateGlowIdle() {
         const gA = this.glowA;
         const gB = this.glowB;
@@ -386,37 +395,58 @@ export class SpinRoundBanner extends Container {
         gA.scale.set(this.glowBaseScale);
         gB.scale.set(this.glowBaseScale * 0.97);
 
-        // continuous rotations
-        gsap.to(gA, {
-            rotation: Math.PI * 2,
-            duration: 10,
-            repeat: -1,
-            ease: "none",
-        });
+        // ✅ playful rotation (slower + different speed per glow)
+        // We rotate in eased "chunks" so it feels alive, not like a rigid constant spin.
+        const makePlayfulSpin = (target: Sprite, direction: 1 | -1, totalDuration: number) => {
+            gsap.killTweensOf(target);
 
-        gsap.to(gB, {
-            rotation: -Math.PI * 2,
-            duration: 12,
-            repeat: -1,
-            ease: "none",
-        });
+            // Start from current rotation (no snapping)
+            const step = (Math.PI * 2) / 3; // 120deg steps
+            const d1 = totalDuration * 0.34;
+            const d2 = totalDuration * 0.33;
+            const d3 = totalDuration * 0.33;
 
-        // opacity breathing (never 0)
-        gsap.to(gA, {
-            alpha: 0.95,
-            duration: 1.4,
-            yoyo: true,
-            repeat: -1,
-            ease: "sine.inOut",
-        });
+            const tl = gsap.timeline({ repeat: -1 });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: "sine.inOut" });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: "sine.inOut" });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: "sine.inOut" });
+            return tl;
+        };
 
-        gsap.to(gB, {
-            alpha: 0.65,
-            duration: 1.7,
-            yoyo: true,
-            repeat: -1,
-            ease: "sine.inOut",
-        });
+        // different speeds (not the same)
+        makePlayfulSpin(gA, 1, 18);   // CW slower
+        makePlayfulSpin(gB, -1, 26);  // CCW even slower (different)
+
+        // ✅ alternating opacity (one goes up while the other goes down)
+        // never hits 0 (still visible)
+        const A_MAX = 0.95;
+        const A_MIN = 0.40;
+        const B_MAX = 0.85;
+        const B_MIN = 0.30;
+
+        // set a starting opposite phase
+        gA.alpha = A_MAX;
+        gB.alpha = B_MIN;
+
+        this.glowOpacityTween = gsap.to(
+            { t: 0 },
+            {
+                t: 1,
+                duration: 1.8,
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
+                onUpdate: function () {
+                    const t = (this.targets()[0] as any).t as number;
+
+                    // A fades A_MAX -> A_MIN as t increases
+                    gA.alpha = A_MAX + (A_MIN - A_MAX) * t;
+
+                    // B fades B_MIN -> B_MAX as t increases (opposite)
+                    gB.alpha = B_MIN + (B_MAX - B_MIN) * t;
+                },
+            }
+        );
 
         // subtle breathing scale
         gsap.to(gA.scale, {
@@ -530,6 +560,10 @@ export class SpinRoundBanner extends Container {
         if (this.glowEntranceTween) {
             this.glowEntranceTween.kill();
             this.glowEntranceTween = undefined;
+        }
+        if (this.glowOpacityTween) {
+            this.glowOpacityTween.kill();
+            this.glowOpacityTween = undefined;
         }
 
         for (const g of this.getGlows()) {
