@@ -93,9 +93,6 @@ export class SpinRoundBanner extends Container {
         this.targetDisplayValue = this.winValue;
         this.onClosed = anyData?.onClosed;
 
-        // 1. Banner (position reference)
-        // 2. Glow (aligned to banner, behind it)
-        // 3. Header + value
         this.createBanner();
         this.createGlow();
         this.createHeaderText();
@@ -112,11 +109,10 @@ export class SpinRoundBanner extends Container {
                 if (SpinRoundBanner.currentInstance === this) {
                     if (this.canClickAnywhere) this.hide();
                 }
-            }, 4500),
+            }, 6500),
         );
     }
 
-    // ✅ ensure glow is EXACTLY the same local position as banner (center)
     private syncGlowToBanner() {
         if (!this.banner) return;
         const bx = this.banner.x;
@@ -163,88 +159,76 @@ export class SpinRoundBanner extends Container {
         if (this.coinBlastActive) return;
         this.coinBlastActive = true;
 
-        // clean previous coins
         this.stopCoinBlast();
 
         const coinTextures = this.buildCoinTextures();
 
-        // screen bounds (bg covers whole popup)
         const W = this.bg.width || 0;
         const H = this.bg.height || 0;
-
         if (W <= 0 || H <= 0) return;
 
-        // spawn from screen edges, around lower part of screen
-        const leftSpawnX = -50;
-        const rightSpawnX = W + 50;
+        const leftSpawnX = -60;
+        const rightSpawnX = W + 60;
 
-        // blast starts lower (like fountain from sides)
-        const baseY = H * 0.72;
-        const yJitter = 220;
+        const baseY = H * 0.78;      // a bit lower so it feels more “from the bottom”
+        const yJitter = 280;
+        const bottomY = H + 140;
 
-        // bottom cutoff
-        const bottomY = H + 120;
-
-        // keep coins mostly outside center (avoid drawing behind the banner too heavily)
-        // but since it's behind UI, overlap doesn't matter; still nicer visually:
         const inwardClamp = W * 0.5;
 
         const makeCoin = (side: "L" | "R") => {
             const coin = new AnimatedSprite(coinTextures);
             coin.anchor.set(0.5);
             coin.animationSpeed = this.rand(0.25, 0.45);
-            coin.scale.set(this.rand(0.55, 1.0));
+            coin.scale.set(this.rand(0.50, 1.05));
             coin.rotation = this.rand(-Math.PI, Math.PI);
 
-            // initial position (screen space)
             coin.x = side === "L" ? leftSpawnX : rightSpawnX;
             coin.y = baseY - this.rand(0, yJitter);
 
-            // initial velocity: blast inward + upward, then gravity
-            let vx = side === "L" ? this.rand(12, 20) : -this.rand(12, 20);
-            let vy = -this.rand(16, 26);
+            // ✅ stronger burst spread + a bit more variation
+            let vx = side === "L" ? this.rand(13, 24) : -this.rand(13, 24);
+            let vy = -this.rand(16, 30);
 
-            const gravity = this.rand(0.85, 1.15);
-            const drag = this.rand(0.985, 0.992);
-            const sway = this.rand(-0.25, 0.25);
+            const gravity = this.rand(0.85, 1.25);
+            const drag = this.rand(0.984, 0.992);
+            const sway = this.rand(-0.35, 0.35);
 
             this.coinContainer.addChild(coin);
 
             const tween = gsap.to(coin, {
                 duration: 999999,
                 ease: "none",
+                delay: this.rand(0, 0.9), // ✅ stagger start to look more “continuous”
                 onStart: () => coin.play(),
                 onUpdate: () => {
-                    // integrate
                     vy += gravity;
                     vx *= drag;
 
                     coin.x += vx + sway;
                     coin.y += vy;
 
-                    // spin
-                    coin.rotation += (side === "L" ? 1 : -1) * this.rand(0.02, 0.05);
+                    coin.rotation += (side === "L" ? 1 : -1) * this.rand(0.02, 0.06);
 
-                    // prevent coins from flying too far inward (keeps the “side blast” feel)
-                    if (side === "L" && coin.x > inwardClamp - 60) {
-                        coin.x = inwardClamp - 60;
-                        vx *= 0.4;
+                    // keep “side blast” feel
+                    if (side === "L" && coin.x > inwardClamp - 70) {
+                        coin.x = inwardClamp - 70;
+                        vx *= 0.35;
                     }
-                    if (side === "R" && coin.x < inwardClamp + 60) {
-                        coin.x = inwardClamp + 60;
-                        vx *= 0.4;
+                    if (side === "R" && coin.x < inwardClamp + 70) {
+                        coin.x = inwardClamp + 70;
+                        vx *= 0.35;
                     }
 
-                    // reset when below screen
                     if (coin.y > bottomY) {
-                        coin.scale.set(this.rand(0.55, 1.0));
+                        coin.scale.set(this.rand(0.50, 1.05));
                         coin.rotation = this.rand(-Math.PI, Math.PI);
 
                         coin.x = side === "L" ? leftSpawnX : rightSpawnX;
                         coin.y = baseY - this.rand(0, yJitter);
 
-                        vx = side === "L" ? this.rand(12, 20) : -this.rand(12, 20);
-                        vy = -this.rand(16, 26);
+                        vx = side === "L" ? this.rand(13, 24) : -this.rand(13, 24);
+                        vy = -this.rand(16, 30);
                     }
                 },
             });
@@ -253,17 +237,13 @@ export class SpinRoundBanner extends Container {
             return coin;
         };
 
-        const LEFT_COUNT = 14;
-        const RIGHT_COUNT = 14;
+        // ✅ MORE COINS
+        // (Still safe because these are behind UI; tune if performance drops)
+        const LEFT_COUNT = 30;
+        const RIGHT_COUNT = 30;
 
-        for (let i = 0; i < LEFT_COUNT; i++) {
-            const c = makeCoin("L");
-            (c as any).coinTween.delay(this.rand(0, 0.7));
-        }
-        for (let i = 0; i < RIGHT_COUNT; i++) {
-            const c = makeCoin("R");
-            (c as any).coinTween.delay(this.rand(0, 0.7));
-        }
+        for (let i = 0; i < LEFT_COUNT; i++) makeCoin("L");
+        for (let i = 0; i < RIGHT_COUNT; i++) makeCoin("R");
     }
 
     private stopCoinBlast() {
@@ -278,9 +258,7 @@ export class SpinRoundBanner extends Container {
         this.coinContainer.removeChildren();
     }
 
-    // 🔥 Glow creation – aligned to banner and placed behind it (inside panel)
     private createGlow() {
-        // cleanup old
         for (const g of this.getGlows()) {
             g.removeFromParent();
             g.destroy();
@@ -299,14 +277,11 @@ export class SpinRoundBanner extends Container {
         this.glowA = makeGlow();
         this.glowB = makeGlow();
 
-        // Put glows behind banner
         this.panel.addChildAt(this.glowA, 0);
         this.panel.addChildAt(this.glowB, 1);
 
-        // ✅ MUST sync position AFTER adding to panel (same space as banner)
         this.syncGlowToBanner();
 
-        // sizing (same logic as before)
         const bannerWidth = this.banner.width;
         const bannerHeight = this.banner.height;
 
@@ -322,7 +297,6 @@ export class SpinRoundBanner extends Container {
         this.glowA.scale.set(finalScale);
         this.glowB.scale.set(finalScale * 0.97);
 
-        // Start hidden; reveal once banner lands
         this.glowA.alpha = 0;
         this.glowB.alpha = 0;
 
@@ -426,7 +400,7 @@ export class SpinRoundBanner extends Container {
         const bannerDict: BannerItem[] = [
             { max: 80, board: "green-banner-board", text: "green-banner-text" },
             { max: 150, board: "blue-banner-board", text: "blue-banner-text" },
-            { max: Infinity, board: "red-banner-board", text: "red-banner-board" ? "red-banner-text" : "red-banner-text" },
+            { max: Infinity, board: "red-banner-board", text: "red-banner-text" },
         ];
 
         return bannerDict.find((x) => win < x.max)!;
@@ -437,7 +411,6 @@ export class SpinRoundBanner extends Container {
         gsap.killTweensOf([this.headerText.scale, this.valueText.scale]);
         for (const g of this.getGlows()) gsap.killTweensOf(g);
 
-        // stop coins from previous show
         this.stopCoinBlast();
 
         if (this.glowEntranceTween) {
@@ -455,17 +428,14 @@ export class SpinRoundBanner extends Container {
         const finalHeaderY = this.headerText.y;
         const finalValueY = this.valueText.y;
 
-        // ✅ Always keep glow locked to banner center before animations
         this.syncGlowToBanner();
 
-        // Start hidden; reveal after banner lands
         for (const g of this.getGlows()) {
             g.alpha = 0;
             g.rotation = 0;
             g.scale.set(g === this.glowB ? this.glowBaseScale * 0.97 : this.glowBaseScale);
         }
 
-        // Text + banner entrance (unchanged)
         this.banner.alpha = 0;
         this.headerText.alpha = 0;
         this.valueText.alpha = 0;
@@ -485,9 +455,7 @@ export class SpinRoundBanner extends Container {
             onComplete: () => {
                 this.syncGlowToBanner();
                 this.showGlowEffects();
-
-                // 🪙 start FULL SCREEN coin blast only after banner lands
-                this.startCoinBlast();
+                this.startCoinBlast(); // ✅ start after landing
             },
         });
 
@@ -701,7 +669,6 @@ export class SpinRoundBanner extends Container {
         gsap.killTweensOf(this.headerText.scale);
         gsap.killTweensOf(this.valueText.scale);
 
-        // 🪙 stop coins
         this.stopCoinBlast();
 
         if (this.glowEntranceTween) {
