@@ -145,47 +145,58 @@ export class GameScreen extends Container {
         this.syncFeatureAvailability();
     }
 
-    /** ✅ Busy if either normal process OR free-spin process says it's running */
-    private isAnyProcessBusy(): boolean {
-        const normalBusy = this.match3.process?.isProcessing?.() ?? false;
-        const freeSpinBusy = this.match3.freeSpinProcess?.getFreeSpinProcessing?.() ?? false;
-        return normalBusy || freeSpinBusy;
+    /** Busy flags based on your exact getters */
+    private getNormalProcessing(): boolean {
+        return this.match3.process?.isProcessing?.() ?? false;
     }
 
-    /** ✅ Keep BuyFreeSpin visible but disable click while busy. Also disable spin button while busy. */
+    private getFreeSpinProcessing(): boolean {
+        // ✅ per your note: freeSpinProcess.getFreeSpinProcessing()
+        return this.match3.freeSpinProcess?.getFreeSpinProcessing?.() ?? false;
+    }
+
+    /**
+     * ✅ BuyFreeSpin stays VISIBLE but is DISABLED while:
+     * - normal process is processing
+     * - OR free spin process is processing
+     *
+     * ✅ Spin/betting disabled while either processing is active
+     */
     private syncFeatureAvailability() {
-        const busy = this.isAnyProcessBusy();
+        const normalProcessing = this.getNormalProcessing();
+        const freeSpinProcessing = this.getFreeSpinProcessing();
 
-        // BuyFreeSpin: visible always, just enable/disable click
-        this.buyFreeSpin.setEnabled(!busy);
+        const canInteract = !normalProcessing && !freeSpinProcessing;
 
-        // Spin/Betting: disable while busy, enable when idle
-        if (busy) this.controlPanel.disableBetting();
-        else this.controlPanel.enableBetting();
+        // BuyFreeSpin: visible always, enabled only when idle
+        this.buyFreeSpin.setEnabled(canInteract);
+
+        // Spin/Betting
+        if (canInteract) this.controlPanel.enableBetting();
+        else this.controlPanel.disableBetting();
+    }
+
+    /** Hard lock (used while waiting 2s + while popup is showing) */
+    private lockInteraction() {
+        this.buyFreeSpin.setEnabled(false);
+        this.controlPanel.disableBetting();
     }
 
     public async startSpinning() {
         if (this.match3.spinning) return;
+        if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
 
-        // ✅ prevent spin while either process is still running
-        if (this.isAnyProcessBusy()) return;
-
-        // Immediately lock UI to avoid double clicks before callbacks arrive
-        this.syncFeatureAvailability();
-
+        this.lockInteraction();
         await this.match3.spin();
     }
 
     public freeSpinStartSpinning(spins: number) {
         if (this.finished) return;
+        if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
 
-        // ✅ prevent starting buy-free spin while busy
-        if (this.isAnyProcessBusy()) return;
-
+        this.lockInteraction();
         this.match3.freeSpin(spins);
         this.finished = true;
-
-        this.syncFeatureAvailability();
     }
 
     public prepare() {
@@ -217,6 +228,7 @@ export class GameScreen extends Container {
 
     public resize(width: number, height: number) {
         const centerX = width * 0.5;
+        const centerY = height * 0.5;
 
         if (width > height) {
             this.gameContainer.x = centerX;
@@ -235,6 +247,7 @@ export class GameScreen extends Container {
 
             this.overtime.x = this.gameContainer.x;
             this.overtime.y = this.gameContainer.y;
+
         } else {
             this.gameContainer.x = centerX;
             this.gameContainer.y = this.gameContainer.height * 0.78;
@@ -273,18 +286,16 @@ export class GameScreen extends Container {
 
     private async onSpinStart() {
         console.log('SPIN STARTED');
-        this.controlPanel.disableBetting();
-        this.syncFeatureAvailability();
+        this.lockInteraction();
     }
 
     private async onFreeSpinStart() {
         console.log('FREE SPIN PROCESS STARTING');
-        this.syncFeatureAvailability();
+        this.lockInteraction();
     }
 
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
-        console.log("navigation pop for the total won banner");
         this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
         this.syncFeatureAvailability();
     }
@@ -292,57 +303,55 @@ export class GameScreen extends Container {
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
-        this.controlPanel.disableBetting();
-        this.syncFeatureAvailability();
+        this.lockInteraction();
     }
 
     private async onFreeSpinRoundComplete() {
         console.log("onFreeSpinRoundComplete trigger using the freespinprocess");
         const TotalWon = this.match3.freeSpinProcess.getAccumulatedWin();
 
-        if (TotalWon > 0) {
-            this.controlPanel.setTitle(`Win ${TotalWon}`);
-        } else {
-            this.controlPanel.setTitle(`GOOD LUCK`);
-        }
+        if (TotalWon > 0) this.controlPanel.setTitle(`Win ${TotalWon}`);
+        else this.controlPanel.setTitle(`GOOD LUCK`);
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
 
-        // When BOTH processes are done (your requested getters)
-        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.getFreeSpinProcessing()) {
+        // when both processes are not processing (end of a round)
+        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
             await this.finish();
             await this.drawWinBannerAsync(this.match3.process.getRoundWin());
         }
 
         this.controlPanel.enableBetting();
         this.finished = false;
+
         this.syncFeatureAvailability();
     }
 
     private onProcessStart() {
         console.log('ON PROCESS START');
-        this.syncFeatureAvailability();
+        this.lockInteraction();
     }
 
     private async onProcessComplete() {
         const roundWin = this.match3.process.getRoundWin();
 
-        if (roundWin > 0) {
-            this.controlPanel.setTitle(`Win ${roundWin}`);
-        } else {
-            this.controlPanel.setTitle(`GOOD LUCK`);
-        }
+        if (roundWin > 0) this.controlPanel.setTitle(`Win ${roundWin}`);
+        else this.controlPanel.setTitle(`GOOD LUCK`);
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
 
-        // When BOTH processes are done (your requested getters)
-        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.getFreeSpinProcessing()) {
-            await this.finish();
+        /**
+         * ✅ KEY: if NOT in free-spin session, show banner.
+         * While waiting & showing popup, keep UI locked.
+         */
+        if (!this.getFreeSpinProcessing()) {
+            this.lockInteraction();
             await this.drawWinBannerAsync(roundWin);
         }
 
         this.controlPanel.enableBetting();
         this.finished = false;
+
         this.syncFeatureAvailability();
     }
 
@@ -355,6 +364,7 @@ export class GameScreen extends Container {
         if (winAmount < 50) return;
 
         await waitFor(2);
+
         await new Promise<void>((resolve) => {
             navigation.presentPopup(SpinRoundBanner, {
                 win: winAmount,
@@ -369,7 +379,12 @@ export class GameScreen extends Container {
 
     private messageMatchQueuing(roundResult: RoundResult) {
         roundResult.map(r => {
-            this.controlPanel.addMatchMessage(r.multiplier, r.type, userSettings.getBet() * r.multiplier, 'krw');
+            this.controlPanel.addMatchMessage(
+                r.multiplier,
+                r.type,
+                userSettings.getBet() * r.multiplier,
+                'krw'
+            );
         });
 
         this.controlPanel.playMatchMessages();
