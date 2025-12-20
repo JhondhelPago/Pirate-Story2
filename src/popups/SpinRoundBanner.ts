@@ -764,10 +764,17 @@ export class SpinRoundBanner extends Container {
             gsap.killTweensOf(g.scale);
         }
 
+        // ✅ helper: dismiss popup WITHOUT waiting (removes the "delay after hide")
+        const dismissNow = () => {
+            // don't await → avoids any internal transition delay blocking this hide() completion
+            void navigation.dismissPopup().catch(() => {});
+        };
+
         if (forceInstant) {
             this.alpha = 0;
             SpinRoundBanner.currentInstance = null;
-            await navigation.dismissPopup();
+
+            dismissNow();
 
             const cb = this.onClosed;
             this.onClosed = undefined;
@@ -784,7 +791,9 @@ export class SpinRoundBanner extends Container {
         );
 
         SpinRoundBanner.currentInstance = null;
-        await navigation.dismissPopup();
+
+        // ✅ immediately trigger dismiss; don't wait for its internal timing
+        dismissNow();
 
         const cb = this.onClosed;
         this.onClosed = undefined;
