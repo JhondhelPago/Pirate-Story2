@@ -1,5 +1,5 @@
 import { Container, Ticker } from 'pixi.js';
-import { Match3, SlotOnJackpotMatchData, SlotOnJackpotTriggerData } from '../slot/Match3';
+import { Match3 } from '../slot/Match3';
 import { navigation } from '../utils/navigation';
 import { GameEffects } from '../ui/GameEffects';
 import { bgm } from '../utils/audio';
@@ -8,7 +8,6 @@ import { waitFor } from '../utils/asyncUtils';
 import { slotGetConfig } from '../slot/Match3Config';
 import { GameLogo } from '../ui/GameLogo';
 import { BuyFreeSpin } from '../ui/BuyFreeSpin';
-// import { RoundResult } from '../ui/RoundResult';
 import { ControlPanel } from '../ui/ControlPanel';
 import { BetAction, userSettings } from '../utils/userSettings';
 import { GoldRoger } from '../ui/GoldRoger';
@@ -69,9 +68,7 @@ export class GameScreen extends Container {
 
         this.buyFreeSpin = new BuyFreeSpin();
         this.addChild(this.buyFreeSpin);
-        this.buyFreeSpin.show();
-
-        // this.roundResult = new RoundResult();
+        this.buyFreeSpin.show(); // visible always
 
         this.goldRoger = new GoldRoger();
         this.goldRoger.scale.set(1);
@@ -80,7 +77,6 @@ export class GameScreen extends Container {
         /** Match3 core */
         this.match3 = new Match3();
         this.match3.onSpinStart = this.onSpinStart.bind(this);
-        // this.match3.onFreeSpinTrigger = this.onFreeSpinTrigger.bind(this);
         this.match3.onFreeSpinStart = this.onFreeSpinStart.bind(this);
         this.match3.onFreeSpinComplete = this.onFreeSpinComplete.bind(this);
         this.match3.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
@@ -114,10 +110,6 @@ export class GameScreen extends Container {
                 finished: this.finished,
                 onBetSettingChanged: () => {
                     this.controlPanel.setBet(userSettings.getBet());
-                    
-                    // function to be resolved
-                    // this.updateMultiplierAmounts();
-                    // this.updateBuyFreeSpinAmount();
                 },
                 onAudioSettingChanged: (isOn: boolean) => {
                     this.controlPanel.audioButton.setToggleState(isOn);
@@ -130,8 +122,6 @@ export class GameScreen extends Container {
                 finished: this.finished,
                 onBetChanged: () => {
                     this.controlPanel.setBet(userSettings.getBet());
-                    // this.updateMultiplierAmounts();
-                    // this.updateBuyFreeSpinAmount();
                 },
             });
         });
@@ -150,25 +140,59 @@ export class GameScreen extends Container {
         });
 
         this.finished = false;
+
+        // ✅ initial sync
+        this.syncFeatureAvailability();
+    }
+
+    /** ✅ Busy if either normal process OR free-spin process says it's running */
+    private isAnyProcessBusy(): boolean {
+        const normalBusy = this.match3.process?.isProcessing?.() ?? false;
+        const freeSpinBusy = this.match3.freeSpinProcess?.getFreeSpinProcessing?.() ?? false;
+        return normalBusy || freeSpinBusy;
+    }
+
+    /** ✅ Keep BuyFreeSpin visible but disable click while busy. Also disable spin button while busy. */
+    private syncFeatureAvailability() {
+        const busy = this.isAnyProcessBusy();
+
+        // BuyFreeSpin: visible always, just enable/disable click
+        this.buyFreeSpin.setEnabled(!busy);
+
+        // Spin/Betting: disable while busy, enable when idle
+        if (busy) this.controlPanel.disableBetting();
+        else this.controlPanel.enableBetting();
     }
 
     public async startSpinning() {
         if (this.match3.spinning) return;
+
+        // ✅ prevent spin while either process is still running
+        if (this.isAnyProcessBusy()) return;
+
+        // Immediately lock UI to avoid double clicks before callbacks arrive
+        this.syncFeatureAvailability();
+
         await this.match3.spin();
     }
 
-
     public freeSpinStartSpinning(spins: number) {
-        // call back here to trigger the Match3FreSpinProcess
         if (this.finished) return;
+
+        // ✅ prevent starting buy-free spin while busy
+        if (this.isAnyProcessBusy()) return;
+
         this.match3.freeSpin(spins);
         this.finished = true;
+
+        this.syncFeatureAvailability();
     }
 
     public prepare() {
         const match3Config = slotGetConfig();
         this.barrelBoard?.setup(match3Config);
         this.match3.setup(match3Config);
+        this.syncFeatureAvailability();
     }
 
     public update(time: Ticker) {
@@ -188,11 +212,11 @@ export class GameScreen extends Container {
     public reset() {
         this.barrelBoard?.reset();
         this.match3.reset();
+        this.syncFeatureAvailability();
     }
 
     public resize(width: number, height: number) {
         const centerX = width * 0.5;
-        const centerY = height * 0.5;
 
         if (width > height) {
             this.gameContainer.x = centerX;
@@ -211,7 +235,6 @@ export class GameScreen extends Container {
 
             this.overtime.x = this.gameContainer.x;
             this.overtime.y = this.gameContainer.y;
-
         } else {
             this.gameContainer.x = centerX;
             this.gameContainer.y = this.gameContainer.height * 0.78;
@@ -239,6 +262,7 @@ export class GameScreen extends Container {
     public async show() {
         bgm.play('common/bgm-game.mp3', { volume: 0.5 });
         this.match3.startPlaying();
+        this.syncFeatureAvailability();
     }
 
     public async hide() {
@@ -249,80 +273,78 @@ export class GameScreen extends Container {
 
     private async onSpinStart() {
         console.log('SPIN STARTED');
-        // Multiplier reset removed
-
         this.controlPanel.disableBetting();
-
+        this.syncFeatureAvailability();
     }
 
     private async onFreeSpinStart() {
         console.log('FREE SPIN PROCESS STARTING');
-        // call the Match3FreeSpinProcess to Start the buy ree spin rounds
+        this.syncFeatureAvailability();
     }
 
-    private async onFreeSpinComplete(current: number, remaining:number) { // spins complete trigger
-        // show the total win banner with the amount won, 
+    private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
         console.log("navigation pop for the total won banner");
         this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
-        //navigation.presentPopup(FreeSpinWinBanner, {spins: 10});
-
+        this.syncFeatureAvailability();
     }
-    
+
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
-        
         this.controlPanel.disableBetting();
+        this.syncFeatureAvailability();
     }
-    
-    private async onFreeSpinRoundComplete() { // spin round complete trigger for buy free spin feature
-        console.log("onFreeSpinRoundComplete trigger uysing the freespinprocess");
+
+    private async onFreeSpinRoundComplete() {
+        console.log("onFreeSpinRoundComplete trigger using the freespinprocess");
         const TotalWon = this.match3.freeSpinProcess.getAccumulatedWin();
-        // change this to display the accumulated win
-        if (TotalWon > 0){
-            this.controlPanel.setTitle(`Win ${TotalWon}`);    
+
+        if (TotalWon > 0) {
+            this.controlPanel.setTitle(`Win ${TotalWon}`);
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);
         }
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
-        // when both processes are not processing (end of a round)
-        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
+
+        // When BOTH processes are done (your requested getters)
+        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.getFreeSpinProcessing()) {
             await this.finish();
-            await this.drawWinBannerAsync(this.match3.process.getRoundWin()); // ✅ wait banner close
+            await this.drawWinBannerAsync(this.match3.process.getRoundWin());
         }
 
         this.controlPanel.enableBetting();
         this.finished = false;
-
+        this.syncFeatureAvailability();
     }
 
     private onProcessStart() {
         console.log('ON PROCESS START');
+        this.syncFeatureAvailability();
     }
 
     private async onProcessComplete() {
-        const roundWin = this.match3.process.getRoundWin()
+        const roundWin = this.match3.process.getRoundWin();
 
-        if (roundWin > 0){
-            this.controlPanel.setTitle(`Win ${this.match3.process.getRoundWin()}`);    
+        if (roundWin > 0) {
+            this.controlPanel.setTitle(`Win ${roundWin}`);
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);
         }
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
 
-        // when both processes are not processing (end of a round)
-        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
+        // When BOTH processes are done (your requested getters)
+        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.getFreeSpinProcessing()) {
             await this.finish();
-            await this.drawWinBannerAsync(this.match3.process.getRoundWin()); // ✅ wait banner close
+            await this.drawWinBannerAsync(roundWin);
         }
 
         this.controlPanel.enableBetting();
         this.finished = false;
+        this.syncFeatureAvailability();
     }
-
 
     private async finish() {
         if (!this.finished) return;
@@ -336,14 +358,13 @@ export class GameScreen extends Container {
         await new Promise<void>((resolve) => {
             navigation.presentPopup(SpinRoundBanner, {
                 win: winAmount,
-                onClosed: resolve, // ✅ resolves when SpinRoundBanner.hide() finishes
+                onClosed: resolve,
             });
         });
     }
 
-
-    private drawTotalWinBanner(winAmount: number){
-        navigation.presentPopup(TotalWinBanner, {win: winAmount});
+    private drawTotalWinBanner(winAmount: number) {
+        navigation.presentPopup(TotalWinBanner, { win: winAmount });
     }
 
     private messageMatchQueuing(roundResult: RoundResult) {

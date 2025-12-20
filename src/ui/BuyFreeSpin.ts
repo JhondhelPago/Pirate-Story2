@@ -11,6 +11,8 @@ export class BuyFreeSpin extends Container {
 
     private floatTimeline?: gsap.core.Timeline;
 
+    private enabled = true;
+
     constructor() {
         super();
 
@@ -35,14 +37,51 @@ export class BuyFreeSpin extends Container {
 
         this.setupInteractivity();
 
-        // OPEN POPUP
+        // OPEN POPUP (guarded by enabled)
         this.on('pointertap', () => {
+            if (!this.enabled) return;
+
             navigation.presentPopup(BuyFreeSpinPopup, {
                 onSelect: (value: number) => {
                     console.log("Selected Buy Free Spins:", value);
                 }
             });
         });
+    }
+
+    /**
+     * ✅ Enable/disable interaction WITHOUT hiding the button.
+     * Visible stays true (unless you explicitly call hide()).
+     */
+    public setEnabled(enabled: boolean) {
+        this.enabled = enabled;
+
+        // keep visible as requested
+        this.visible = true;
+
+        if (enabled) {
+            // allow pointer events
+            this.eventMode = 'static';
+            this.cursor = 'pointer';
+
+            // restore visuals
+            this.alpha = 1;
+        } else {
+            // block pointer events
+            this.eventMode = 'none';
+            this.cursor = 'default';
+
+            // visual hint (still visible)
+            this.alpha = 0.6;
+
+            // ensure it doesn't stay scaled up from hover
+            gsap.killTweensOf(this.container.scale);
+            this.container.scale.set(1);
+        }
+    }
+
+    public isEnabled() {
+        return this.enabled;
     }
 
     // -------------------------------
@@ -58,6 +97,8 @@ export class BuyFreeSpin extends Container {
     }
 
     private handleHover() {
+        if (!this.enabled) return;
+
         sfx.play('common/sfx-hover.wav');
 
         gsap.killTweensOf(this.container.scale);
@@ -65,11 +106,15 @@ export class BuyFreeSpin extends Container {
     }
 
     private handleOut() {
+        if (!this.enabled) return;
+
         gsap.killTweensOf(this.container.scale);
         gsap.to(this.container.scale, { x: 1, y: 1, duration: 0.2, ease: 'back.out' });
     }
 
     private handleDown() {
+        if (!this.enabled) return;
+
         sfx.play('common/sfx-press.wav');
 
         gsap.killTweensOf(this.container.scale);
@@ -79,7 +124,7 @@ export class BuyFreeSpin extends Container {
     }
 
     // -------------------------------
-    // FLOAT ANIMATION (NOW WORKS 100%)
+    // FLOAT ANIMATION
     // -------------------------------
     private startFloating() {
         if (this.floatTimeline) return; // already running
@@ -106,7 +151,11 @@ export class BuyFreeSpin extends Container {
     // -------------------------------
     public async show(animated = true) {
         this.visible = true;
-        this.eventMode = 'static';
+
+        // ✅ keep current enabled state
+        this.eventMode = this.enabled ? 'static' : 'none';
+        this.cursor = this.enabled ? 'pointer' : 'default';
+        this.alpha = this.enabled ? 1 : 0.6;
 
         this.stopFloating();
 
@@ -121,12 +170,13 @@ export class BuyFreeSpin extends Container {
             this.container.scale.set(1);
         }
 
-        // ⭐ NOW FLOATS CORRECTLY
         this.startFloating();
     }
 
     public async hide(animated = true) {
+        // hide means truly invisible
         this.eventMode = 'none';
+        this.cursor = 'default';
 
         this.stopFloating();
 

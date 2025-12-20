@@ -8,6 +8,8 @@ export class Match3FreeSpinProcess extends Match3Process{
         super(match3);
     }
     
+    // state flag for this continuous process
+    protected freeSpinProcessing = false;
     private accumulatedWin = 0;
     private remainingSpins = 0;
     private currentSpin = 0;
@@ -25,8 +27,13 @@ export class Match3FreeSpinProcess extends Match3Process{
     }
 
     public async freeSpinStart(){
+        //set the contineuous process flag
+        this.freeSpinProcessing = true;
 
         if(!this.processCheckpoint()){
+            // end process here, set the contineous process flag 
+            this.freeSpinProcessing = false;
+            
             this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
             this.reset();
             return; // free spin end session
@@ -112,6 +119,12 @@ export class Match3FreeSpinProcess extends Match3Process{
         const ms = this.roundResult.length > 0 ? 2000 : 1000;
 
         return new Promise<void>(resolve => setTimeout(resolve, ms));
+    }
+
+
+    // isFreeSpinProcessing getter method here
+    public getFreeSpinProcessing() {
+        return this.freeSpinProcessing;
     }
 
     public reset(){

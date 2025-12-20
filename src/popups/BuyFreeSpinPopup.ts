@@ -21,9 +21,9 @@ export class BuyFreeSpinPopup extends Container {
     private buyLabel: Sprite;
 
     // (names kept for minimal refactor)
-    private option10: BuyFreeSpinOptionBanner;
-    private option15: BuyFreeSpinOptionBanner;
-    private option20: BuyFreeSpinOptionBanner;
+    private featureA: BuyFreeSpinOptionBanner;
+    private featureB: BuyFreeSpinOptionBanner;
+    private featureC: BuyFreeSpinOptionBanner;
 
     private exitButton: Sprite;
 
@@ -51,7 +51,7 @@ export class BuyFreeSpinPopup extends Container {
         this.panel.addChild(this.buyLabel);
 
         // ✅ reusable options now use typeLetter A/B/C
-        this.option10 = new BuyFreeSpinOptionBanner({
+        this.featureA = new BuyFreeSpinOptionBanner({
             typeLetter: "A",
             amount: config.feature.A.buyFeatureBetMultiplier * userSettings.getBet(),
             currencySymbol: "$",
@@ -60,7 +60,7 @@ export class BuyFreeSpinPopup extends Container {
             spinsFontSize: 140,
         });
 
-        this.option15 = new BuyFreeSpinOptionBanner({
+        this.featureB = new BuyFreeSpinOptionBanner({
             typeLetter: "B",
             amount: config.feature.B.buyFeatureBetMultiplier * userSettings.getBet(),
             currencySymbol: "$",
@@ -69,7 +69,7 @@ export class BuyFreeSpinPopup extends Container {
             spinsFontSize: 140,
         });
 
-        this.option20 = new BuyFreeSpinOptionBanner({
+        this.featureC = new BuyFreeSpinOptionBanner({
             typeLetter: "C",
             amount: config.feature.C.buyFeatureBetMultiplier * userSettings.getBet(),
             currencySymbol: "$",
@@ -78,25 +78,25 @@ export class BuyFreeSpinPopup extends Container {
             spinsFontSize: 140,
         });
 
-        const optionList = [this.option10, this.option15, this.option20];
+        const optionList = [this.featureA, this.featureB, this.featureC];
         for (const opt of optionList) {
             this.panel.addChild(opt);
         }
 
         // ✅ tap handlers now derive spins from the banner itself
-        this.option10.setOnTap(() => {
+        this.featureA.setOnTap(() => {
             const amount = 100 * userSettings.getBet();
-            this.openConfirm("A", amount, this.option10.getSpins());
+            this.openConfirm("A", amount, this.featureA.getSpins());
         });
 
-        this.option15.setOnTap(() => {
+        this.featureB.setOnTap(() => {
             const amount = 500 * userSettings.getBet();
-            this.openConfirm("B", amount, this.option15.getSpins());
+            this.openConfirm("B", amount, this.featureB.getSpins());
         });
 
-        this.option20.setOnTap(() => {
+        this.featureC.setOnTap(() => {
             const amount = 1000 * userSettings.getBet();
-            this.openConfirm("C", amount, this.option20.getSpins());
+            this.openConfirm("C", amount, this.featureC.getSpins());
         });
 
         this.bg.on("pointertap", () => {
@@ -158,13 +158,13 @@ export class BuyFreeSpinPopup extends Container {
         currencySymbol = "$",
         decimals = 0
     ) {
-        this.option10.setAmount(vA, currencySymbol, decimals);
-        this.option15.setAmount(vB, currencySymbol, decimals);
-        this.option20.setAmount(vC, currencySymbol, decimals);
+        this.featureA.setAmount(vA, currencySymbol, decimals);
+        this.featureB.setAmount(vB, currencySymbol, decimals);
+        this.featureC.setAmount(vC, currencySymbol, decimals);
 
-        this.option10.relayout();
-        this.option15.relayout();
-        this.option20.relayout();
+        this.featureA.relayout();
+        this.featureB.relayout();
+        this.featureC.relayout();
     }
 
     private startLabelPulse() {
@@ -186,7 +186,7 @@ export class BuyFreeSpinPopup extends Container {
     }
 
     private animateEntrance() {
-        const options = [this.option10, this.option15, this.option20];
+        const options = [this.featureA, this.featureB, this.featureC];
 
         options.forEach((opt, index) => {
             gsap.killTweensOf(opt);
@@ -263,43 +263,43 @@ export class BuyFreeSpinPopup extends Container {
         const bannerY = isMobile ? 120 : 40;
 
         if (isMobile) {
-            this.option10.scale.set(1.25);
-            this.option15.scale.set(1.25);
-            this.option20.scale.set(1.25);
+            this.featureA.scale.set(1.25);
+            this.featureB.scale.set(1.25);
+            this.featureC.scale.set(1.25);
 
-            this.option10.setAmountFontSize(68);
-            this.option15.setAmountFontSize(68);
-            this.option20.setAmountFontSize(68);
+            this.featureA.setAmountFontSize(68);
+            this.featureB.setAmountFontSize(68);
+            this.featureC.setAmountFontSize(68);
 
             // ✅ center spins can shrink too on mobile
-            this.option10.setSpinsFontSize(120);
-            this.option15.setSpinsFontSize(120);
-            this.option20.setSpinsFontSize(120);
+            this.featureA.setSpinsFontSize(120);
+            this.featureB.setSpinsFontSize(120);
+            this.featureC.setSpinsFontSize(120);
         } else {
-            this.option10.scale.set(1);
-            this.option15.scale.set(1);
-            this.option20.scale.set(1);
+            this.featureA.scale.set(1);
+            this.featureB.scale.set(1);
+            this.featureC.scale.set(1);
 
-            this.option10.setAmountFontSize(76);
-            this.option15.setAmountFontSize(76);
-            this.option20.setAmountFontSize(76);
+            this.featureA.setAmountFontSize(76);
+            this.featureB.setAmountFontSize(76);
+            this.featureC.setAmountFontSize(76);
 
-            this.option10.setSpinsFontSize(140);
-            this.option15.setSpinsFontSize(140);
-            this.option20.setSpinsFontSize(140);
+            this.featureA.setSpinsFontSize(140);
+            this.featureB.setSpinsFontSize(140);
+            this.featureC.setSpinsFontSize(140);
         }
 
-        this.option10.x = -spacing;
-        this.option15.x = 0;
-        this.option20.x = spacing;
+        this.featureA.x = -spacing;
+        this.featureB.x = 0;
+        this.featureC.x = spacing;
 
-        this.option10.y = bannerY;
-        this.option15.y = bannerY;
-        this.option20.y = bannerY;
+        this.featureA.y = bannerY;
+        this.featureB.y = bannerY;
+        this.featureC.y = bannerY;
 
-        this.option10.relayout();
-        this.option15.relayout();
-        this.option20.relayout();
+        this.featureA.relayout();
+        this.featureB.relayout();
+        this.featureC.relayout();
     }
 
     public async hide() {

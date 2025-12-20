@@ -92,8 +92,6 @@ export class Match3Process {
             this.delayToken.cancelled = true;
         }
         
-        console.log("[Match3] Sequence rounds:", this.round);
-        console.log("[Match3] ======= PROCESSING COMPLETE =======");
         this.match3.onProcessComplete?.();
     }
     
