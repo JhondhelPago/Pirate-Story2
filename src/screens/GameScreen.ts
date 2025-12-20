@@ -18,6 +18,7 @@ import { RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { gameConfig } from '../utils/gameConfig';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
+import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -103,7 +104,17 @@ export class GameScreen extends Container {
 
         this.controlPanel.onSpin(() => this.startSpinning());
         this.controlPanel.onSpacebar(() => this.startSpinning());
-        this.controlPanel.onAutoplay(() => {});
+        this.controlPanel.onAutoplay(() => {
+            const spinMode = 'normal-spin';
+            navigation.presentPopup<AutoplayPopupData>(AutoplayPopup, {
+                    spinMode,
+                    callback: async (spins: number) => {
+                        if (this.finished) return;
+                        await navigation.dismissPopup();
+                        //this.startSpinning({ autoplaySpins: spins });
+                    },
+                });
+        });
 
         this.controlPanel.onSettings(() => {
             navigation.presentPopup<SettingsPopupData>(SettingsPopup, {

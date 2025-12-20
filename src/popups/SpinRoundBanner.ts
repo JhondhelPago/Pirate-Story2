@@ -175,7 +175,6 @@ export class SpinRoundBanner extends Container {
         }
     }
 
-    // 🌐 LANDSCAPE / WIDE: side blast from left & right (same feel as before)
     private startCoinBlastLandscape(W: number, H: number, coinTextures: Texture[]) {
         const leftSpawnX = -60;
         const rightSpawnX = W + 60;

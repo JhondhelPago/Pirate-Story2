@@ -15,8 +15,6 @@ export function slotGetConfig(): SlotConfig {
     return defaultConfig;
 }
 
-export type SlotSpinMode = 'quick-spin' | 'turbo-spin' | 'normal-spin';
-
 /**
  * Map of all available blocks for the game.
  * Each item in these lists should have a corresponding pixi texture with the same name
