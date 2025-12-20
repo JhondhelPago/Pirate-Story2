@@ -25,9 +25,9 @@ class UserSettings {
     private balance: number;
 
     constructor() {
-        //this.spinMode = 'normal-spin';
+        this.spinMode = 'normal-spin';
         //this.spinMode = 'quick-spin';
-        this.spinMode = 'turbo-spin';
+        //this.spinMode = 'turbo-spin';
         this.currency = 'usd';
         this.balance = 0;
         this.freeSpins = 0;

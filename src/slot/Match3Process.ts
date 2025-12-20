@@ -123,14 +123,14 @@ export class Match3Process {
 
         // defaults for "normal-spin"
         let delays: SpinModeDelays = {
-            minSpinMs: 2000,
+            minSpinMs: 1700,
             betweenWinMs: 4000,
             betweenNoWinMs: 2300,
         };
 
         if (mode === "quick-spin") {
             delays = {
-                minSpinMs: 1500,
+                minSpinMs: 1300,
                 betweenWinMs: 3500,
                 betweenNoWinMs: 2500,
             };
