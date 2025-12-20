@@ -99,21 +99,38 @@ export class AutoplayPopup extends Container {
             isChecked: false,
         });
         this.quickSpinCheckbox.checkbox.switcher.onChange.connect((state: number | boolean) => {
-            const spinMode = state == 1 ? 'quick-spin' : 'normal-spin';
-            userSettings.setSpinMode(spinMode);
-            this.turboSpinCheckbox.checkbox.switcher.forceSwitch(0);
+            // Only react when user turns it ON; when it turns OFF we can fall back to normal
+            if (state == 1) {
+                const spinMode: SlotSpinMode = 'quick-spin';
+                userSettings.setSpinMode(spinMode);
+                this.turboSpinCheckbox.checkbox.switcher.forceSwitch(0);
+            } else {
+                // If unchecked and turbo isn't checked, revert to normal
+                const turboIsOn = this.turboSpinCheckbox.checkbox.switcher.value == 1;
+                if (!turboIsOn) {
+                    userSettings.setSpinMode('normal-spin');
+                }
+            }
         });
         this.layout.addChild(this.quickSpinCheckbox);
 
+        // Turbo Spin
         this.turboSpinCheckbox = new CheckboxWithLabel({
             label: i18n.t('turboSpin'),
             isChecked: false,
         });
 
         this.turboSpinCheckbox.checkbox.switcher.onChange.connect((state: number | boolean) => {
-            const spinMode = state == 1 ? 'turbo-spin' : 'normal-spin';
-            userSettings.setSpinMode(spinMode);
-            this.quickSpinCheckbox.checkbox.switcher.forceSwitch(0);
+            if (state == 1) {
+                const spinMode: SlotSpinMode = 'turbo-spin';
+                userSettings.setSpinMode(spinMode);
+                this.quickSpinCheckbox.checkbox.switcher.forceSwitch(0);
+            } else {
+                const quickIsOn = this.quickSpinCheckbox.checkbox.switcher.value == 1;
+                if (!quickIsOn) {
+                    userSettings.setSpinMode('normal-spin');
+                }
+            }
         });
         this.layout.addChild(this.turboSpinCheckbox);
 
@@ -141,6 +158,22 @@ export class AutoplayPopup extends Container {
 
         // Center panel base
         this.panelBase.pivot.set(this.panelWidth / 2, this.panelHeight / 2);
+
+        // ✅ Initialize checkboxes from saved settings once (helps first open too)
+        this.syncSpinModeUI(this.getSavedSpinModeOr('normal-spin'));
+    }
+
+    /** Safely read saved spin mode from userSettings if available */
+    private getSavedSpinModeOr(fallback: SlotSpinMode): SlotSpinMode {
+        const anySettings: any = userSettings as any;
+        const mode = typeof anySettings.getSpinMode === 'function' ? anySettings.getSpinMode() : undefined;
+        return (mode ?? fallback) as SlotSpinMode;
+    }
+
+    /** Update checkbox UI based on a spin mode */
+    private syncSpinModeUI(mode: SlotSpinMode) {
+        this.quickSpinCheckbox.checkbox.switcher.forceSwitch(mode === 'quick-spin' ? 1 : 0);
+        this.turboSpinCheckbox.checkbox.switcher.forceSwitch(mode === 'turbo-spin' ? 1 : 0);
     }
 
     /** Resize the popup, fired whenever window size changes */
@@ -162,14 +195,18 @@ export class AutoplayPopup extends Container {
     /** Set things up just before showing the popup */
     public prepare(data: AutoplayPopupData) {
         if (data) {
-            this.quickSpinCheckbox.checkbox.switcher.forceSwitch(data.spinMode == 'quick-spin' ? 1 : 0);
-            this.turboSpinCheckbox.checkbox.switcher.forceSwitch(data.spinMode == 'turbo-spin' ? 1 : 0);
+            // ✅ Prefer saved spin mode so it "remembers" across opens
+            const savedMode = this.getSavedSpinModeOr(data.spinMode);
+            this.syncSpinModeUI(savedMode);
+
             this.onAutoplayPress = data.callback;
         }
     }
 
     /** Show the popup */
     public async show() {
+        // ✅ Also re-sync on show in case the mode changed while popup was closed
+        this.syncSpinModeUI(this.getSavedSpinModeOr('normal-spin'));
         this.visible = true;
     }
 
