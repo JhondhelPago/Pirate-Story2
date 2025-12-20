@@ -153,13 +153,12 @@ export class SpinRoundBanner extends Container {
         ];
     }
 
-    // 🪙 FULL SCREEN side blast: spawn at left/right edges of the popup screen
-    // ✅ lives under panel (never overlaps banner/UI)
+    // 🪙 entry point: orientation-aware coin blast
     private startCoinBlast() {
-        if (this.coinBlastActive) return;
-        this.coinBlastActive = true;
-
+        // always reset existing coins first
         this.stopCoinBlast();
+
+        this.coinBlastActive = true;
 
         const coinTextures = this.buildCoinTextures();
 
@@ -167,10 +166,21 @@ export class SpinRoundBanner extends Container {
         const H = this.bg.height || 0;
         if (W <= 0 || H <= 0) return;
 
+        const isPortrait = H > W; // 📱 portrait → rain from top, 🌐 landscape → side blast
+
+        if (isPortrait) {
+            this.startCoinBlastPortrait(W, H, coinTextures);
+        } else {
+            this.startCoinBlastLandscape(W, H, coinTextures);
+        }
+    }
+
+    // 🌐 LANDSCAPE / WIDE: side blast from left & right (same feel as before)
+    private startCoinBlastLandscape(W: number, H: number, coinTextures: Texture[]) {
         const leftSpawnX = -60;
         const rightSpawnX = W + 60;
 
-        const baseY = H * 0.78;      // a bit lower so it feels more “from the bottom”
+        const baseY = H * 0.78; // a bit lower so it feels more “from the bottom”
         const yJitter = 280;
         const bottomY = H + 140;
 
@@ -180,13 +190,12 @@ export class SpinRoundBanner extends Container {
             const coin = new AnimatedSprite(coinTextures);
             coin.anchor.set(0.5);
             coin.animationSpeed = this.rand(0.25, 0.45);
-            coin.scale.set(this.rand(0.50, 1.05));
+            coin.scale.set(this.rand(0.5, 1.05));
             coin.rotation = this.rand(-Math.PI, Math.PI);
 
             coin.x = side === "L" ? leftSpawnX : rightSpawnX;
             coin.y = baseY - this.rand(0, yJitter);
 
-            // ✅ stronger burst spread + a bit more variation
             let vx = side === "L" ? this.rand(13, 24) : -this.rand(13, 24);
             let vy = -this.rand(16, 30);
 
@@ -199,7 +208,7 @@ export class SpinRoundBanner extends Container {
             const tween = gsap.to(coin, {
                 duration: 999999,
                 ease: "none",
-                delay: this.rand(0, 0.9), // ✅ stagger start to look more “continuous”
+                delay: this.rand(0, 0.9), // stagger start to look more “continuous”
                 onStart: () => coin.play(),
                 onUpdate: () => {
                     vy += gravity;
@@ -221,7 +230,7 @@ export class SpinRoundBanner extends Container {
                     }
 
                     if (coin.y > bottomY) {
-                        coin.scale.set(this.rand(0.50, 1.05));
+                        coin.scale.set(this.rand(0.5, 1.05));
                         coin.rotation = this.rand(-Math.PI, Math.PI);
 
                         coin.x = side === "L" ? leftSpawnX : rightSpawnX;
@@ -237,13 +246,84 @@ export class SpinRoundBanner extends Container {
             return coin;
         };
 
-        // ✅ MORE COINS
-        // (Still safe because these are behind UI; tune if performance drops)
         const LEFT_COUNT = 30;
         const RIGHT_COUNT = 30;
 
         for (let i = 0; i < LEFT_COUNT; i++) makeCoin("L");
         for (let i = 0; i < RIGHT_COUNT; i++) makeCoin("R");
+    }
+
+    // 📱 PORTRAIT / MOBILE: blast from TOP, coins fall down like rain
+    private startCoinBlastPortrait(W: number, H: number, coinTextures: Texture[]) {
+        const topY = -80;
+        const bottomY = H + 80;
+
+        const minX = W * 0.05;
+        const maxX = W * 0.95;
+
+        const makeCoin = () => {
+            const coin = new AnimatedSprite(coinTextures);
+            coin.anchor.set(0.5);
+            coin.animationSpeed = this.rand(0.25, 0.45);
+            coin.scale.set(this.rand(0.5, 1.0));
+            coin.rotation = this.rand(-Math.PI, Math.PI);
+
+            coin.x = this.rand(minX, maxX);
+            coin.y = topY - this.rand(0, 120);
+
+            let vx = this.rand(-1.8, 1.8); // light horizontal drift
+            let vy = this.rand(4, 9); // falling speed
+
+            const gravity = this.rand(0.12, 0.28);
+            const dragX = this.rand(0.985, 0.995);
+            const sway = this.rand(-0.15, 0.15);
+
+            this.coinContainer.addChild(coin);
+
+            const tween = gsap.to(coin, {
+                duration: 999999,
+                ease: "none",
+                delay: this.rand(0, 0.8),
+                onStart: () => coin.play(),
+                onUpdate: () => {
+                    vy += gravity;
+                    vx *= dragX;
+
+                    coin.x += vx + sway;
+                    coin.y += vy;
+
+                    // gentle spin
+                    coin.rotation += this.rand(0.01, 0.035);
+
+                    // keep coins inside horizontal border a bit
+                    if (coin.x < minX) {
+                        coin.x = minX;
+                        vx = Math.abs(vx); // bounce to the right
+                    } else if (coin.x > maxX) {
+                        coin.x = maxX;
+                        vx = -Math.abs(vx); // bounce to the left
+                    }
+
+                    // reset when it goes off bottom
+                    if (coin.y > bottomY) {
+                        coin.scale.set(this.rand(0.5, 1.0));
+                        coin.rotation = this.rand(-Math.PI, Math.PI);
+
+                        coin.x = this.rand(minX, maxX);
+                        coin.y = topY - this.rand(0, 120);
+
+                        vx = this.rand(-1.8, 1.8);
+                        vy = this.rand(4, 9);
+                    }
+                },
+            });
+
+            (coin as any).coinTween = tween;
+            return coin;
+        };
+
+        const COUNT = 60; // similar density to landscape (30+30)
+        for (let i = 0; i < COUNT; i++) makeCoin();
     }
 
     private stopCoinBlast() {
@@ -455,7 +535,7 @@ export class SpinRoundBanner extends Container {
             onComplete: () => {
                 this.syncGlowToBanner();
                 this.showGlowEffects();
-                this.startCoinBlast(); // ✅ start after landing
+                this.startCoinBlast(); // ✅ start after landing (now orientation-aware)
             },
         });
 
@@ -534,9 +614,9 @@ export class SpinRoundBanner extends Container {
         makePlayfulSpin(gB, -1, 26);
 
         const A_MAX = 0.95;
-        const A_MIN = 0.40;
+        const A_MIN = 0.4;
         const B_MAX = 0.85;
-        const B_MIN = 0.30;
+        const B_MIN = 0.3;
 
         gA.alpha = A_MAX;
         gB.alpha = B_MIN;
