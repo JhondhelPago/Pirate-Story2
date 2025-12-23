@@ -12,24 +12,20 @@ export class Match3Actions {
         this.match3.useBaseProcess();
         this.match3.onSpinStart?.();
         await this.match3.process.start();
-
-        //Simulate user interrupt after 500ms
-        // setTimeout(() => {
-        //     console.log("Interrupting delay...");
-        //     this.match3.process.interruptSpinDelay();
-        // }, 10);
     }
 
-
-    // Action for the Free Spin Round using the Match3FreeSpinProcess
-    /** FREE SPIN */
     public async actionFreeSpin(spins: number) {
-        // await this.match3.freeSpinProcess.start(5);
         this.match3.useFreeSpinProcess();
         this.match3.freeSpinProcess.setSpins(spins);
         await this.match3.freeSpinProcess.freeSpinStart();
     }
 
+    public async actionAutoSpin(spins: number){
+        this.match3.useAutoSpinProcess();
+        this.match3.autoSpinProcess.setSpins(spins);
+        await this.match3.autoSpinProcess.autoSpinStart();        
+    }
+    
     public setup(config: { isFreeSpin: boolean }) {
         this.freeMoves = config.isFreeSpin;
     }

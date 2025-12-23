@@ -3,21 +3,16 @@ import { Match3 } from "./Match3";
 import { Match3Process } from "./Match3Process";
 import { gridZeroReset } from "./SlotUtility";
 
-export class Match3FreeSpinProcess extends Match3Process {
+export class Match3AutoSpinProcess extends Match3Process {
     constructor(match3: Match3) {
         super(match3);
     }
 
-    // state flag for this continuous process
-    protected freeSpinProcessing = false;
+    protected autoSpinProcessing = false;
     private accumulatedWin = 0;
     private remainingSpins = 0;
     private currentSpin = 0;
 
-    /**
-     * Decrements remaining spins and increments current spin.
-     * Returns true if there is another spin to process.
-     */
     public processCheckpoint() {
         if (this.remainingSpins > 0) {
             this.remainingSpins--;
@@ -27,17 +22,11 @@ export class Match3FreeSpinProcess extends Match3Process {
         return false;
     }
 
-    /**
-     * Entry point for the continuous free-spin process.
-     * Recursively calls itself until no spins remain.
-     */
-    public async freeSpinStart() {
-        // set the continuous process flag
-        this.freeSpinProcessing = true;
+    public async autoSpinStart() {
+        this.autoSpinProcessing = true;
 
         if (!this.processCheckpoint()) {
-            // End of free-spin session
-            this.freeSpinProcessing = false;
+            this.autoSpinProcessing = false;
 
             this.match3.onFreeSpinComplete?.(
                 this.currentSpin,
@@ -48,18 +37,14 @@ export class Match3FreeSpinProcess extends Match3Process {
             return; // free spin end session
         }
 
-        // One round of free spin
+
         await this.start();
-        // pause between free spins based on spinMode + win/no win
+
         await this.delayBetweenSpins();
-        // continue if spins remain
-        await this.freeSpinStart();
+
+        await this.autoSpinStart();
     }
 
-    /**
-     * Free spin start logic, mirroring Match3Process.start()
-     * but using merged reels for continuous free spins.
-     */
     public async start() {
         if (this.processing) return;
         this.processing = true;
@@ -71,67 +56,48 @@ export class Match3FreeSpinProcess extends Match3Process {
         const { minSpinMs } = this.getSpinModeDelays();
 
         console.log(
-            "From Match3FreeSpinProcess, SpinMode:",
+            "From Match3AutoSpinProcess, SpinMode:",
             spinMode,
             "minSpinMs:",
             minSpinMs
         );
 
-        // Notify free-spin round start (for UI)
         this.match3.onFreeSpinRoundStart?.(
             this.currentSpin,
             this.remainingSpins
         );
 
+
+
         await this.match3.board.startSpin();
 
-        // Fetch backend + dynamic delay (ticker-driven)
         const backendPromise = this.fetchBackendSpin();
         const delayPromise =
             minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         const result = await backendPromise;
 
-        // Only wait the delay if we actually configured one
         if (minSpinMs > 0) {
             await delayPromise;
         }
 
-        // If the whole process was stopped/cancelled during wait, bail cleanly
+
         if (!this.processing || token.cancelled) {
             this.processing = false;
             return;
         }
 
-        // Merge incoming reels/multipliers with existing ones (continuous/free-spin behavior)
-        const reelsTraversed = this.mergeReels(
-            this.match3.board.getBackendReels(),
-            result.reels
-        );
-        const multiplierTraversed = this.mergeMultipliers(
-            this.match3.board.getBackendMultipliers(),
-            result.bonusReels
-        );
-
-        this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
+        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
 
         await this.runProcessRound();
         await this.match3.board.finishSpin();
 
         this.processing = false;
 
-        // Free-spin specific callback
+
         await this.match3.onFreeSpinRoundComplete?.();
     }
 
-    /**
-     * Free-spin round processing:
-     * - Evaluate wins
-     * - Update round win
-     * - Accumulate total win across free spins
-     * - Update winning positions
-     * - Merge sticky wilds across spins
-     */
     public runProcessRound(): void {
         this.round++;
 
@@ -139,17 +105,8 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.addRoundWin());
         this.queue.add(async () => this.setWinningPositions());
-        // this.queue.add(async () =>
-        //     this.setMergeStickyWilds(
-        //         this.match3.board.getWildReels(),
-        //         this.match3.board.getBackendReels()
-        //     )
-        // );
     }
 
-    /**
-     * Adds the current round win (based on roundResult) to accumulatedWin.
-     */
     public addRoundWin() {
         console.log("Remaining Spins: ", this.remainingSpins);
         console.log(this.roundResult);
@@ -184,9 +141,9 @@ export class Match3FreeSpinProcess extends Match3Process {
         await new Promise<void>((resolve) => setTimeout(resolve, ms));
     }
 
-    // isFreeSpinProcessing getter method here
-    public getFreeSpinProcessing() {
-        return this.freeSpinProcessing;
+    
+    public getAutoSpinProcessing() {
+        return this.autoSpinProcessing;
     }
 
     public reset() {

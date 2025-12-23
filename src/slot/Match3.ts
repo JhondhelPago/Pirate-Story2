@@ -5,6 +5,7 @@ import { Match3Config, slotGetConfig } from './Match3Config';
 import { Match3Process } from './Match3Process';
 import { Match3Stats } from './Match3Stats';
 import { Match3FreeSpinProcess } from './Match3FreeSpinProcess';
+import { Match3AutoSpinProcess } from './Match3AutoSpinProcess'; // ✅ NEW
 import { SlotSymbol } from './SlotSymbol';
 import { Match3RoundResults } from './Match3RounResults';
 import { Match3Jackpot } from './Match3Jackpot';
@@ -47,7 +48,7 @@ export class Match3 extends Container {
     public board: Match3Board;
     /** Sort out actions that the player can take */
     public actions: Match3Actions;
-    
+
     /** The normal (base) process */
     private baseProcess: Match3Process;
 
@@ -62,6 +63,9 @@ export class Match3 extends Container {
     /** A dedicated free spin process */
     public freeSpinProcess: Match3FreeSpinProcess;
 
+    /** ✅ NEW: A dedicated auto spin process */
+    public autoSpinProcess: Match3AutoSpinProcess;
+
     /** Game callbacks */
     public onSpinStart?: () => void;
     public onFreeSpinTrigger?: () => void;
@@ -70,6 +74,11 @@ export class Match3 extends Container {
     public onFreeSpinComplete?: (current: number, remaining: number) => void;
     public onFreeSpinRoundStart?: (current: number, remaining: number) => void;
     public onFreeSpinRoundComplete?: () => void;
+
+    public onAutoSpinStart?: (count: number) => void;
+    public onAutoSpinComplete?: (current: number, remaining: number) => void;
+    public onAutoSpinRoundStart?: (current: number, remaining: number) => void;
+    public onAutoSpinRoundComplete?: () => void;
 
     public onProcessStart?: () => void;
     public onProcessComplete?: () => void | void;
@@ -87,8 +96,10 @@ export class Match3 extends Container {
 
         /** Create process instances */
         this.baseProcess = new Match3Process(this);
-        this._currentProcess = this.baseProcess;      // start with normal process
+        this._currentProcess = this.baseProcess; // start with normal process
         this.freeSpinProcess = new Match3FreeSpinProcess(this);
+        this.autoSpinProcess = new Match3AutoSpinProcess(this);
+        
     }
 
     /** Switch back to normal/base process */
@@ -99,6 +110,11 @@ export class Match3 extends Container {
     /** Switch to free spin process */
     public useFreeSpinProcess() {
         this._currentProcess = this.freeSpinProcess;
+    }
+
+    /** ✅ NEW: Switch to auto spin process */
+    public useAutoSpinProcess() {
+        this._currentProcess = this.autoSpinProcess;
     }
 
     /**
@@ -115,10 +131,14 @@ export class Match3 extends Container {
     public reset() {
         this.interactiveChildren = false;
         this.stats.reset();
-        
-        // Reset both processes safely
+
+        // Reset all processes safely
         this.baseProcess.reset();
         this.freeSpinProcess.reset();
+
+        /** ✅ NEW */
+        this.autoSpinProcess.reset();
+
         this.useBaseProcess(); // ensure we go back to normal process after reset
     }
 
@@ -138,6 +158,15 @@ export class Match3 extends Container {
         this.spinning = true;
 
         await this.actions.actionFreeSpin(spins);
+
+        this.spinning = false;
+    }
+
+    public async autoSpin(spins: number) {
+        if (this.spinning) return;
+        this.spinning = true;
+
+        await this.actions.actionAutoSpin(spins);
 
         this.spinning = false;
     }
@@ -167,6 +196,6 @@ export class Match3 extends Container {
     /** Update the timer */
     public update(_delta: number) {
         // this.timer.update(delta);
-        this.process.update(_delta);  // <- will call base or free process depending on current mode
+        this.process.update(_delta); // <- will call base/free/auto depending on current process
     }
 }

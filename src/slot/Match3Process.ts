@@ -193,7 +193,6 @@ export class Match3Process {
         this.queue.add(async () => this.setRoundResult());
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.setWinningPositions());
-        // this.queue.add( async () => this.setMergeStickyWilds( this.match3.board.getWildReels(), this.match3.board.getBackendReels()));
     }
 
     protected setRoundResult() {

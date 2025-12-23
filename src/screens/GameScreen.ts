@@ -82,6 +82,12 @@ export class GameScreen extends Container {
         this.match3.onFreeSpinComplete = this.onFreeSpinComplete.bind(this);
         this.match3.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
         this.match3.onFreeSpinRoundComplete = this.onFreeSpinRoundComplete.bind(this);
+
+        // this.match3.onAutoSpinStart = this.onAutoSpinStart.bind(this);
+        // this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
+        // this.match3.onAutoSpinRoundStart = this.onAutoSpinRoundStart.bind(this);
+        // this.match3.onAutoSpinRoundComplete = this.onAutoSpinRoundComplete.bind(this);
+
         this.match3.onProcessStart = this.onProcessStart.bind(this);
         this.match3.onProcessComplete = this.onProcessComplete.bind(this);
         this.match3.scale.set(1.2);
@@ -111,7 +117,9 @@ export class GameScreen extends Container {
                     callback: async (spins: number) => {
                         if (this.finished) return;
                         await navigation.dismissPopup();
-                        //this.startSpinning({ autoplaySpins: spins });
+                        console.log("AutoPlay Initiated here.");
+                        //  GameScreen function here to trigger the auto spin
+                        this.autoSpinStartSpinning(5);
                     },
                 });
         });
@@ -166,6 +174,10 @@ export class GameScreen extends Container {
         return this.match3.freeSpinProcess?.getFreeSpinProcessing?.() ?? false;
     }
 
+    private getAutoSpinProcessing(): boolean {
+        return this.match3.autoSpinProcess?.getAutoSpinProcessing?.() ?? false;
+    }
+
     /**
      * ✅ BuyFreeSpin stays VISIBLE but is DISABLED while:
      * - normal process is processing
@@ -195,7 +207,8 @@ export class GameScreen extends Container {
 
     public async startSpinning() {
         if (this.match3.spinning) return;
-        if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
+        // if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
+        if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
 
         this.lockInteraction();
         await this.match3.spin();
@@ -203,10 +216,20 @@ export class GameScreen extends Container {
 
     public freeSpinStartSpinning(spins: number) {
         if (this.finished) return;
-        if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
+        // if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
+        if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
 
         this.lockInteraction();
         this.match3.freeSpin(spins);
+        this.finished = true;
+    }
+
+    public autoSpinStartSpinning(spins: number) {
+        if (this.finished) return;
+        if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
+
+        this.lockInteraction();
+        this.match3.autoSpin(spins);
         this.finished = true;
     }
 
