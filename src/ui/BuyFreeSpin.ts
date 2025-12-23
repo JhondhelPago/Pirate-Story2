@@ -13,6 +13,12 @@ export class BuyFreeSpin extends Container {
 
     private enabled = true;
 
+    // ✅ NEW: smooth enabled/disabled transition
+    private enabledTween?: gsap.core.Tween;
+    private readonly ENABLED_ALPHA = 1;
+    private readonly DISABLED_ALPHA = 0.6;
+    private readonly ENABLE_FADE_SEC = 0.18;
+
     constructor() {
         super();
 
@@ -52,29 +58,33 @@ export class BuyFreeSpin extends Container {
     /**
      * ✅ Enable/disable interaction WITHOUT hiding the button.
      * Visible stays true (unless you explicitly call hide()).
+     * ✅ NOW: fades alpha smoothly instead of snapping.
      */
     public setEnabled(enabled: boolean) {
+        // no-op if unchanged
+        if (this.enabled === enabled) return;
+
         this.enabled = enabled;
 
         // keep visible as requested
         this.visible = true;
 
-        if (enabled) {
-            // allow pointer events
-            this.eventMode = 'static';
-            this.cursor = 'pointer';
+        // ✅ Input gating is immediate (game rules)
+        this.eventMode = enabled ? 'static' : 'none';
+        this.cursor = enabled ? 'pointer' : 'default';
 
-            // restore visuals
-            this.alpha = 1;
-        } else {
-            // block pointer events
-            this.eventMode = 'none';
-            this.cursor = 'default';
+        // ✅ Smooth visual transition
+        if (this.enabledTween) this.enabledTween.kill();
 
-            // visual hint (still visible)
-            this.alpha = 0.6;
+        this.enabledTween = gsap.to(this, {
+            alpha: enabled ? this.ENABLED_ALPHA : this.DISABLED_ALPHA,
+            duration: this.ENABLE_FADE_SEC,
+            ease: 'power2.out',
+            overwrite: true,
+        });
 
-            // ensure it doesn't stay scaled up from hover
+        // ✅ If disabling, ensure it doesn't stay scaled up from hover
+        if (!enabled) {
             gsap.killTweensOf(this.container.scale);
             this.container.scale.set(1);
         }
@@ -155,7 +165,12 @@ export class BuyFreeSpin extends Container {
         // ✅ keep current enabled state
         this.eventMode = this.enabled ? 'static' : 'none';
         this.cursor = this.enabled ? 'pointer' : 'default';
-        this.alpha = this.enabled ? 1 : 0.6;
+
+        // ✅ ensure any enabled tween doesn't fight show animation
+        if (this.enabledTween) this.enabledTween.kill();
+
+        // set to correct alpha immediately on show
+        this.alpha = this.enabled ? this.ENABLED_ALPHA : this.DISABLED_ALPHA;
 
         this.stopFloating();
 
@@ -177,6 +192,12 @@ export class BuyFreeSpin extends Container {
         // hide means truly invisible
         this.eventMode = 'none';
         this.cursor = 'default';
+
+        // ✅ stop enabled tween so it won't re-apply alpha mid-hide
+        if (this.enabledTween) {
+            this.enabledTween.kill();
+            this.enabledTween = undefined;
+        }
 
         this.stopFloating();
 

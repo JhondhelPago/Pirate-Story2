@@ -132,12 +132,12 @@ export class Match3Process {
             delays = {
                 minSpinMs: 1200,
                 betweenWinMs: 3500,
-                betweenNoWinMs: 2500,
+                betweenNoWinMs: 2000,
             };
         } else if (mode === "turbo-spin") {
             delays = {
                 minSpinMs: 1000,
-                betweenWinMs: 3000,
+                betweenWinMs: 2500,
                 betweenNoWinMs: 1500,
             };
         }

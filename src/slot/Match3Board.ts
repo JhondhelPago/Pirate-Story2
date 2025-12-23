@@ -554,7 +554,6 @@ export class Match3Board {
 
     public async finishSpin(): Promise<void> {
 
-
         const spinMode = userSettings.getSpinMode();
 
         if (spinMode === SpinModeEnum.Normal) {
