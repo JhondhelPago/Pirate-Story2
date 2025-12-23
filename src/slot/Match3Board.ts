@@ -4,7 +4,9 @@ import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import { BlurSymbol } from "../ui/BlurSymbol";
 import { SlotSymbol } from "./SlotSymbol";
-import { gridRandomTypeReset, gridZeroReset } from "./SlotUtility";
+import { gridRandomTypeReset } from "./SlotUtility";
+import { userSettings, SpinModeEnum } from "../utils/userSettings";
+
 
 interface ReelColumn {
     container: Container;
@@ -549,7 +551,24 @@ export class Match3Board {
         this.startBlurSpin();
     }
 
+
     public async finishSpin(): Promise<void> {
+
+
+        const spinMode = userSettings.getSpinMode();
+
+        if (spinMode === SpinModeEnum.Normal) {
+            await this.finishSpinNormal(); 
+        } else if (
+            spinMode === SpinModeEnum.Quick ||
+            spinMode === SpinModeEnum.Turbo
+        ) {
+            await this.finishSpinQuickTurbo();
+        }
+    }
+
+
+    public async finishSpinNormal(): Promise<void>{
         this.stopBlurSpin();
         this.applyBackendToRealLayer();
 
@@ -620,7 +639,33 @@ export class Match3Board {
         this.animateWinningSymbols(wins);
 
         this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
+        this.testAnimateAllWildSymbols(wins);   
+    }
+
+    public async finishSpinQuickTurbo(): Promise<void>{
+        this.stopBlurSpin();
+        this.applyBackendToRealLayer();
+
+        await Promise.all([
+            gsap.to(this.blurLayer, {
+                y: this.maskH + this.tileSize * 3,
+                duration: 0.35,
+                ease: "power2.out",
+            }),
+            gsap.to(this.realLayer, {
+                y: 0,
+                duration: 0.35,
+                ease: "power2.out",
+            }),
+        ]);
+
+        this.ensureWildLayerOnTop();
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);      
     }
 
 

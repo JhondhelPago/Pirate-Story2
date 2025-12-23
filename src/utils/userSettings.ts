@@ -6,7 +6,13 @@ const KEY_VOLUME_MASTER = 'volume-master';
 const KEY_VOLUME_BGM = 'volume-bgm';
 const KEY_VOLUME_SFX = 'volume-sfx';
 
-type SpinMode = 'quick-spin' | 'turbo-spin' | 'normal-spin';
+export enum SpinModeEnum {
+    Normal = "normal-spin",
+    Quick = "quick-spin",
+    Turbo = "turbo-spin",
+}
+
+type SpinMode = SpinModeEnum.Normal | SpinModeEnum.Quick | SpinModeEnum.Turbo;
 
 export enum BetAction {
     INCREASE = 'increase',
@@ -25,9 +31,7 @@ class UserSettings {
     private balance: number;
 
     constructor() {
-        this.spinMode = 'normal-spin';
-        //this.spinMode = 'quick-spin';
-        //this.spinMode = 'turbo-spin';
+        this.spinMode = SpinModeEnum.Normal;
         this.currency = 'usd';
         this.balance = 0;
         this.freeSpins = 0;
