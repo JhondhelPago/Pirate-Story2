@@ -7,7 +7,7 @@ import { Button } from '../ui/Button';
 import { Slider } from '../ui/Slider';
 import { SlotSpinMode } from '../slot/SlotConfig';
 import { i18n } from '../i18n/i18n';
-import { userSettings } from '../utils/userSettings';
+import { SpinModeEnum, userSettings } from '../utils/userSettings';
 
 export type AutoplayPopupData = {
     spinMode: SlotSpinMode;
@@ -98,20 +98,20 @@ export class AutoplayPopup extends Container {
             label: i18n.t('quickSpin'),
             isChecked: false,
         });
-        this.quickSpinCheckbox.checkbox.switcher.onChange.connect((state: number | boolean) => {
-            // Only react when user turns it ON; when it turns OFF we can fall back to normal
-            if (state == 1) {
-                const spinMode: SlotSpinMode = 'quick-spin';
-                userSettings.setSpinMode(spinMode);
+        this.quickSpinCheckbox.checkbox.onChange = (state) => {
+            if (state === 1) {
+                userSettings.setSpinMode(SpinModeEnum.Quick);
                 this.turboSpinCheckbox.checkbox.switcher.forceSwitch(0);
             } else {
-                // If unchecked and turbo isn't checked, revert to normal
-                const turboIsOn = this.turboSpinCheckbox.checkbox.switcher.value == 1;
+                const turboIsOn = this.turboSpinCheckbox.checkbox.state === 1;
+
                 if (!turboIsOn) {
-                    userSettings.setSpinMode('normal-spin');
+                    userSettings.setSpinMode(SpinModeEnum.Normal);
                 }
             }
-        });
+        };
+
+
         this.layout.addChild(this.quickSpinCheckbox);
 
         // Turbo Spin
@@ -122,13 +122,14 @@ export class AutoplayPopup extends Container {
 
         this.turboSpinCheckbox.checkbox.switcher.onChange.connect((state: number | boolean) => {
             if (state == 1) {
-                const spinMode: SlotSpinMode = 'turbo-spin';
+                const spinMode = SpinModeEnum.Turbo;
                 userSettings.setSpinMode(spinMode);
                 this.quickSpinCheckbox.checkbox.switcher.forceSwitch(0);
             } else {
-                const quickIsOn = this.quickSpinCheckbox.checkbox.switcher.value == 1;
+                const quickIsOn = this.quickSpinCheckbox.checkbox.state === 1;
+                
                 if (!quickIsOn) {
-                    userSettings.setSpinMode('normal-spin');
+                    userSettings.setSpinMode(SpinModeEnum.Normal);
                 }
             }
         });
