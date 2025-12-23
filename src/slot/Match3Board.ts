@@ -553,19 +553,67 @@ export class Match3Board {
         this.stopBlurSpin();
         this.applyBackendToRealLayer();
 
-        await Promise.all([
-            gsap.to(this.blurLayer, {
-                y: this.maskH + this.tileSize * 3,
-                duration: 0.35,
-                ease: "power2.out",
-            }),
-            gsap.to(this.realLayer, {
-                y: 0,
-                duration: 0.35,
-                ease: "power2.out",
-            }),
-        ]);
+        // ---------------------------------------------
+        // COLUMN-STAGGERED STOP ANIMATION FOR REAL LAYER
+        // ---------------------------------------------
+        const { offsetY } = this.getOffsets();
 
+        const startLayerY = this.realLayer.y; // should be maskH from startSpin()
+        const columnTweens: Promise<void>[] = [];
+
+        // Move the layer offset into the individual columns,
+        // so we can animate columns independently while realLayer.y stays at 0.
+        if (startLayerY !== 0) {
+            for (const reel of this.realReels) {
+                reel.container.y += startLayerY;
+            }
+            this.realLayer.y = 0;
+        }
+
+        // Base duration and stagger per column
+        const baseDuration = 0.35;
+        const perColumnDelay = 0.06; // tweak this for more/less stagger
+
+        for (let c = 0; c < this.columns; c++) {
+            const reel = this.realReels[c];
+            const colContainer = reel.container;
+            const delay = c * perColumnDelay;
+
+            const tween = gsap.to(colContainer, {
+                y: -offsetY,
+                duration: baseDuration,
+                delay,
+                ease: "power2.out",
+            });
+
+            columnTweens.push(
+                new Promise<void>((resolve) => {
+                    tween.eventCallback("onComplete", () => resolve());
+                })
+            );
+        }
+
+        // Blur layer still slides down, but we stretch its duration
+        // so it covers the entire stagger sequence.
+        const blurTweenDuration =
+            baseDuration + (this.columns - 1) * perColumnDelay;
+
+        const blurTween = gsap.to(this.blurLayer, {
+            y: this.maskH + this.tileSize * 3,
+            duration: blurTweenDuration,
+            ease: "power2.out",
+        });
+
+        const blurPromise = new Promise<void>((resolve) => {
+            blurTween.eventCallback("onComplete", () => resolve());
+        });
+
+        // Wait for all columns + blur to finish
+        await Promise.all([...columnTweens, blurPromise]);
+
+        // ---------------------------------------------
+        // SAME LOGIC AS BEFORE (wins, wilds, etc.)
+        // ---------------------------------------------
         this.ensureWildLayerOnTop();
 
         const wins = this.match3.process.getWinningPositions() ?? [];
@@ -574,6 +622,7 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
         this.testAnimateAllWildSymbols(wins);
     }
+
 
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
