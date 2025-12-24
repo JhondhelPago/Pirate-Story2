@@ -28,7 +28,8 @@ export class Match3AutoSpinProcess extends Match3Process {
         if (!this.processCheckpoint()) {
             this.autoSpinProcessing = false;
 
-            this.match3.onFreeSpinComplete?.(
+            // use a bound callback here for the autoSpinComplete
+            this.match3.onAutoSpinComplete?.(
                 this.currentSpin,
                 this.remainingSpins
             );
@@ -95,7 +96,7 @@ export class Match3AutoSpinProcess extends Match3Process {
         this.processing = false;
 
 
-        await this.match3.onFreeSpinRoundComplete?.();
+        await this.match3.onFreeSpinRoundComplete?.(); // follow the same with the autoSpin RoundComplete
     }
 
     public runProcessRound(): void {

@@ -83,10 +83,10 @@ export class GameScreen extends Container {
         this.match3.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
         this.match3.onFreeSpinRoundComplete = this.onFreeSpinRoundComplete.bind(this);
 
-        // this.match3.onAutoSpinStart = this.onAutoSpinStart.bind(this);
-        // this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
-        // this.match3.onAutoSpinRoundStart = this.onAutoSpinRoundStart.bind(this);
-        // this.match3.onAutoSpinRoundComplete = this.onAutoSpinRoundComplete.bind(this);
+        this.match3.onAutoSpinStart = this.onAutoSpinStart.bind(this);
+        this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
+        this.match3.onAutoSpinRoundStart = this.onAutoSpinRoundStart.bind(this);
+        this.match3.onAutoSpinRoundComplete = this.onAutoSpinRoundComplete.bind(this);
 
         this.match3.onProcessStart = this.onProcessStart.bind(this);
         this.match3.onProcessComplete = this.onProcessComplete.bind(this);
@@ -321,6 +321,24 @@ export class GameScreen extends Container {
         this.lockInteraction();
     }
 
+    private async onAutoSpinStart() {
+        
+    }
+
+    private async onAutoSpinComplete(current: number, remaining: number) {
+        console.log(`Total Won in ${current} Auto Spin: `, this.match3.autoSpinProcess.getAccumulatedWin());
+        this.drawTotalWinBanner(this.match3.autoSpinProcess.getAccumulatedWin());
+        this.syncFeatureAvailability();
+    }
+
+    private async onAutoSpinRoundStart(current: number, remaining: number) {
+        
+    }
+
+    private async onAutoSpinRoundComplete() {
+        
+    }
+
     private async onFreeSpinStart() {
         console.log('FREE SPIN PROCESS STARTING');
         this.lockInteraction();
@@ -338,7 +356,7 @@ export class GameScreen extends Container {
         this.lockInteraction();
     }
 
-    private async onFreeSpinRoundComplete() {
+    private async onFreeSpinRoundComplete() { // used by freespinprocess and autospinprocess
         console.log("onFreeSpinRoundComplete trigger using the freespinprocess");
         const TotalWon = this.match3.freeSpinProcess.getAccumulatedWin();
 
