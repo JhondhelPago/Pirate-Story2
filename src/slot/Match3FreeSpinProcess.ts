@@ -1,7 +1,7 @@
 import { userSettings } from "../utils/userSettings";
 import { Match3 } from "./Match3";
 import { Match3Process } from "./Match3Process";
-import { gridZeroReset } from "./SlotUtility";
+import { calculateTotalWin, gridZeroReset } from "./SlotUtility";
 
 export class Match3FreeSpinProcess extends Match3Process {
     constructor(match3: Match3) {
@@ -154,14 +154,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         console.log("Remaining Spins: ", this.remainingSpins);
         console.log(this.roundResult);
 
-        const totalRoundMultiplier = this.roundResult.reduce(
-            (sum, result) => sum + result.multiplier,
-            0
-        );
-        console.log("this total round multiplier: ", totalRoundMultiplier);
-
-        const totalRoundWin = totalRoundMultiplier * userSettings.getBet();
-        console.log("this total round win: ", totalRoundWin);
+        const totalRoundWin = calculateTotalWin(this.roundResult, userSettings.getBet());
 
         this.accumulatedWin += totalRoundWin;
     }

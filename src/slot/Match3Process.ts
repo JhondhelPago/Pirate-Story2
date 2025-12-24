@@ -151,11 +151,8 @@ export class Match3Process {
 
         const token = { cancelled: false };
         this.cancelToken = token;
-
-        const spinMode = userSettings.getSpinMode();
+        
         const { minSpinMs } = this.getSpinModeDelays();
-
-        console.log("From Match3Process, SpinMode:", spinMode, "minSpinMs:", minSpinMs);
 
         await this.match3.board.startSpin();
 
