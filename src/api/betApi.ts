@@ -18,7 +18,7 @@ export class BetAPI {
                 },
             });
 
-            // Check if the network request was successful
+            // Check if the network request was successful  
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Server error occurred during spin');

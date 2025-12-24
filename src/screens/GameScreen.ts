@@ -117,9 +117,7 @@ export class GameScreen extends Container {
                     callback: async (spins: number) => {
                         if (this.finished) return;
                         await navigation.dismissPopup();
-                        console.log("AutoPlay Initiated here.");
-                        //  GameScreen function here to trigger the auto spin
-                        this.autoSpinStartSpinning(5);
+                        this.autoSpinStartSpinning(spins);
                     },
                 });
         });

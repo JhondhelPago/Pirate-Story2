@@ -138,11 +138,11 @@ export class AutoplayPopup extends Container {
         this.autoplaySlider = new Slider({
             text: i18n.t('numberOfAutoSpins', { autospins: this.autoplayCount }),
             min: 10,
-            max: 1000000,
+            max: 100,
             value: 10,
         });
         this.autoplaySlider.onUpdate.connect((value: number) => {
-            this.autoplayCount = Math.round(value / 10) * 10; // Round to nearest 10
+            this.autoplayCount = Math.floor(value / 10) * 10; // Round to nearest 10
             this.autoplaySlider.text = i18n.t('numberOfAutoSpins', { autospins: this.autoplayCount });
             this.autoplayButton.setText(i18n.t('autoplay', { autospins: this.autoplayCount }));
         });
