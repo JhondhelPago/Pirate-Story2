@@ -1,5 +1,6 @@
 import { gameConfig } from '../utils/gameConfig';
 import { Pattern } from './Match3Config';
+import { userSettings } from '../utils/userSettings';
 
 /** Piece type on each position in the grid */
 export type Match3Type = number;
@@ -662,15 +663,12 @@ export function slotEvaluateClusterWins(
             }
         }
 
-        const bonusMultiplier = wildBonus > 0 ? wildBonus : 1;
-
-        // ------ FINAL MULTIPLIER ------
-        const finalMultiplier = baseMultiplier + bonusMultiplier;
+        const FinalMultiplier = wildBonus > 0 ? wildBonus : 1
 
         results.push({
             type: cluster.type,
             count,
-            multiplier: finalMultiplier,
+            multiplier: FinalMultiplier,
             positions: cluster.positions,
         });
     }
@@ -680,15 +678,27 @@ export function slotEvaluateClusterWins(
 
 export function calculateTotalWin(
     results: ClusterWinResult[],
-    baseWinAmount: number
+    betAmount: number
 ): number {
-    const totalMultiplier = results.reduce(
-        (sum, r) => sum + r.multiplier,
-        0
-    );
+    const paytable = gameConfig.getPaytables();
+    let totalWin = 0;
 
-    return baseWinAmount * totalMultiplier;
+    results.forEach(r => {
+        const payLedger = paytable.find(p => p.type === r.type);
+        if (!payLedger) return;
+
+        const payMatrix = payLedger.patterns.find(
+            p => r.count >= p.min && r.count <= p.max
+        );
+        if (!payMatrix) return;
+
+        const singleWin = (betAmount * payMatrix.multiplier) * r.multiplier; // (bet * equivalent multiplier) * TotalWildMultiplier
+        totalWin += singleWin;
+    });
+
+    return totalWin;
 }
+
 
 /**
  * Flattens cluster win results into a single list of unique positions.

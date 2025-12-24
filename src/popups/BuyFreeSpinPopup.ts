@@ -144,7 +144,7 @@ export class BuyFreeSpinPopup extends Container {
             confirmButton: "confirm-button",
             cancelButton: "cancel-button",
             onConfirm: () => {
-                const game = navigation.currentScreen as GameScreen;
+                const game = navigation.currentScreen as GameScreen;   
                 game.onFreeSpinStart(spinCount);
             },
         });
