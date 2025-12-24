@@ -147,9 +147,6 @@ export class Match3FreeSpinProcess extends Match3Process {
         );
     }
 
-    /**
-     * Adds the current round win (based on roundResult) to accumulatedWin.
-     */
     public addRoundWin() {
         console.log("Remaining Spins: ", this.remainingSpins);
         console.log(this.roundResult);

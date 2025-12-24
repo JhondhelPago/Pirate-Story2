@@ -56,13 +56,6 @@ export class Match3AutoSpinProcess extends Match3Process {
         const spinMode = userSettings.getSpinMode();
         const { minSpinMs } = this.getSpinModeDelays();
 
-        console.log(
-            "From Match3AutoSpinProcess, SpinMode:",
-            spinMode,
-            "minSpinMs:",
-            minSpinMs
-        );
-
         this.match3.onAutoSpinRoundStart?.(
             this.currentSpin,
             this.remainingSpins
