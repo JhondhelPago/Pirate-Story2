@@ -145,7 +145,7 @@ export class BuyFreeSpinPopup extends Container {
             cancelButton: "cancel-button",
             onConfirm: () => {
                 const game = navigation.currentScreen as GameScreen;
-                game.freeSpinStartSpinning(spinCount);
+                game.onFreeSpinStart(spinCount);
             },
         });
     }

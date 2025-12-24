@@ -117,7 +117,7 @@ export class GameScreen extends Container {
                     callback: async (spins: number) => {
                         if (this.finished) return;
                         await navigation.dismissPopup();
-                        this.autoSpinStartSpinning(spins);
+                        this.onAutoSpinStart(spins);
                     },
                 });
         });
@@ -186,8 +186,9 @@ export class GameScreen extends Container {
     private syncFeatureAvailability() {
         const normalProcessing = this.getNormalProcessing();
         const freeSpinProcessing = this.getFreeSpinProcessing();
+        const autoSpinProcessing = this.getAutoSpinProcessing();
 
-        const canInteract = !normalProcessing && !freeSpinProcessing;
+        const canInteract = !normalProcessing && !freeSpinProcessing && !autoSpinProcessing;
 
         // BuyFreeSpin: visible always, enabled only when idle
         this.buyFreeSpin.setEnabled(canInteract);
@@ -196,6 +197,7 @@ export class GameScreen extends Container {
         if (canInteract) this.controlPanel.enableBetting();
         else this.controlPanel.disableBetting();
     }
+
 
     /** Hard lock (used while waiting 2s + while popup is showing) */
     private lockInteraction() {
@@ -219,15 +221,6 @@ export class GameScreen extends Container {
 
         this.lockInteraction();
         this.match3.freeSpin(spins);
-        this.finished = true;
-    }
-
-    public autoSpinStartSpinning(spins: number) {
-        if (this.finished) return;
-        if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
-
-        this.lockInteraction();
-        this.match3.autoSpin(spins);
         this.finished = true;
     }
 
@@ -321,41 +314,86 @@ export class GameScreen extends Container {
         this.lockInteraction();
     }
 
-    private async onAutoSpinStart() {
-        
+    public async onAutoSpinStart(spins: number) {
+        if (this.finished) return;
+        if (this.match3.autoSpinProcess.getAutoSpinProcessing()) return;
+
+        this.lockInteraction();
+        this.match3.autoSpin(spins);
+        this.finished = true;
     }
 
+    // Auto Spin Feature after spins Trigger (SESSION COMPLETE)
     private async onAutoSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Auto Spin: `, this.match3.autoSpinProcess.getAccumulatedWin());
+
         this.drawTotalWinBanner(this.match3.autoSpinProcess.getAccumulatedWin());
+
+        // ✅ UNLOCK ONLY WHEN AUTO SPIN SESSION IS FINISHED
+        this.controlPanel.enableBetting();
+        this.finished = false;
+
         this.syncFeatureAvailability();
     }
 
+    // Auto Spin Feature Trigger before spins animation (ROUND START)
     private async onAutoSpinRoundStart(current: number, remaining: number) {
-        
-    }
-
-    private async onAutoSpinRoundComplete() {
-        
-    }
-
-    private async onFreeSpinStart() {
-        console.log('FREE SPIN PROCESS STARTING');
+        console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
+        this.controlPanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
         this.lockInteraction();
     }
 
+    // Auto Spin Feature Trigger after spin round (ROUND COMPLETE)
+    private async onAutoSpinRoundComplete() {
+        console.log("onAutoSpinRoundComplete trigger using the autospinprocess");
+
+        const TotalWon = this.match3.autoSpinProcess.getAccumulatedWin();
+
+        if (TotalWon > 0) this.controlPanel.setTitle(`Win ${TotalWon}`);
+        else this.controlPanel.setTitle(`GOOD LUCK`);
+
+        this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
+
+        // Only run end-of-round visuals when this round is fully done
+        if (!this.match3.autoSpinProcess.isProcessing()) {
+            await this.finish();
+            await this.drawWinBannerAsync(this.match3.autoSpinProcess.getRoundWin());
+        }
+
+        if (this.match3.autoSpinProcess.getAutoSpinProcessing()) {
+            this.lockInteraction();
+        }
+
+        this.syncFeatureAvailability();
+    }
+
+
+    // Free Spin Feature Trigger
+    public async onFreeSpinStart(spins: number) {
+        if (this.finished) return;
+        // if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
+        if (this.getFreeSpinProcessing()) return;
+
+        this.lockInteraction();
+        this.match3.freeSpin(spins);
+        this.finished = true;
+    }
+
+    // Free Spin Feature after spins Trigger
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
         this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
         this.syncFeatureAvailability();
     }
 
+    // Free Spin Feature Trigger before spins animation
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
         this.lockInteraction();
     }
 
+    // Free Spin Feature Trigger after spin round 
     private async onFreeSpinRoundComplete() { // used by freespinprocess and autospinprocess
         console.log("onFreeSpinRoundComplete trigger using the freespinprocess");
         const TotalWon = this.match3.freeSpinProcess.getAccumulatedWin();
@@ -363,12 +401,12 @@ export class GameScreen extends Container {
         if (TotalWon > 0) this.controlPanel.setTitle(`Win ${TotalWon}`);
         else this.controlPanel.setTitle(`GOOD LUCK`);
 
-        this.messageMatchQueuing(this.match3.process.getRoundResult());
+        this.messageMatchQueuing(this.match3.freeSpinProcess.getRoundResult());
 
         // when both processes are not processing (end of a round)
-        if (!this.match3.process.isProcessing() && !this.match3.freeSpinProcess.isProcessing()) {
+        if (!this.match3.freeSpinProcess.isProcessing()) {
             await this.finish();
-            await this.drawWinBannerAsync(this.match3.process.getRoundWin());
+            await this.drawWinBannerAsync(this.match3.freeSpinProcess.getRoundWin());
         }
 
         this.controlPanel.enableBetting();

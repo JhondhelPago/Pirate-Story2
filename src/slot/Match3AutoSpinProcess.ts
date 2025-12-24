@@ -63,10 +63,10 @@ export class Match3AutoSpinProcess extends Match3Process {
             minSpinMs
         );
 
-        this.match3.onFreeSpinRoundStart?.(
+        this.match3.onAutoSpinRoundStart?.(
             this.currentSpin,
             this.remainingSpins
-        );
+        )
 
 
 
@@ -96,7 +96,7 @@ export class Match3AutoSpinProcess extends Match3Process {
         this.processing = false;
 
 
-        await this.match3.onFreeSpinRoundComplete?.(); // follow the same with the autoSpin RoundComplete
+        await this.match3.onAutoSpinRoundComplete?.();
     }
 
     public runProcessRound(): void {
