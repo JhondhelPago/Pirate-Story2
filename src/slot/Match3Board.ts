@@ -33,6 +33,10 @@ export class Match3Board {
     public piecesContainer: Container;
     public piecesMask: Graphics;
 
+    /**
+     * blurLayer is a "BLUR COLUMNS LAYER" that stays inside the mask area and spins.
+     * realLayer is the 5x5 real result layer.
+     */
     private blurLayer: Container;
     private realLayer: Container;
     private wildLayer: Container;
@@ -41,6 +45,9 @@ export class Match3Board {
     private blurReels: ReelColumn[] = [];
     private realReels: ReelColumn[] = [];
     private wildReels: ReelColumn[] = [];
+
+    // NEW: per-column blur freeze (so landed columns stop while others keep spinning)
+    private blurFrozen: boolean[] = [];
 
     // SPIN CONTROL -----------------------------------
     private ticker?: Ticker;
@@ -109,13 +116,6 @@ export class Match3Board {
             reel.container.removeChildren();
             reel.container.destroy();
         }
-    }
-
-    private makeDummyCell(y: number) {
-        const dummy = new Container() as any;
-        dummy.y = y;
-        dummy.visible = false;
-        return dummy;
     }
 
     private makeSlotSymbol(type: number, multiplier: number) {
@@ -319,19 +319,25 @@ export class Match3Board {
             Math.min(insertIndex2, this.piecesContainer.children.length)
         );
 
+        // reset freeze states
+        this.blurFrozen = new Array(this.columns).fill(false);
+
         this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
-    // BUILD BLUR LAYER
+    // BUILD BLUR "COLUMNS" LAYER (spinning)
     // =========================================================================
     private buildBlurLayer() {
         const { offsetX, offsetY } = this.getOffsets();
+
+        this.blurFrozen = new Array(this.columns).fill(false);
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
             col.x = c * this.tile - offsetX;
             col.y = -offsetY - this.tile;
+            col.visible = true;
             this.blurLayer.addChild(col);
 
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
@@ -382,14 +388,17 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // BLUR SPIN UPDATE
+    // BLUR SPIN UPDATE (skip frozen columns)
     // =========================================================================
     private updateBlurSpin() {
         if (!this._blurSpinning) return;
 
         const tile = this.tileSize;
 
-        for (const reel of this.blurReels) {
+        for (let c = 0; c < this.blurReels.length; c++) {
+            if (this.blurFrozen[c]) continue;
+
+            const reel = this.blurReels[c];
             reel.position += this._blurSpinSpeed;
             const total = reel.symbols.length;
 
@@ -458,38 +467,6 @@ export class Match3Board {
         }
 
         this.ensureWildLayerOnTop();
-    }
-
-    // ✅ helper: build a brand-new layer from backend (for Turbo swap illusion)
-    private buildBackendLayer(targetLayer: Container): ReelColumn[] {
-        const { offsetX, offsetY } = this.getOffsets();
-        const reels: ReelColumn[] = [];
-
-        targetLayer.removeChildren();
-
-        for (let c = 0; c < this.columns; c++) {
-            const col = new Container();
-            col.x = c * this.tile - offsetX;
-            col.y = -offsetY;
-            targetLayer.addChild(col);
-
-            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
-
-            for (let r = 0; r < this.rows; r++) {
-                const type = this.backendReels[r][c];
-                const mult = this.backendMultipliers[r][c];
-
-                const sym = this.makeSlotSymbol(type, mult);
-                sym.y = r * this.tile;
-
-                reel.symbols.push(sym);
-                col.addChild(sym);
-            }
-
-            reels.push(reel);
-        }
-
-        return reels;
     }
 
     // =========================================================================
@@ -597,15 +574,19 @@ export class Match3Board {
         this.buildBlurLayer();
         this.buildRealLayer();
 
-        this.blurLayer.y = -this.maskH;
-        this.realLayer.y = 0;
+        gsap.killTweensOf(this.blurLayer);
+        gsap.killTweensOf(this.realLayer);
+
+        this.blurLayer.y = 0;
+        this.realLayer.y = this.maskH;
+
+        // reset per-column states
+        this.blurFrozen = new Array(this.columns).fill(false);
+        for (let c = 0; c < this.blurReels.length; c++) {
+            this.blurReels[c].container.visible = true;
+        }
 
         this.ensureWildLayerOnTop();
-
-        await Promise.all([
-            gsap.to(this.realLayer, { y: this.maskH, duration: 0.2, ease: "power0.out" }),
-            gsap.to(this.blurLayer, { y: 0, duration: 0.2, ease: "power0.out" }),
-        ]);
 
         this.startBlurSpin();
     }
@@ -616,7 +597,6 @@ export class Match3Board {
         this._interruptRequested = true;
 
         if (!this._hasBackendResult) {
-            // speed-up illusion only while waiting
             this._blurSpinSpeed = Math.max(this._blurSpinSpeed, 1.2);
             this.startBlurSpin();
             return;
@@ -632,6 +612,7 @@ export class Match3Board {
         this.killLoops();
         this.hasIncomingSpinTrigger = false;
 
+        // stop all blur now
         this.stopBlurSpin();
 
         gsap.killTweensOf(this.blurLayer);
@@ -642,9 +623,13 @@ export class Match3Board {
 
         this.applyBackendToRealLayer();
 
-        this.blurLayer.y = this.maskH + this.tileSize * 3;
+        // instantly show real
         this.realLayer.y = 0;
 
+        // instantly hide blur
+        this.blurLayer.y = -this.maskH - this.tileSize * 3;
+
+        // normalize columns
         const { offsetY } = this.getOffsets();
         for (const reel of this.realReels) {
             reel.container.y = -offsetY;
@@ -658,7 +643,6 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
         this.testAnimateAllWildSymbols(wins);
 
-        // ✅ restore speed so next spin starts normal
         this._blurSpinSpeed = this._defaultBlurSpinSpeed;
 
         this._spinInProgress = false;
@@ -671,15 +655,13 @@ export class Match3Board {
         if (spinMode === SpinModeEnum.Normal) {
             await this.finishSpinNormal();
         } else if (spinMode === SpinModeEnum.Quick) {
-            await this.finishSpinQuick(); // ✅ renamed
+            await this.finishSpinQuick();
         } else if (spinMode === SpinModeEnum.Turbo) {
-            await this.finishSpinTurbo(); // ✅ new turbo animation
+            await this.finishSpinTurbo();
         } else {
-            // fallback (just in case)
             await this.finishSpinQuick();
         }
 
-        // ✅ restore speed so next spin starts normal (in case you changed it)
         this._blurSpinSpeed = this._defaultBlurSpinSpeed;
 
         this._spinInProgress = false;
@@ -689,84 +671,162 @@ export class Match3Board {
     // =========================================================================
     // FINISH SPIN ANIMATIONS
     // =========================================================================
-    public async finishSpinNormal(): Promise<void> {
-        this.stopBlurSpin();
-        this.applyBackendToRealLayer();
 
-        const { offsetY } = this.getOffsets();
+    /**
+     * NORMAL:
+     * - Real layer slides into view (NO bounce)
+     * - Columns "fall" one-by-one to their final position
+     * - While a column is falling/landed, remaining columns are STILL spinning in blur
+     * - Once a column is near landing, we freeze + hide that blur column
+     */
+    /**
+ * NORMAL (SEQUENTIAL LANDING):
+ * - Real layer slides into view (NO bounce)
+ * - Columns "fall" ONE-BY-ONE (next starts only after previous completes)
+ * - While waiting, other blur columns KEEP spinning
+ * - As each column nears landing, its blur column fades out, then freezes/hides
+ */
+public async finishSpinNormal(): Promise<void> {
+    // ✅ HIDE real layer while we rebuild symbols to prevent 1-frame flick
+    this.realLayer.visible = false;
 
-        const startLayerY = this.realLayer.y;
-        const columnTweens: Promise<void>[] = [];
+    this.applyBackendToRealLayer();
 
-        if (startLayerY !== 0) {
-            for (const reel of this.realReels) {
-                reel.container.y += startLayerY;
-            }
-            this.realLayer.y = 0;
+    const { offsetY } = this.getOffsets();
+
+    this.realLayer.y = this.maskH;
+    this.blurLayer.y = 0;
+
+    const fallDistance = this.tileSize * (this.rows + 2);
+
+    // Reset blur states
+    for (let c = 0; c < this.columns; c++) {
+        const blurCol = this.blurReels[c]?.container;
+        if (blurCol) {
+            blurCol.visible = true;
+            blurCol.alpha = 1;
         }
-
-        const baseDuration = 0.35;
-        const perColumnDelay = 0.06;
-
-        for (let c = 0; c < this.columns; c++) {
-            const reel = this.realReels[c];
-            const colContainer = reel.container;
-            const delay = c * perColumnDelay;
-
-            const tween = gsap.to(colContainer, {
-                y: -offsetY,
-                duration: baseDuration,
-                delay,
-                ease: "power2.out",
-            });
-
-            columnTweens.push(
-                new Promise<void>((resolve) => {
-                    tween.eventCallback("onComplete", () => resolve());
-                })
-            );
-        }
-
-        const blurTweenDuration = baseDuration + (this.columns - 1) * perColumnDelay;
-
-        const blurTween = gsap.to(this.blurLayer, {
-            y: this.maskH + this.tileSize * 3,
-            duration: blurTweenDuration,
-            ease: "power2.out",
-        });
-
-        const blurPromise = new Promise<void>((resolve) => {
-            blurTween.eventCallback("onComplete", () => resolve());
-        });
-
-        await Promise.all([...columnTweens, blurPromise]);
-
-        this.ensureWildLayerOnTop();
-
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
-        this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
+        this.blurFrozen[c] = false;
     }
 
-    // ✅ renamed from finishSpinQuickTurbo -> finishSpinQuick
+    // ✅ Place ALL real columns above AND keep them hidden initially
+    for (let c = 0; c < this.realReels.length; c++) {
+        const col = this.realReels[c].container;
+        gsap.killTweensOf(col);
+        col.y = -offsetY - fallDistance;
+        col.visible = false; // ✅ critical: no column visible yet
+    }
+
+    // ✅ Now that everything is positioned, show the layer (columns still hidden)
+    this.realLayer.visible = true;
+
+    // Slide real layer into view (no bounce)
+    gsap.killTweensOf(this.realLayer);
+    const slideInTween = gsap.to(this.realLayer, {
+        y: 0,
+        duration: 0.18,
+        ease: "none",
+    });
+
+    await new Promise<void>((resolve) => {
+        slideInTween.eventCallback("onComplete", () => resolve());
+    });
+
+    const baseDuration = 0.35;
+    const startDelayBase = 0.18;
+    const betweenColumnsDelay = 0.03;
+
+    const wait = (sec: number) =>
+        new Promise<void>((resolve) => gsap.delayedCall(sec, () => resolve()));
+
+    if (startDelayBase > 0) await wait(startDelayBase);
+
+    for (let c = 0; c < this.columns; c++) {
+        const reel = this.realReels[c];
+        const blurCol = this.blurReels[c]?.container;
+
+        // ✅ reveal THIS column only when it's about to fall
+        reel.container.visible = true;
+
+        // Fade + freeze blur column near landing
+        gsap.delayedCall(baseDuration * 0.70, () => {
+            if (!blurCol) return;
+
+            gsap.killTweensOf(blurCol);
+            gsap.to(blurCol, {
+                alpha: 0,
+                duration: 0.12,
+                ease: "none",
+                onComplete: () => {
+                    this.blurFrozen[c] = true;
+                    blurCol.visible = false;
+                    blurCol.alpha = 1;
+                },
+            });
+        });
+
+        const t = gsap.to(reel.container, {
+            y: -offsetY,
+            duration: baseDuration,
+            ease: "none",
+        });
+
+        await new Promise<void>((resolve) => {
+            t.eventCallback("onComplete", () => resolve());
+        });
+
+        if (betweenColumnsDelay > 0 && c < this.columns - 1) {
+            await wait(betweenColumnsDelay);
+        }
+    }
+
+    // After all columns landed, stop blur and move it away
+    this.stopBlurSpin();
+
+    gsap.killTweensOf(this.blurLayer);
+    const blurOut = gsap.to(this.blurLayer, {
+        y: -this.maskH - this.tileSize * 3,
+        duration: 0.2,
+        ease: "none",
+    });
+
+    await new Promise<void>((resolve) => {
+        blurOut.eventCallback("onComplete", () => resolve());
+    });
+
+    this.ensureWildLayerOnTop();
+
+    const wins = this.match3.process.getWinningPositions() ?? [];
+    this.animateWinningSymbols(wins);
+
+    this.setWildReels(this.match3.process.getWildReels());
+    this.testAnimateAllWildSymbols(wins);
+}
+
+
+    /**
+     * QUICK:
+     * slide real in + blur out (NO bounce)
+     */
     public async finishSpinQuick(): Promise<void> {
         this.stopBlurSpin();
         this.applyBackendToRealLayer();
 
         await Promise.all([
             gsap.to(this.blurLayer, {
-                y: this.maskH + this.tileSize * 3,
-                duration: 0.35,
-                ease: "power2.out",
+                y: -this.maskH - this.tileSize * 3,
+                duration: 0.22,
+                ease: "none",
             }),
             gsap.to(this.realLayer, {
                 y: 0,
-                duration: 0.35,
-                ease: "power2.out",
+                duration: 0.22,
+                ease: "none",
             }),
         ]);
+
+        const { offsetY } = this.getOffsets();
+        for (const reel of this.realReels) reel.container.y = -offsetY;
 
         this.ensureWildLayerOnTop();
 
@@ -777,25 +837,31 @@ export class Match3Board {
         this.testAnimateAllWildSymbols(wins);
     }
 
+    /**
+     * TURBO:
+     * even faster slide (NO bounce)
+     */
     public async finishSpinTurbo(): Promise<void> {
         this.stopBlurSpin();
         this.applyBackendToRealLayer();
 
-        // Turbo = Quick, but slightly faster
-        const d = 0.15;
+        const d = 0.12;
 
         await Promise.all([
             gsap.to(this.blurLayer, {
-                y: this.maskH + this.tileSize * 3,
+                y: -this.maskH - this.tileSize * 3,
                 duration: d,
-                ease: "power2.out",
+                ease: "none",
             }),
             gsap.to(this.realLayer, {
                 y: 0,
                 duration: d,
-                ease: "power2.out",
+                ease: "none",
             }),
         ]);
+
+        const { offsetY } = this.getOffsets();
+        for (const reel of this.realReels) reel.container.y = -offsetY;
 
         this.ensureWildLayerOnTop();
 
@@ -805,9 +871,6 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
         this.testAnimateAllWildSymbols(wins);
     }
-
-
-
 
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
