@@ -123,20 +123,20 @@ export class Match3Process {
 
         // defaults for "normal-spin"
         let delays: SpinModeDelays = {
-            minSpinMs: 1400,
+            minSpinMs: 800,
             betweenWinMs: 4000,
             betweenNoWinMs: 2300,
         };
 
         if (mode === "quick-spin") {
             delays = {
-                minSpinMs: 1200,
+                minSpinMs: 600,
                 betweenWinMs: 3500,
                 betweenNoWinMs: 2000,
             };
         } else if (mode === "turbo-spin") {
             delays = {
-                minSpinMs: 1000,
+                minSpinMs: 400,
                 betweenWinMs: 2500,
                 betweenNoWinMs: 1500,
             };
@@ -147,14 +147,22 @@ export class Match3Process {
 
     public async start() {
         if (this.processing) return;
+
+        const t0 = performance.now();
+        console.log("SPIN STARTED");
+
         this.processing = true;
 
         const token = { cancelled: false };
         this.cancelToken = token;
-        
-        const { minSpinMs } = this.getSpinModeDelays();
+
+        const mode = userSettings.getSpinMode();
+        const { minSpinMs, betweenWinMs, betweenNoWinMs } = this.getSpinModeDelays();
 
         await this.match3.board.startSpin();
+
+        const t1 = performance.now();
+        console.log(`after startSpin(): ${(t1 - t0).toFixed(2)} ms`);
 
         // Fetch backend + dynamic delay based on spinMode
         const backendPromise = this.fetchBackendSpin();
@@ -163,12 +171,17 @@ export class Match3Process {
 
         const result = await backendPromise;
 
+        const t2 = performance.now();
+        console.log("reels received from backend:", result.reels);
+        console.log(
+            `Interval (SPIN STARTED → reels received): ${(t2 - t0).toFixed(2)} ms`
+        );
+
         // Only wait the delay if we actually configured one
         if (minSpinMs > 0) {
             await delayPromise;
         }
 
-        // If the whole process was stopped/cancelled during wait, bail cleanly
         if (!this.processing || token.cancelled) {
             this.processing = false;
             return;
@@ -180,9 +193,23 @@ export class Match3Process {
         await this.match3.board.finishSpin();
         this.match3.board.clearWildLayerAndMultipliers();
 
+        // Turbo post-spin delay
+        if (mode === "turbo-spin") {
+            const afterMs = this.roundWin > 0 ? betweenWinMs : betweenNoWinMs;
+            if (afterMs > 0) {
+                await this.createCancelableDelay(afterMs, token);
+
+                if (!this.processing || token.cancelled) {
+                    this.processing = false;
+                    return;
+                }
+            }
+        }
+
         this.processing = false;
         await this.match3.onProcessComplete?.();
     }
+
 
     public runProcessRound(): void {
         this.round++;

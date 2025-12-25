@@ -310,7 +310,6 @@ export class GameScreen extends Container {
     }
 
     private async onSpinStart() {
-        console.log('SPIN STARTED');
         this.lockInteraction();
     }
 

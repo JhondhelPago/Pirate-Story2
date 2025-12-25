@@ -460,6 +460,38 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
     }
 
+    // ✅ helper: build a brand-new layer from backend (for Turbo swap illusion)
+    private buildBackendLayer(targetLayer: Container): ReelColumn[] {
+        const { offsetX, offsetY } = this.getOffsets();
+        const reels: ReelColumn[] = [];
+
+        targetLayer.removeChildren();
+
+        for (let c = 0; c < this.columns; c++) {
+            const col = new Container();
+            col.x = c * this.tile - offsetX;
+            col.y = -offsetY;
+            targetLayer.addChild(col);
+
+            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
+
+            for (let r = 0; r < this.rows; r++) {
+                const type = this.backendReels[r][c];
+                const mult = this.backendMultipliers[r][c];
+
+                const sym = this.makeSlotSymbol(type, mult);
+                sym.y = r * this.tile;
+
+                reel.symbols.push(sym);
+                col.addChild(sym);
+            }
+
+            reels.push(reel);
+        }
+
+        return reels;
+    }
+
     // =========================================================================
     // LOOP-BY-REPLAY HELPERS
     // =========================================================================
@@ -638,8 +670,13 @@ export class Match3Board {
 
         if (spinMode === SpinModeEnum.Normal) {
             await this.finishSpinNormal();
-        } else if (spinMode === SpinModeEnum.Quick || spinMode === SpinModeEnum.Turbo) {
-            await this.finishSpinQuickTurbo();
+        } else if (spinMode === SpinModeEnum.Quick) {
+            await this.finishSpinQuick(); // ✅ renamed
+        } else if (spinMode === SpinModeEnum.Turbo) {
+            await this.finishSpinTurbo(); // ✅ new turbo animation
+        } else {
+            // fallback (just in case)
+            await this.finishSpinQuick();
         }
 
         // ✅ restore speed so next spin starts normal (in case you changed it)
@@ -649,9 +686,9 @@ export class Match3Board {
         this._interruptRequested = false;
     }
 
-    // ---- keep the rest of your methods unchanged below ----
-    // (finishSpinNormal / finishSpinQuickTurbo / wild layer methods / etc.)
-
+    // =========================================================================
+    // FINISH SPIN ANIMATIONS
+    // =========================================================================
     public async finishSpinNormal(): Promise<void> {
         this.stopBlurSpin();
         this.applyBackendToRealLayer();
@@ -713,7 +750,8 @@ export class Match3Board {
         this.testAnimateAllWildSymbols(wins);
     }
 
-    public async finishSpinQuickTurbo(): Promise<void> {
+    // ✅ renamed from finishSpinQuickTurbo -> finishSpinQuick
+    public async finishSpinQuick(): Promise<void> {
         this.stopBlurSpin();
         this.applyBackendToRealLayer();
 
@@ -738,6 +776,38 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
         this.testAnimateAllWildSymbols(wins);
     }
+
+    public async finishSpinTurbo(): Promise<void> {
+        this.stopBlurSpin();
+        this.applyBackendToRealLayer();
+
+        // Turbo = Quick, but slightly faster
+        const d = 0.15;
+
+        await Promise.all([
+            gsap.to(this.blurLayer, {
+                y: this.maskH + this.tileSize * 3,
+                duration: d,
+                ease: "power2.out",
+            }),
+            gsap.to(this.realLayer, {
+                y: 0,
+                duration: d,
+                ease: "power2.out",
+            }),
+        ]);
+
+        this.ensureWildLayerOnTop();
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
+    }
+
+
+
 
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
