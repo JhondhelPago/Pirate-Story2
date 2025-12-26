@@ -128,7 +128,7 @@ export class Match3Board {
     private isTubroSpin = true;
 
     // =========================================================================
-    // LOOP-BY-REPLAY ANIMATION CONTROL (unchanged)
+    // LOOP-BY-REPLAY ANIMATION CONTROL
     // =========================================================================
     public hasIncomingSpinTrigger = false;
     private animating = false;
@@ -174,6 +174,14 @@ export class Match3Board {
                 this.match3.board.interruptSpin();
             }
         });
+    }
+
+    // ✅ needed by Match3Process
+    public getBackendReels() {
+        return this.backendReels;
+    }
+    public getBackendMultipliers() {
+        return this.backendMultipliers;
     }
 
     private cancelStartSequence() {
@@ -295,6 +303,25 @@ export class Match3Board {
     }
 
     // =========================================================================
+    // ✅ Unified accessor:
+    // - during spin strip => symbols include blur + lead, so use leadIndexStart()+row
+    // - final static grid => symbols length === rows, so use row directly
+    // =========================================================================
+    private getDisplayedRealSymbol(row: number, column: number): SlotSymbol | null {
+        const reel = this.realReels[column];
+        if (!reel) return null;
+
+        if (reel.symbols.length === this.rows) {
+            const s = reel.symbols[row];
+            return s instanceof SlotSymbol ? s : null;
+        }
+
+        const idx = this.leadIndexStart() + row;
+        const s = reel.symbols[idx];
+        return s instanceof SlotSymbol ? s : null;
+    }
+
+    // =========================================================================
     // CAPTURE CURRENT DISPLAYED GRID (for lead continuity)
     // =========================================================================
     private getCurrentGridSnapshot(): { types: number[][]; mults: number[][] } {
@@ -303,8 +330,8 @@ export class Match3Board {
 
         for (let c = 0; c < this.columns; c++) {
             for (let r = 0; r < this.rows; r++) {
-                const cell = this.realReels?.[c]?.symbols?.[r];
-                if (cell instanceof SlotSymbol) {
+                const cell = this.getDisplayedRealSymbol(r, c);
+                if (cell) {
                     types[r][c] = (cell as any).type ?? this.initialReels?.[r]?.[c] ?? this.randomType();
                     mults[r][c] = (cell as any).multiplier ?? 0;
                 } else {
@@ -338,13 +365,11 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // BUILD SPIN STRIP:
-    // (FIX flick-on-start): rebuild while realLayer is hidden, then show after built.
+    // BUILD SPIN STRIP
     // =========================================================================
     private buildSpinStripLayer(leadTypes: number[][], leadMults: number[][]) {
         const { offsetX, offsetY } = this.getOffsets();
 
-        // ---- flick fix: hide while rebuilding (prevents 1-frame empty/teleport) ----
         this.realLayer.visible = false;
 
         this.realLayer.removeChildren();
@@ -354,14 +379,13 @@ export class Match3Board {
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
             col.x = c * this.tile - offsetX;
-            col.y = -offsetY; // shows LEAD initially
+            col.y = -offsetY;
             this.realLayer.addChild(col);
 
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
 
-            // blur symbols (above)
             for (let j = 0; j < this.blurCount; j++) {
                 const type = this.randomType();
                 const sym = this.makeSlotSymbol(type, 0);
@@ -372,7 +396,6 @@ export class Match3Board {
                 col.addChild(sym);
             }
 
-            // lead symbols (0..)
             for (let r = 0; r < this.rows; r++) {
                 const type = leadTypes[r][c];
                 const mult = leadMults[r][c] ?? 0;
@@ -388,7 +411,6 @@ export class Match3Board {
             this.realReels.push(reel);
         }
 
-        // ticker for blur strip spinning
         this.stopAndDestroyTicker();
         this.ticker = new Ticker();
 
@@ -399,8 +421,6 @@ export class Match3Board {
 
         this.ticker.start();
         this.ensureWildLayerOnTop();
-
-        // ---- flick fix: show after complete build (same tick, but after content exists) ----
         this.realLayer.visible = true;
     }
 
@@ -416,7 +436,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // SPIN UPDATE: only blur symbols move
+    // SPIN UPDATE
     // =========================================================================
     private updateSpin(delta: number) {
         if (!this._spinning) return;
@@ -461,7 +481,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // START SPIN: wave lift + drop into blur
+    // START SPIN: wave
     // =========================================================================
     private async startSpinSeamlessSequential(): Promise<void> {
         const seq = ++this._startSeqId;
@@ -470,25 +490,20 @@ export class Match3Board {
         const yLead = -offsetY;
         const yBlur = -offsetY + this.rows * this.tile;
 
-        // reset all columns to LEAD view
         this.colActive = new Array(this.columns).fill(false);
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container;
             if (!col) continue;
             gsap.killTweensOf(col);
             col.y = yLead;
-            // blur must be visible during spin
             this.setBlurVisibleForColumn(c, true);
         }
 
-        // ---- TUNING ----
-        const WAVE_STAGGER = 0.06; // faster wave => reduce this
+        const WAVE_STAGGER = 0.06;
         const LIFT_PX = 25;
         const LIFT_DUR = 0.15;
         const DROP_DUR = 0.2;
-        // --------------
 
-        // activate blur spin as wave reaches each column
         for (let c = 0; c < this.columns; c++) {
             gsap.delayedCall(c * WAVE_STAGGER, () => {
                 if (seq !== this._startSeqId) return;
@@ -537,7 +552,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // BACKEND STORE/GET
+    // BACKEND STORE
     // =========================================================================
     public applyBackendResults(reels: number[][], multipliers: number[][]) {
         this.backendReels = reels;
@@ -545,8 +560,10 @@ export class Match3Board {
 
         this._hasBackendResult = Array.isArray(reels) && reels.length > 0;
 
+        // ⚠️ If interrupt was requested, we can land instantly BUT
+        // we must wait for process to compute winningPositions first.
         if (this._spinInProgress && this._interruptRequested && this._hasBackendResult) {
-            this.finishSpinInstantFromInterrupt();
+            void this.finishSpinInstantFromInterruptAsync();
         }
     }
 
@@ -571,7 +588,6 @@ export class Match3Board {
         this.buildSpinStripLayer(snap.types, snap.mults);
 
         this.startSpinLoop();
-
         this._startSequencePromise = this.startSpinSeamlessSequential();
 
         this.ensureWildLayerOnTop();
@@ -581,7 +597,6 @@ export class Match3Board {
         if (!this._spinInProgress) return;
 
         this._interruptRequested = true;
-
         this.forceAllColumnsToBlurViewAndActive();
 
         if (!this._hasBackendResult) {
@@ -590,12 +605,24 @@ export class Match3Board {
             return;
         }
 
-        this.finishSpinInstantFromInterrupt();
+        void this.finishSpinInstantFromInterruptAsync();
     }
 
-    private finishSpinInstantFromInterrupt(): void {
+    private async waitForWinningPositionsReady(maxMs = 500): Promise<void> {
+        const t0 = performance.now();
+        while (performance.now() - t0 < maxMs) {
+            const wins = this.match3.process.getWinningPositions();
+            if (wins && wins.length >= 0) return;
+            await this.sleep(16);
+        }
+    }
+
+    private async finishSpinInstantFromInterruptAsync(): Promise<void> {
         if (!this._spinInProgress) return;
         if (!this._hasBackendResult) return;
+
+        // ✅ wait a moment for process to compute winners
+        await this.waitForWinningPositionsReady(600);
 
         this.cancelStartSequence();
         this.stopSpinLoop();
@@ -604,7 +631,6 @@ export class Match3Board {
         for (const r of this.realReels) gsap.killTweensOf(r.container);
 
         this.applyBackendToFinalStaticGrid();
-
         this.ensureWildLayerOnTop();
 
         const wins = this.match3.process.getWinningPositions() ?? [];
@@ -674,8 +700,6 @@ export class Match3Board {
         }
     }
 
-    // (FIX flick-on-landing): never hide blur until AFTER lead symbols are reattached
-    // and the column is already at yLead. That removes the 1-frame "nothing" gap.
     private async landColumnsSequential(): Promise<void> {
         const BOUNCE_PX = 15;
         const BOUNCE_DOWN_DUR = 0.06;
@@ -693,7 +717,6 @@ export class Match3Board {
         this.realLayer.addChild(dropLayer);
         this.realLayer.setChildIndex(dropLayer, this.realLayer.children.length - 1);
 
-        // everyone in blur view and spinning (blur visible)
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container;
             if (!col) continue;
@@ -708,7 +731,6 @@ export class Match3Board {
             const col = reel?.container;
             if (!reel || !col) continue;
 
-            // keep blur moving behind
             this.colActive[c] = true;
             col.y = yBlur;
 
@@ -736,25 +758,20 @@ export class Match3Board {
                 t.eventCallback("onComplete", () => resolve());
             });
 
-            // ✅ commit order to prevent flick:
-            // 1) put column in final view
             col.y = yLead;
 
-            // 2) reattach lead symbols FIRST (so something is always visible)
             for (let r = 0; r < leadSyms.length; r++) {
                 const sym = leadSyms[r];
                 sym.y = r * this.tile;
                 col.addChild(sym);
             }
 
-            // 3) now hide blur + stop blur motion for this column
             this.colActive[c] = false;
             this.setBlurVisibleForColumn(c, false);
 
             dropCol.removeChildren();
             dropCol.destroy();
 
-            // bounce at landing end (column already has final symbols)
             await new Promise<void>((resolve) => {
                 const tl = gsap.timeline({
                     onComplete: () => {
@@ -780,7 +797,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // FINAL APPLY (STATIC 5x5 SPINE)
+    // FINAL APPLY (STATIC 5x5)
     // =========================================================================
     public applyBackendToFinalStaticGrid() {
         this.cancelStartSequence();
@@ -846,7 +863,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // LOOP-BY-REPLAY HELPERS (unchanged)
+    // LOOP-BY-REPLAY HELPERS
     // =========================================================================
     private openAnimationGate() {
         if (this.animationGate) return;
@@ -911,10 +928,8 @@ export class Match3Board {
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];
             for (const { row, column } of wins) {
-                const reel = this.realReels[column];
-                const idx = this.leadIndexStart() + row;
-                const symbol = reel?.symbols[idx];
-                if (symbol instanceof SlotSymbol) list.push(symbol);
+                const symbol = this.getDisplayedRealSymbol(row, column);
+                if (symbol) list.push(symbol);
             }
             return list;
         }, "win");
@@ -934,7 +949,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // WILD LAYER (same as your version)
+    // WILD LAYER
     // =========================================================================
     private ensureWildLayerOnTop() {
         if (!this.wildLayer.parent) this.piecesContainer.addChild(this.wildLayer);
