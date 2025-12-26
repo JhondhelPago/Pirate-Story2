@@ -213,7 +213,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // ✅ FLICKER FIX CORE: swap layers atomically (never show an “empty” frame)
+    // ✅ Atomic swap still used for final static grid (end-flick fix)
     // =========================================================================
     private swapRealLayer(nextLayer: Container, nextReels: ReelColumn[]) {
         const parent = this.piecesContainer;
@@ -221,37 +221,30 @@ export class Match3Board {
         const oldLayer = this.realLayer;
         const oldReels = this.realReels;
 
-        // Insert next where old was (keeps draw order stable)
         const insertIndex =
             oldLayer.parent === parent ? parent.getChildIndex(oldLayer) : Math.max(0, parent.children.length - 1);
 
         parent.addChildAt(nextLayer, Math.min(insertIndex, parent.children.length));
 
-        // Remove old layer from stage BEFORE destroying (avoid 1-frame “empty”)
         if (oldLayer.parent === parent) parent.removeChild(oldLayer);
 
-        // Destroy old reels/containers
         this.destroyReels(oldReels);
         oldLayer.removeChildren();
 
-        // Destroy old layer shell
         try {
             (oldLayer as any).destroy?.({ children: false });
         } catch {
             oldLayer.destroy();
         }
 
-        // Commit new references
         this.realLayer = nextLayer;
         this.realReels = nextReels;
 
-        // Keep wild on top
         this.ensureWildLayerOnTop();
     }
 
     /**
      * Stop timers/tweens safely without clearing the visible grid.
-     * (Clearing visuals before building the next grid is the main cause of flicker.)
      */
     private prepareSpinTransitionNoClear() {
         this.killLoops();
@@ -312,7 +305,6 @@ export class Match3Board {
         this.refreshMask();
         this.buildIdleGridFromInitial();
 
-        // ✅ OLD BEHAVIOR: wild layer is its own persistent grid on top
         this.rebuildWildLayerStructure();
         this.applyWildGridToWildLayer();
         this.ensureWildLayerOnTop();
@@ -343,7 +335,6 @@ export class Match3Board {
     private buildIdleGridFromInitial() {
         const { offsetX, offsetY } = this.getOffsets();
 
-        // (setup-time rebuild is OK; flicker here is not part of spin)
         this.realLayer.removeChildren();
         this.destroyReels(this.realReels);
         this.realReels = [];
@@ -415,91 +406,76 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // DESTROY/REBUILD (wild stays)
+    // ✅ NEW: INJECT BLUR STRIP MID-SPIN *IN-PLACE* (keeps GSAP tweens alive)
     // =========================================================================
-    private destroyAllLayers() {
-        this.killLoops();
-
-        this.cancelStartSequence();
-        this.stopAndDestroyTicker();
-
-        gsap.killTweensOf(this.realLayer);
-        for (const r of this.realReels) gsap.killTweensOf(r.container);
-
-        this.realLayer.removeChildren();
-        this.destroyReels(this.realReels);
-        this.realReels = [];
-
-        this.colActive = new Array(this.columns).fill(false);
-
-        // ✅ wild is persistent & always on top
-        this.ensureWildLayerOnTop();
+    private hasSpinStripBuilt(): boolean {
+        // if any column has strip length >= blurCount + rows, we consider it built
+        const r0 = this.realReels[0];
+        if (!r0) return false;
+        return r0.symbols.length >= this.blurCount + this.rows;
     }
 
-    // =========================================================================
-    // BUILD SPIN STRIP (built off-screen then swapped -> removes visible flick)
-    // =========================================================================
-    private buildSpinStripLayer(leadTypes: number[][], leadMults: number[][]) {
-        const { offsetX, offsetY } = this.getOffsets();
+    private buildSpinStripIntoCurrentLayer(leadTypes: number[][], leadMults: number[][]) {
+        // already built? don't rebuild (prevents flick / duplicate children)
+        if (this.hasSpinStripBuilt()) return;
 
-        // Build into a fresh layer first (do NOT clear current visible layer yet)
-        const nextLayer = new Container();
-        const nextReels: ReelColumn[] = [];
+        const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
 
         for (let c = 0; c < this.columns; c++) {
-            const col = new Container();
-            col.x = c * this.tile - offsetX;
-            col.y = -offsetY;
-            nextLayer.addChild(col);
+            const reel = this.realReels[c];
+            const col = reel?.container;
+            if (!reel || !col) continue;
 
-            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
+            // Ensure we start from a clean "lead only" state (should be rows)
+            // If something else happened, bail safely.
+            if (reel.symbols.length !== this.rows) continue;
 
-            const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
+            // Update the existing lead symbols to match snapshot (continuity)
+            for (let r = 0; r < this.rows; r++) {
+                const sym = reel.symbols[r];
+                const type = leadTypes[r][c];
+                const mult = leadMults[r][c] ?? 0;
 
+                sym.setup({
+                    name: this.typesMap[type],
+                    type,
+                    size: this.tileSize,
+                    multiplier: mult,
+                });
+                this.showSpine(sym);
+                sym.y = r * this.tile;
+            }
+
+            // Build blur symbols and put them BEHIND leads in display list
+            const blurSyms: SlotSymbol[] = [];
             for (let j = 0; j < this.blurCount; j++) {
                 const type = this.randomType();
                 const sym = this.makeSlotSymbol(type, 0);
                 sym.y = yTop + j * this.tile;
                 this.showBlur(sym);
-
-                reel.symbols.push(sym);
-                col.addChild(sym);
+                blurSyms.push(sym);
             }
 
-            for (let r = 0; r < this.rows; r++) {
-                const type = leadTypes[r][c];
-                const mult = leadMults[r][c] ?? 0;
+            // Add blur symbols first so they are behind leads visually
+            for (const b of blurSyms) col.addChildAt(b, 0);
 
-                const sym = this.makeSlotSymbol(type, mult);
-                sym.y = r * this.tile;
-                this.showSpine(sym);
-
-                reel.symbols.push(sym);
-                col.addChild(sym);
-            }
-
-            nextReels.push(reel);
+            // New reel.symbols layout = [blur..., lead...]
+            reel.symbols = [...blurSyms, ...reel.symbols];
+            reel.position = 0;
         }
 
-        // Swap instantly (no empty frame)
-        this.swapRealLayer(nextLayer, nextReels);
-
-        // Start ticker AFTER swap (so updateSpin uses current reels)
-        this.stopAndDestroyTicker();
-        this.ticker = new Ticker();
-
-        this.ticker.add((arg: any) => {
-            const delta = typeof arg === "number" ? arg : (arg?.deltaTime ?? arg?.deltaMS ?? 1);
-            this.updateSpin(delta);
-        });
-
-        this.ticker.start();
-        this.ensureWildLayerOnTop();
+        // After injection, blur can be visible (columns are mid-wave, so flick is hidden)
+        for (let c = 0; c < this.columns; c++) {
+            this.setBlurVisibleForColumn(c, true);
+        }
     }
 
     private setBlurVisibleForColumn(column: number, visible: boolean) {
         const reel = this.realReels[column];
         if (!reel) return;
+
+        // if strip not built yet, ignore
+        if (reel.symbols.length < this.blurIndexEndExclusive()) return;
 
         for (let j = 0; j < this.blurCount; j++) {
             const sym = reel.symbols[this.blurIndexStart() + j];
@@ -521,6 +497,10 @@ export class Match3Board {
             if (!this.colActive[c]) continue;
 
             const reel = this.realReels[c];
+
+            // if strip isn't built yet, skip (ticker can still run)
+            if (reel.symbols.length < this.blurIndexEndExclusive()) continue;
+
             reel.position += this._spinSpeed * delta;
 
             for (let j = 0; j < this.blurCount; j++) {
@@ -553,8 +533,19 @@ export class Match3Board {
         this._spinning = false;
     }
 
+    private startTickerIfNeeded() {
+        if (this.ticker) return;
+
+        this.ticker = new Ticker();
+        this.ticker.add((arg: any) => {
+            const delta = typeof arg === "number" ? arg : (arg?.deltaTime ?? arg?.deltaMS ?? 1);
+            this.updateSpin(delta);
+        });
+        this.ticker.start();
+    }
+
     // =========================================================================
-    // START SPIN: wave
+    // START SPIN: wave (your existing feel), BUT blur spin runs during it
     // =========================================================================
     private async startSpinSeamlessSequential(): Promise<void> {
         const seq = ++this._startSeqId;
@@ -569,7 +560,6 @@ export class Match3Board {
             if (!col) continue;
             gsap.killTweensOf(col);
             col.y = yLead;
-            this.setBlurVisibleForColumn(c, true);
         }
 
         const WAVE_STAGGER = 0.06;
@@ -577,6 +567,7 @@ export class Match3Board {
         const LIFT_DUR = 0.15;
         const DROP_DUR = 0.2;
 
+        // ✅ activate spin per column sequentially (will do nothing until strip exists)
         for (let c = 0; c < this.columns; c++) {
             gsap.delayedCall(c * WAVE_STAGGER, () => {
                 if (seq !== this._startSeqId) return;
@@ -652,25 +643,43 @@ export class Match3Board {
 
         // ✅ stop everything WITHOUT clearing visuals (prevents “start flick”)
         this.prepareSpinTransitionNoClear();
-
         this.resetWildSymbolsToIdle();
 
         const snap = this.getCurrentGridSnapshot();
 
-        // ✅ build next spin-strip off-screen then swap in (atomic)
-        this.buildSpinStripLayer(snap.types, snap.mults);
-
+        // ✅ Start ticker + spin loop IMMEDIATELY (so spin is "running" during wave)
+        this.stopAndDestroyTicker();
+        this.startTickerIfNeeded();
         this.startSpinLoop();
 
         const spinMode = userSettings.getSpinMode();
+
         if (spinMode === SpinModeEnum.Turbo) {
-            // ✅ turbo: remove sequence momentum
+            // turbo: build strip immediately (no need to hide)
+            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
             this.forceAllColumnsToBlurViewAndActive();
             this._spinSpeed = Math.max(this._spinSpeed, 1.4);
             this._startSequencePromise = null;
-        } else {
-            this._startSequencePromise = this.startSpinSeamlessSequential();
+
+            this.ensureWildLayerOnTop();
+            return;
         }
+
+        // ✅ NORMAL / QUICK:
+        // Build the strip MID-WAVE while everything is moving (hides any build cost)
+        const WAVE_STAGGER = 0.06;
+        const LIFT_DUR = 0.15;
+        const DROP_DUR = 0.2;
+        const totalWaveTime = (this.columns - 1) * WAVE_STAGGER + LIFT_DUR + DROP_DUR;
+        const midTime = Math.max(0.06, totalWaveTime * 0.55);
+
+        gsap.delayedCall(midTime, () => {
+            // Build strip in-place so GSAP column tweens continue uninterrupted
+            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+        });
+
+        // Play wave motion; blur spin will begin automatically as soon as strip exists
+        this._startSequencePromise = this.startSpinSeamlessSequential();
 
         this.ensureWildLayerOnTop();
     }
@@ -679,6 +688,13 @@ export class Match3Board {
         if (!this._spinInProgress) return;
 
         this._interruptRequested = true;
+
+        // Ensure strip exists so we can accelerate blur immediately
+        if (!this.hasSpinStripBuilt()) {
+            const snap = this.getCurrentGridSnapshot();
+            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+        }
+
         this.forceAllColumnsToBlurViewAndActive();
 
         if (!this._hasBackendResult) {
@@ -761,6 +777,9 @@ export class Match3Board {
     private applyBackendToLeadColumn(column: number) {
         const reel = this.realReels[column];
         if (!reel) return;
+
+        // if strip isn't built, bail safely
+        if (reel.symbols.length < this.leadIndexStart() + this.rows) return;
 
         for (let r = 0; r < this.rows; r++) {
             const idx = this.leadIndexStart() + r;
@@ -1024,9 +1043,7 @@ export class Match3Board {
             nextReels.push(reel);
         }
 
-        // Atomic swap -> no empty/flash frame at finish
         this.swapRealLayer(nextLayer, nextReels);
-
         this.ensureWildLayerOnTop();
     }
 
@@ -1071,7 +1088,6 @@ export class Match3Board {
     }
 
     public async finishSpinTurbo(): Promise<void> {
-        // turbo = quick but faster and NO momentum/bounce
         await this.landColumnsAllAtOnce({
             slideDur: 0.10,
             bouncePx: 0,
@@ -1211,7 +1227,6 @@ export class Match3Board {
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             for (let r = 0; r < this.rows; r++) {
-                // keep slot in the container tree (dummy) so overlay stays stable
                 const dummy = this.makeDummyCell(r * this.tile);
                 col.addChild(dummy);
                 reel.symbols.push(dummy as any);
@@ -1256,7 +1271,6 @@ export class Match3Board {
                 const sym = this.makeSlotSymbol(type, mult);
                 sym.y = r * tile;
 
-                // IMPORTANT: keep as top overlay symbol
                 this.showSpine(sym);
 
                 reel.container.addChildAt(sym, r);
