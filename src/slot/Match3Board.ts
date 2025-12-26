@@ -588,7 +588,16 @@ export class Match3Board {
         this.buildSpinStripLayer(snap.types, snap.mults);
 
         this.startSpinLoop();
-        this._startSequencePromise = this.startSpinSeamlessSequential();
+
+        // ✅ Turbo: remove “sequence momentum” (no wave)
+        const spinMode = userSettings.getSpinMode();
+        if (spinMode === SpinModeEnum.Turbo) {
+            this.forceAllColumnsToBlurViewAndActive();
+            this._spinSpeed = Math.max(this._spinSpeed, 1.4);
+            this._startSequencePromise = null;
+        } else {
+            this._startSequencePromise = this.startSpinSeamlessSequential();
+        }
 
         this.ensureWildLayerOnTop();
     }
@@ -796,6 +805,119 @@ export class Match3Board {
         dropLayer.destroy();
     }
 
+    private async landColumnsAllAtOnce(opts?: {
+        slideDur?: number;
+        bouncePx?: number;
+        bounceDownDur?: number;
+        bounceUpDur?: number;
+    }): Promise<void> {
+        const SLIDE_DUR = opts?.slideDur ?? 0.26;
+
+        const BOUNCE_PX = opts?.bouncePx ?? 12;
+        const BOUNCE_DOWN_DUR = opts?.bounceDownDur ?? 0.06;
+        const BOUNCE_UP_DUR = opts?.bounceUpDur ?? 0.08;
+
+        const { offsetY } = this.getOffsets();
+        const yLead = -offsetY;
+        const yBlur = -offsetY + this.rows * this.tile;
+        const yFromTop = yLead - this.rows * this.tile;
+
+        const dropLayer = new Container();
+        this.realLayer.addChild(dropLayer);
+        this.realLayer.setChildIndex(dropLayer, this.realLayer.children.length - 1);
+
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
+
+            gsap.killTweensOf(col);
+            col.y = yBlur;
+
+            this.colActive[c] = true;
+            this.setBlurVisibleForColumn(c, true);
+        }
+
+        const dropCols: Container[] = [];
+        const leadSymsByCol: SlotSymbol[][] = [];
+
+        for (let c = 0; c < this.columns; c++) {
+            const reel = this.realReels[c];
+            const col = reel?.container;
+            if (!reel || !col) continue;
+
+            this.applyBackendToLeadColumn(c);
+
+            const dropCol = new Container();
+            dropCol.x = col.x;
+            dropCol.y = yFromTop;
+            dropLayer.addChild(dropCol);
+
+            const leadSyms: SlotSymbol[] = [];
+            for (let r = 0; r < this.rows; r++) {
+                const idx = this.leadIndexStart() + r;
+                const sym = reel.symbols[idx];
+                if (!sym) continue;
+
+                if (sym.parent === col) col.removeChild(sym);
+                sym.y = r * this.tile;
+                dropCol.addChild(sym);
+                leadSyms.push(sym);
+            }
+
+            dropCols.push(dropCol);
+            leadSymsByCol[c] = leadSyms;
+        }
+
+        await new Promise<void>((resolve) => {
+            const t = gsap.to(dropCols, { y: yLead, duration: SLIDE_DUR, ease: "none" });
+            t.eventCallback("onComplete", () => resolve());
+        });
+
+        for (let c = 0; c < this.columns; c++) {
+            const reel = this.realReels[c];
+            const col = reel?.container;
+            if (!reel || !col) continue;
+
+            col.y = yLead;
+
+            const leadSyms = leadSymsByCol[c] ?? [];
+            for (let r = 0; r < leadSyms.length; r++) {
+                const sym = leadSyms[r];
+                sym.y = r * this.tile;
+                col.addChild(sym);
+            }
+
+            this.colActive[c] = false;
+            this.setBlurVisibleForColumn(c, false);
+        }
+
+        for (const dc of dropCols) {
+            dc.removeChildren();
+            dc.destroy();
+        }
+        dropLayer.removeChildren();
+        dropLayer.destroy();
+
+        // ✅ Optional bounce: allow disabling (Turbo uses 0)
+        if (BOUNCE_PX > 0 && (BOUNCE_DOWN_DUR > 0 || BOUNCE_UP_DUR > 0)) {
+            const cols = this.realReels.map((r) => r.container);
+            await new Promise<void>((resolve) => {
+                const tl = gsap.timeline({
+                    onComplete: () => {
+                        for (const c of cols) c.y = yLead;
+                        resolve();
+                    },
+                });
+
+                tl.to(cols, { y: yLead + BOUNCE_PX, duration: BOUNCE_DOWN_DUR, ease: "power1.out" }).to(cols, {
+                    y: yLead,
+                    duration: BOUNCE_UP_DUR,
+                    ease: "power1.in",
+                });
+            });
+        }
+    }
+
     // =========================================================================
     // FINAL APPLY (STATIC 5x5)
     // =========================================================================
@@ -855,11 +977,46 @@ export class Match3Board {
     }
 
     public async finishSpinQuick(): Promise<void> {
-        await this.finishSpinNormal();
+        await this.landColumnsAllAtOnce({
+            slideDur: 0.26,
+            bouncePx: 12,
+            bounceDownDur: 0.06,
+            bounceUpDur: 0.08,
+        });
+
+        this.stopSpinLoop();
+        this.stopAndDestroyTicker();
+        this.applyBackendToFinalStaticGrid();
+
+        this.ensureWildLayerOnTop();
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
     }
 
     public async finishSpinTurbo(): Promise<void> {
-        await this.finishSpinNormal();
+        // ✅ Turbo: faster, NO bounce, NO extra “momentum”
+        await this.landColumnsAllAtOnce({
+            slideDur: 0.10,
+            bouncePx: 0,
+            bounceDownDur: 0,
+            bounceUpDur: 0,
+        });
+
+        this.stopSpinLoop();
+        this.stopAndDestroyTicker();
+        this.applyBackendToFinalStaticGrid();
+
+        this.ensureWildLayerOnTop();
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
     }
 
     // =========================================================================
