@@ -721,7 +721,8 @@ export class SlotSymbol extends Container {
 
             const spr = Sprite.from(assetName);
             spr.anchor.set(0.5);
-            spr.scale.set(0.45);
+            spr.width = 120;
+            spr.height = 150;
             spr.visible = false;
             this.sprite = spr;
             this.addChildAt(spr, 0);

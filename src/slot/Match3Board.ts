@@ -2,15 +2,18 @@ import { Container, Graphics, Ticker } from "pixi.js";
 import gsap from "gsap";
 import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
-import { BlurSymbol } from "../ui/BlurSymbol";
 import { SlotSymbol } from "./SlotSymbol";
 import { gridRandomTypeReset } from "./SlotUtility";
 import { userSettings, SpinModeEnum } from "../utils/userSettings";
 
 interface ReelColumn {
     container: Container;
-    symbols: (BlurSymbol | SlotSymbol)[];
-    position: number;
+    // symbols in this order:
+    // [0..rows-1] = lead (spine)
+    // [rows..rows+blurCount-1] = blur strip (blur sprite)
+    // finish will temporarily append result segment at the end
+    symbols: SlotSymbol[];
+    position: number; // spin cursor for blur strip (in "symbol units")
 }
 
 export class Match3Board {
@@ -34,28 +37,54 @@ export class Match3Board {
     public piecesMask: Graphics;
 
     /**
-     * blurLayer is a "BLUR COLUMNS LAYER" that stays inside the mask area and spins.
-     * realLayer is the 5x5 real result layer.
+     * ✅ SINGLE LAYER:
+     * realLayer is the only layer used for spin + landing.
+     * We simulate blur by using SlotSymbol.showBlurSprite()
      */
-    private blurLayer: Container;
     private realLayer: Container;
     private wildLayer: Container;
 
     // REELS ------------------------------------------
-    private blurReels: ReelColumn[] = [];
     private realReels: ReelColumn[] = [];
     private wildReels: ReelColumn[] = [];
 
-    // NEW: per-column blur freeze (so landed columns stop while others keep spinning)
-    private blurFrozen: boolean[] = [];
-
     // SPIN CONTROL -----------------------------------
     private ticker?: Ticker;
-    private _blurSpinning = false;
+    private _spinning = false;
 
-    // ✅ keep a default speed so we can restore it
-    private readonly _defaultBlurSpinSpeed = 0.45;
-    private _blurSpinSpeed = 0.45;
+    private readonly _defaultSpinSpeed = 0.45; // "symbols per frame @ 60fps"
+    private _spinSpeed = 0.45;
+
+    // start spin sequential activation per column
+    private colActive: boolean[] = [];
+    private startSpinCalls: gsap.core.Tween[] = [];
+
+    // SEGMENT CONTROL --------------------------------
+    private readonly BLUR_EXTRA = 3;
+
+    private get leadCount() {
+        return this.rows;
+    }
+    private get blurCount() {
+        return this.rows + this.BLUR_EXTRA;
+    }
+
+    private getYShowLead(offsetY: number) {
+        return -offsetY;
+    }
+    private getYShowBlur(offsetY: number) {
+        return -offsetY - this.rows * this.tileSize;
+    }
+    private getYStartAboveBlur(offsetY: number) {
+        return -offsetY - this.rows * this.tileSize * 2;
+    }
+
+    // ✅ match finish slide duration to blur speed
+    private getBlurMatchedSlideDuration(): number {
+        const spin = Math.max(0.001, this._spinSpeed);
+        const dur = this.rows / (spin * 60);
+        return Math.min(0.6, Math.max(0.1, dur));
+    }
 
     private initialReels: number[][] = [];
     private initialMultipliers: number[][] = [];
@@ -118,6 +147,11 @@ export class Match3Board {
         }
     }
 
+    private randomType(): number {
+        const types = Object.keys(this.typesMap).map(Number);
+        return types[Math.floor(Math.random() * types.length)];
+    }
+
     private makeSlotSymbol(type: number, multiplier: number) {
         const sym = new SlotSymbol();
         sym.setup({
@@ -129,10 +163,12 @@ export class Match3Board {
         return sym;
     }
 
-    private createBlur(): BlurSymbol {
-        const types = Object.keys(this.typesMap).map(Number);
-        const rand = types[Math.floor(Math.random() * types.length)];
-        return new BlurSymbol(rand, this.tileSize);
+    private showBlur(sym: SlotSymbol) {
+        sym.showBlurSprite();
+    }
+
+    private showSpine(sym: SlotSymbol) {
+        sym.showSpine();
     }
 
     constructor(match3: Match3) {
@@ -146,7 +182,6 @@ export class Match3Board {
         this.match3.addChild(this.piecesContainer);
         this.match3.addChild(this.piecesMask);
 
-        this.blurLayer = new Container();
         this.realLayer = new Container();
 
         this.backendMultipliers = this.initGrid(5, 5, 0);
@@ -154,7 +189,6 @@ export class Match3Board {
 
         this.wildLayer = new Container();
 
-        this.piecesContainer.addChild(this.blurLayer);
         this.piecesContainer.addChild(this.realLayer);
         this.piecesContainer.addChild(this.wildLayer);
 
@@ -211,7 +245,8 @@ export class Match3Board {
 
         this.refreshMask();
 
-        this.buildInitialRealLayer();
+        // initial idle state: show spine grid
+        this.buildIdleGridFromInitial();
 
         this.rebuildWildLayerStructure();
         this.applyWildGridToWildLayer();
@@ -238,12 +273,13 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // INITIAL REAL LAYER
+    // IDLE GRID (SPINE)
     // =========================================================================
-    private buildInitialRealLayer() {
+    private buildIdleGridFromInitial() {
         const { offsetX, offsetY } = this.getOffsets();
 
         this.realLayer.removeChildren();
+        this.destroyReels(this.realReels);
         this.realReels = [];
 
         for (let c = 0; c < this.columns; c++) {
@@ -260,6 +296,7 @@ export class Match3Board {
 
                 const sym = this.makeSlotSymbol(type, mult);
                 sym.y = r * this.tile;
+                this.showSpine(sym);
 
                 reel.symbols.push(sym);
                 col.addChild(sym);
@@ -272,10 +309,36 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // DESTROY/REBUILD BLUR+REAL (WILD STAYS)
+    // CAPTURE CURRENT DISPLAYED GRID (for lead continuity)
+    // =========================================================================
+    private getCurrentGridSnapshot(): { types: number[][]; mults: number[][] } {
+        const types = this.initGrid(this.rows, this.columns, 0);
+        const mults = this.initGrid(this.rows, this.columns, 0);
+
+        for (let c = 0; c < this.columns; c++) {
+            for (let r = 0; r < this.rows; r++) {
+                const cell = this.realReels?.[c]?.symbols?.[r];
+                if (cell instanceof SlotSymbol) {
+                    types[r][c] = (cell as any).type ?? this.initialReels?.[r]?.[c] ?? this.randomType();
+                    mults[r][c] = (cell as any).multiplier ?? 0;
+                } else {
+                    types[r][c] = this.initialReels?.[r]?.[c] ?? this.randomType();
+                    mults[r][c] = 0;
+                }
+            }
+        }
+
+        return { types, mults };
+    }
+
+    // =========================================================================
+    // DESTROY/REBUILD (single layer)
     // =========================================================================
     private destroyAllLayers() {
         this.killLoops();
+
+        for (const t of this.startSpinCalls) t?.kill?.();
+        this.startSpinCalls = [];
 
         if (this.ticker) {
             this.ticker.stop();
@@ -283,138 +346,173 @@ export class Match3Board {
             this.ticker = undefined;
         }
 
-        gsap.killTweensOf(this.blurLayer);
         gsap.killTweensOf(this.realLayer);
-
         for (const r of this.realReels) gsap.killTweensOf(r.container);
-        for (const r of this.blurReels) gsap.killTweensOf(r.container);
 
-        this.destroyReels(this.blurReels);
-        this.blurReels = [];
-        this.blurLayer.removeChildren();
-
+        this.realLayer.removeChildren();
         this.destroyReels(this.realReels);
         this.realReels = [];
-        this.realLayer.removeChildren();
 
-        if (this.blurLayer.parent) this.blurLayer.parent.removeChild(this.blurLayer);
-        if (this.realLayer.parent) this.realLayer.parent.removeChild(this.realLayer);
-
-        this.blurLayer = new Container();
-        this.realLayer = new Container();
-
-        const wildIndex = this.piecesContainer.children.indexOf(this.wildLayer);
-        const insertIndex = wildIndex >= 0 ? wildIndex : this.piecesContainer.children.length;
-
-        this.piecesContainer.addChildAt(
-            this.blurLayer,
-            Math.min(insertIndex, this.piecesContainer.children.length)
-        );
-
-        const wildIndex2 = this.piecesContainer.children.indexOf(this.wildLayer);
-        const insertIndex2 = wildIndex2 >= 0 ? wildIndex2 : this.piecesContainer.children.length;
-
-        this.piecesContainer.addChildAt(
-            this.realLayer,
-            Math.min(insertIndex2, this.piecesContainer.children.length)
-        );
-
-        // reset freeze states
-        this.blurFrozen = new Array(this.columns).fill(false);
+        this.colActive = new Array(this.columns).fill(false);
 
         this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
-    // BUILD BLUR "COLUMNS" LAYER (spinning)
+    // BUILD STRIP PER COLUMN: [LEAD spine] + [BLUR strip]
     // =========================================================================
-    private buildBlurLayer() {
+    private buildSpinStripLayer(leadTypes: number[][], leadMults: number[][]) {
         const { offsetX, offsetY } = this.getOffsets();
 
-        this.blurFrozen = new Array(this.columns).fill(false);
+        this.realLayer.removeChildren();
+        this.destroyReels(this.realReels);
+        this.realReels = [];
+
+        const total = this.leadCount + this.blurCount;
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
             col.x = c * this.tile - offsetX;
-            col.y = -offsetY - this.tile;
-            col.visible = true;
-            this.blurLayer.addChild(col);
+            col.y = this.getYStartAboveBlur(offsetY);
+            this.realLayer.addChild(col);
 
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
-            const total = this.rows + 3;
             for (let i = 0; i < total; i++) {
-                const blur = this.createBlur();
-                blur.y = i * this.tile;
-                col.addChild(blur);
-                reel.symbols.push(blur);
+                let type = 0;
+                let mult = 0;
+
+                if (i < this.leadCount) {
+                    const r = i;
+                    type = leadTypes[r][c];
+                    mult = leadMults[r][c] ?? 0;
+                } else {
+                    type = this.randomType();
+                    mult = 0;
+                }
+
+                const sym = this.makeSlotSymbol(type, mult);
+                sym.y = i * this.tile;
+
+                if (i < this.leadCount) this.showSpine(sym);
+                else this.showBlur(sym);
+
+                reel.symbols.push(sym);
+                col.addChild(sym);
             }
 
-            this.blurReels.push(reel);
+            this.realReels.push(reel);
         }
 
         this.ticker = new Ticker();
-        this.ticker.add(() => this.updateBlurSpin());
+        this.ticker.add((t) => this.updateSpin(t));
         this.ticker.start();
 
         this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
-    // BUILD REAL LAYER (placeholder blur during spin)
+    // SPIN UPDATE (blur segment only) - frame-rate independent
     // =========================================================================
-    private buildRealLayer() {
-        const { offsetX, offsetY } = this.getOffsets();
+    private updateSpin(tickerOrDelta: Ticker | number) {
+        if (!this._spinning) return;
 
-        for (let c = 0; c < this.columns; c++) {
-            const col = new Container();
-            col.x = c * this.tile - offsetX;
-            col.y = -offsetY;
-            this.realLayer.addChild(col);
-
-            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
-
-            for (let r = 0; r < this.rows; r++) {
-                const blur = this.createBlur();
-                blur.y = r * this.tile;
-                col.addChild(blur);
-                reel.symbols.push(blur);
-            }
-
-            this.realReels.push(reel);
-        }
-
-        this.ensureWildLayerOnTop();
-    }
-
-    // =========================================================================
-    // BLUR SPIN UPDATE (skip frozen columns)
-    // =========================================================================
-    private updateBlurSpin() {
-        if (!this._blurSpinning) return;
+        const delta =
+            typeof tickerOrDelta === "number"
+                ? tickerOrDelta
+                : ((tickerOrDelta as any).deltaTime ?? 1);
 
         const tile = this.tileSize;
 
-        for (let c = 0; c < this.blurReels.length; c++) {
-            if (this.blurFrozen[c]) continue;
+        for (let c = 0; c < this.realReels.length; c++) {
+            if (!this.colActive[c]) continue;
 
-            const reel = this.blurReels[c];
-            reel.position += this._blurSpinSpeed;
-            const total = reel.symbols.length;
+            const reel = this.realReels[c];
 
-            for (let i = 0; i < total; i++) {
+            reel.position += this._spinSpeed * delta;
+
+            const start = this.leadCount;
+            const totalBlur = this.blurCount;
+
+            for (let j = 0; j < totalBlur; j++) {
+                const i = start + j;
                 const sym = reel.symbols[i];
-                const idx = (reel.position + i) % total;
-                sym.y = idx * tile;
+                if (!sym) continue;
+
+                let idx = (reel.position + j) % totalBlur;
+                if (idx < 0) idx += totalBlur;
+
+                sym.y = (start + idx) * tile;
+
+                if (idx < 0.15) {
+                    const nextType = this.randomType();
+                    sym.setup({
+                        name: this.typesMap[nextType],
+                        type: nextType,
+                        size: this.tileSize,
+                        multiplier: 0,
+                    });
+                    this.showBlur(sym);
+                }
             }
         }
     }
 
-    private startBlurSpin() {
-        this._blurSpinning = true;
+    private startSpinLoop() {
+        this._spinning = true;
     }
-    private stopBlurSpin() {
-        this._blurSpinning = false;
+    private stopSpinLoop() {
+        this._spinning = false;
+    }
+
+    // =========================================================================
+    // START SPIN: seamless slide-down + sequential activation
+    // =========================================================================
+    private startSpinSeamlessSequential() {
+        for (const t of this.startSpinCalls) t?.kill?.();
+        this.startSpinCalls = [];
+
+        const { offsetY } = this.getOffsets();
+        const yEnd = this.getYShowBlur(offsetY);
+
+        this.colActive = new Array(this.columns).fill(false);
+
+        const PER_COL_DELAY = 0.07;
+        const SLIDE_DUR = 0.22;
+
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
+
+            const call = gsap.delayedCall(c * PER_COL_DELAY, () => {
+                this.colActive[c] = true;
+
+                gsap.killTweensOf(col);
+                gsap.to(col, {
+                    y: yEnd,
+                    duration: SLIDE_DUR,
+                    ease: "none",
+                });
+            });
+
+            this.startSpinCalls.push(call);
+        }
+    }
+
+    private forceAllColumnsToBlurViewAndActive() {
+        for (const t of this.startSpinCalls) t?.kill?.();
+        this.startSpinCalls = [];
+
+        const { offsetY } = this.getOffsets();
+        const yEnd = this.getYShowBlur(offsetY);
+
+        for (let c = 0; c < this.columns; c++) {
+            this.colActive[c] = true;
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
+            gsap.killTweensOf(col);
+            col.y = yEnd;
+        }
     }
 
     // =========================================================================
@@ -444,15 +542,22 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // APPLY BACKEND RESULT TO REAL REELS
+    // FINAL APPLY (STATIC 5x5 SPINE)  (used by interrupt only)
     // =========================================================================
-    public applyBackendToRealLayer() {
-        for (let c = 0; c < this.columns; c++) {
-            const reel = this.realReels[c];
+    public applyBackendToFinalStaticGrid() {
+        const { offsetX, offsetY } = this.getOffsets();
 
-            for (const sym of reel.symbols) (sym as any)?.destroy?.();
-            reel.symbols = [];
-            reel.container.removeChildren();
+        this.realLayer.removeChildren();
+        this.destroyReels(this.realReels);
+        this.realReels = [];
+
+        for (let c = 0; c < this.columns; c++) {
+            const col = new Container();
+            col.x = c * this.tile - offsetX;
+            col.y = -offsetY;
+            this.realLayer.addChild(col);
+
+            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             for (let r = 0; r < this.rows; r++) {
                 const type = this.backendReels[r][c];
@@ -460,13 +565,64 @@ export class Match3Board {
 
                 const sym = this.makeSlotSymbol(type, mult);
                 sym.y = r * this.tile;
+                this.showSpine(sym);
 
                 reel.symbols.push(sym);
-                reel.container.addChild(sym);
+                col.addChild(sym);
             }
+
+            this.realReels.push(reel);
         }
 
         this.ensureWildLayerOnTop();
+    }
+
+    // =========================================================================
+    // ✅ NEW: Finalize ONE column immediately after it lands (no flick)
+    // =========================================================================
+    private finalizeSingleColumnFromLandedBackendSegmentInPlace(c: number) {
+        const reel = this.realReels[c];
+        if (!reel) return;
+
+        const { offsetY } = this.getOffsets();
+        const keepStart = this.leadCount + this.blurCount;
+
+        if (reel.symbols.length < keepStart + this.rows) {
+            // safety fallback
+            return;
+        }
+
+        const col = reel.container;
+
+        // remove lead+blur symbols
+        for (let i = 0; i < keepStart; i++) {
+            const s = reel.symbols[i];
+            if (!s) continue;
+            if (s.parent) s.parent.removeChild(s);
+            (s as any)?.destroy?.();
+        }
+
+        // keep result segment only
+        const result = reel.symbols.slice(keepStart, keepStart + this.rows);
+
+        // shift into visible grid
+        for (let r = 0; r < result.length; r++) {
+            const s = result[r];
+            s.y = r * this.tile;
+            this.showSpine(s);
+        }
+
+        // commit
+        reel.symbols = result;
+        reel.position = 0;
+
+        // normalize container to final grid position
+        gsap.killTweensOf(col);
+        col.y = -offsetY;
+
+        // reorder children
+        col.removeChildren();
+        for (let r = 0; r < result.length; r++) col.addChild(result[r]);
     }
 
     // =========================================================================
@@ -559,8 +715,7 @@ export class Match3Board {
         this._interruptRequested = false;
         this._hasBackendResult = false;
 
-        // ✅ reset speed every new spin
-        this._blurSpinSpeed = this._defaultBlurSpinSpeed;
+        this._spinSpeed = this._defaultSpinSpeed;
 
         if (this.animating) {
             this.hasIncomingSpinTrigger = true;
@@ -570,25 +725,15 @@ export class Match3Board {
         this.killLoops();
         this.resetWildSymbolsToIdle();
 
+        const snap = this.getCurrentGridSnapshot();
+
         this.destroyAllLayers();
-        this.buildBlurLayer();
-        this.buildRealLayer();
+        this.buildSpinStripLayer(snap.types, snap.mults);
 
-        gsap.killTweensOf(this.blurLayer);
-        gsap.killTweensOf(this.realLayer);
-
-        this.blurLayer.y = 0;
-        this.realLayer.y = this.maskH;
-
-        // reset per-column states
-        this.blurFrozen = new Array(this.columns).fill(false);
-        for (let c = 0; c < this.blurReels.length; c++) {
-            this.blurReels[c].container.visible = true;
-        }
+        this.startSpinLoop();
+        this.startSpinSeamlessSequential();
 
         this.ensureWildLayerOnTop();
-
-        this.startBlurSpin();
     }
 
     public interruptSpin(): void {
@@ -596,9 +741,11 @@ export class Match3Board {
 
         this._interruptRequested = true;
 
+        this.forceAllColumnsToBlurViewAndActive();
+
         if (!this._hasBackendResult) {
-            this._blurSpinSpeed = Math.max(this._blurSpinSpeed, 1.2);
-            this.startBlurSpin();
+            this._spinSpeed = Math.max(this._spinSpeed, 1.2);
+            this.startSpinLoop();
             return;
         }
 
@@ -612,28 +759,10 @@ export class Match3Board {
         this.killLoops();
         this.hasIncomingSpinTrigger = false;
 
-        // stop all blur now
-        this.stopBlurSpin();
-
-        gsap.killTweensOf(this.blurLayer);
-        gsap.killTweensOf(this.realLayer);
-
+        this.stopSpinLoop();
         for (const r of this.realReels) gsap.killTweensOf(r.container);
-        for (const r of this.blurReels) gsap.killTweensOf(r.container);
 
-        this.applyBackendToRealLayer();
-
-        // instantly show real
-        this.realLayer.y = 0;
-
-        // instantly hide blur
-        this.blurLayer.y = -this.maskH - this.tileSize * 3;
-
-        // normalize columns
-        const { offsetY } = this.getOffsets();
-        for (const reel of this.realReels) {
-            reel.container.y = -offsetY;
-        }
+        this.applyBackendToFinalStaticGrid();
 
         this.ensureWildLayerOnTop();
 
@@ -643,7 +772,7 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
         this.testAnimateAllWildSymbols(wins);
 
-        this._blurSpinSpeed = this._defaultBlurSpinSpeed;
+        this._spinSpeed = this._defaultSpinSpeed;
 
         this._spinInProgress = false;
         this._interruptRequested = false;
@@ -662,369 +791,181 @@ export class Match3Board {
             await this.finishSpinQuick();
         }
 
-        this._blurSpinSpeed = this._defaultBlurSpinSpeed;
+        this._spinSpeed = this._defaultSpinSpeed;
 
         this._spinInProgress = false;
         this._interruptRequested = false;
     }
 
-   
-public async finishSpinNormal(): Promise<void> {
-    // ✅ HIDE real layer while we rebuild symbols to prevent 1-frame flick
-    this.realLayer.visible = false;
-
-    this.applyBackendToRealLayer();
-
-    const { offsetY } = this.getOffsets();
-
-    this.realLayer.y = this.maskH;
-    this.blurLayer.y = 0;
-
-    const fallDistance = this.tileSize * (this.rows + 2);
-
-    // -----------------------------
-    // SPEED TUNING (NORMAL)
-    // -----------------------------
-    const SLIDE_IN = 0.26;          // was 0.18 (slower transition)
-    const DROP = 0.30;              // was 0.35 (slower landing)
-    const START_DELAY = 0.22;       // was 0.18 (more time before first drop)
-    const BETWEEN_COLS = 0.06;      // was 0.03 (more cadence)
-    const BLUR_FADE = 0.16;         // was 0.12 (slower blur fade)
-    const FADE_AT = 0.72;           // was 0.70 (fade a bit later)
-    const BLUR_OUT = 0.26;          // was 0.20 (slower blur exit)
-
-    const wait = (sec: number) =>
-        new Promise<void>((resolve) => gsap.delayedCall(sec, () => resolve()));
-
-    // Reset blur states
-    for (let c = 0; c < this.columns; c++) {
-        const blurCol = this.blurReels[c]?.container;
-        if (blurCol) {
-            blurCol.visible = true;
-            blurCol.alpha = 1;
-        }
-        this.blurFrozen[c] = false;
-    }
-
-    // ✅ Place ALL real columns above AND keep them hidden initially
-    for (let c = 0; c < this.realReels.length; c++) {
-        const col = this.realReels[c].container;
-        gsap.killTweensOf(col);
-        col.y = -offsetY - fallDistance;
-        col.visible = false;
-    }
-
-    // ✅ Now that everything is positioned, show the layer (columns still hidden)
-    this.realLayer.visible = true;
-
-    // Slide real layer into view (no bounce)
-    gsap.killTweensOf(this.realLayer);
-    const slideInTween = gsap.to(this.realLayer, {
-        y: 0,
-        duration: SLIDE_IN,
-        ease: "none",
-    });
-
-    await new Promise<void>((resolve) => {
-        slideInTween.eventCallback("onComplete", () => resolve());
-    });
-
-    if (START_DELAY > 0) await wait(START_DELAY);
-
-    for (let c = 0; c < this.columns; c++) {
-        const reel = this.realReels[c];
-        const blurCol = this.blurReels[c]?.container;
-
-        // ✅ reveal THIS column only when it's about to fall
-        reel.container.visible = true;
-
-        // Fade + freeze blur column near landing
-        gsap.delayedCall(DROP * FADE_AT, () => {
-            if (!blurCol) return;
-
-            gsap.killTweensOf(blurCol);
-            gsap.to(blurCol, {
-                alpha: 0,
-                duration: BLUR_FADE,
-                ease: "none",
-                onComplete: () => {
-                    this.blurFrozen[c] = true;
-                    blurCol.visible = false;
-                    blurCol.alpha = 1;
-                },
-            });
-        });
-
-        const t = gsap.to(reel.container, {
-            y: -offsetY,
-            duration: DROP,
-            ease: "none",
-        });
-
-        await new Promise<void>((resolve) => {
-            t.eventCallback("onComplete", () => resolve());
-        });
-
-        if (BETWEEN_COLS > 0 && c < this.columns - 1) {
-            await wait(BETWEEN_COLS);
-        }
-    }
-
-    // After all columns landed, stop blur and move it away
-    this.stopBlurSpin();
-
-    gsap.killTweensOf(this.blurLayer);
-    const blurOut = gsap.to(this.blurLayer, {
-        y: -this.maskH - this.tileSize * 3,
-        duration: BLUR_OUT,
-        ease: "none",
-    });
-
-    await new Promise<void>((resolve) => {
-        blurOut.eventCallback("onComplete", () => resolve());
-    });
-
-    this.ensureWildLayerOnTop();
-
-    const wins = this.match3.process.getWinningPositions() ?? [];
-    this.animateWinningSymbols(wins);
-
-    this.setWildReels(this.match3.process.getWildReels());
-    this.testAnimateAllWildSymbols(wins);
-}
-
-
-/**
- * QUICK:
- * - Same "switch blur -> real columns" logic as NORMAL
- * - ALL 5 columns drop and land at the SAME time
- * - NO bounce, NO flick
- */
-public async finishSpinQuick(): Promise<void> {
-    this.realLayer.visible = false;
-
-    this.applyBackendToRealLayer();
-
-    const { offsetY } = this.getOffsets();
-
-    this.realLayer.y = this.maskH;
-    this.blurLayer.y = 0;
-
-    const fallDistance = this.tileSize * (this.rows + 2);
-
-    // -----------------------------
-    // SPEED TUNING (QUICK)
-    // -----------------------------
-    const SLIDE_IN = 0.24;          // was 0.16
-    const DROP = 0.30;              // was 0.28
-    const BLUR_FADE = 0.14;         // was 0.10
-    const FADE_AT = 0.70;           // same idea as normal
-    const BLUR_OUT = 0.22;          // was 0.18
-
-    // Reset blur states (all spinning)
-    for (let c = 0; c < this.columns; c++) {
-        const blurCol = this.blurReels[c]?.container;
-        if (blurCol) {
-            blurCol.visible = true;
-            blurCol.alpha = 1;
-        }
-        this.blurFrozen[c] = false;
-    }
-
-    // Place ALL real columns above and keep hidden until switch
-    for (let c = 0; c < this.realReels.length; c++) {
-        const col = this.realReels[c].container;
-        gsap.killTweensOf(col);
-        col.y = -offsetY - fallDistance;
-        col.visible = false;
-    }
-
-    this.realLayer.visible = true;
-
-    gsap.killTweensOf(this.realLayer);
-    const slideInTween = gsap.to(this.realLayer, {
-        y: 0,
-        duration: SLIDE_IN,
-        ease: "none",
-    });
-
-    await new Promise<void>((resolve) => slideInTween.eventCallback("onComplete", () => resolve()));
-
-    // SWITCH moment: reveal all 5 real columns at once
-    for (let c = 0; c < this.columns; c++) {
-        this.realReels[c].container.visible = true;
-    }
-
-    // Fade+freeze ALL blur columns near landing (same time)
-    gsap.delayedCall(DROP * FADE_AT, () => {
+    // =========================================================================
+    // FINISH HELPERS
+    // =========================================================================
+    private appendResultSegmentBelowBlur() {
         for (let c = 0; c < this.columns; c++) {
-            const blurCol = this.blurReels[c]?.container;
-            if (!blurCol) continue;
+            const reel = this.realReels[c];
+            const col = reel.container;
 
-            gsap.killTweensOf(blurCol);
-            gsap.to(blurCol, {
-                alpha: 0,
-                duration: BLUR_FADE,
-                ease: "none",
-                onComplete: () => {
-                    this.blurFrozen[c] = true;
-                    blurCol.visible = false;
-                    blurCol.alpha = 1;
-                },
-            });
+            while (reel.symbols.length > this.leadCount + this.blurCount) {
+                const last = reel.symbols.pop();
+                (last as any)?.destroy?.();
+                if (last?.parent) last.parent.removeChild(last);
+            }
+
+            const baseY = (this.leadCount + this.blurCount) * this.tile;
+
+            // ✅ append BACKEND symbols (these will be the landing symbols)
+            for (let r = 0; r < this.rows; r++) {
+                const type = this.backendReels[r][c];
+                const mult = this.backendMultipliers[r][c];
+
+                const sym = this.makeSlotSymbol(type, mult);
+                sym.y = baseY + r * this.tile;
+                this.showSpine(sym);
+
+                reel.symbols.push(sym);
+                col.addChild(sym);
+            }
         }
-    });
-
-    // Drop ALL columns together (no bounce)
-    const drops: Promise<void>[] = [];
-    for (let c = 0; c < this.columns; c++) {
-        const t = gsap.to(this.realReels[c].container, {
-            y: -offsetY,
-            duration: DROP,
-            ease: "none",
-        });
-        drops.push(new Promise<void>((resolve) => t.eventCallback("onComplete", () => resolve())));
     }
 
-    await Promise.all(drops);
+    /**
+     * ✅ Sequential landing:
+     * - other columns keep spinning
+     * - the landed column becomes REAL backend 5x5 immediately (no "change at the end")
+     */
+    private async slideColumnsToResult(sequential: boolean, slideDur: number, between: number) {
+        const { offsetY } = this.getOffsets();
 
-    this.stopBlurSpin();
+        const yFrom = this.getYShowBlur(offsetY);
+        const yTo = yFrom + this.rows * this.tile;
 
-    gsap.killTweensOf(this.blurLayer);
-    const blurOut = gsap.to(this.blurLayer, {
-        y: -this.maskH - this.tileSize * 3,
-        duration: BLUR_OUT,
-        ease: "none",
-    });
+        const wait = (sec: number) =>
+            new Promise<void>((resolve) => gsap.delayedCall(sec, () => resolve()));
 
-    await new Promise<void>((resolve) => blurOut.eventCallback("onComplete", () => resolve()));
-
-    this.ensureWildLayerOnTop();
-
-    const wins = this.match3.process.getWinningPositions() ?? [];
-    this.animateWinningSymbols(wins);
-
-    this.setWildReels(this.match3.process.getWildReels());
-    this.testAnimateAllWildSymbols(wins);
-}
-
-
-/**
- * TURBO:
- * - Same as QUICK but faster (still not "too fast")
- * - ALL 5 columns land at the SAME time
- * - NO bounce, NO flick
- */
-public async finishSpinTurbo(): Promise<void> {
-    this.realLayer.visible = false;
-
-    this.applyBackendToRealLayer();
-
-    const { offsetY } = this.getOffsets();
-
-    this.realLayer.y = this.maskH;
-    this.blurLayer.y = 0;
-
-    const fallDistance = this.tileSize * (this.rows + 2);
-
-    // -----------------------------
-    // SPEED TUNING (TURBO)
-    // -----------------------------
-    const SLIDE_IN = 0.16;          // was 0.10 (slower than before)
-    const DROP = 0.20;              // was 0.18
-    const BLUR_FADE = 0.10;         // was 0.08
-    const FADE_AT = 0.70;
-    const BLUR_OUT = 0.16;          // was 0.12
-
-    // Reset blur states (all spinning)
-    for (let c = 0; c < this.columns; c++) {
-        const blurCol = this.blurReels[c]?.container;
-        if (blurCol) {
-            blurCol.visible = true;
-            blurCol.alpha = 1;
-        }
-        this.blurFrozen[c] = false;
-    }
-
-    // Place ALL real columns above and keep hidden until switch
-    for (let c = 0; c < this.realReels.length; c++) {
-        const col = this.realReels[c].container;
-        gsap.killTweensOf(col);
-        col.y = -offsetY - fallDistance;
-        col.visible = false;
-    }
-
-    this.realLayer.visible = true;
-
-    gsap.killTweensOf(this.realLayer);
-    const slideInTween = gsap.to(this.realLayer, {
-        y: 0,
-        duration: SLIDE_IN,
-        ease: "none",
-    });
-
-    await new Promise<void>((resolve) => slideInTween.eventCallback("onComplete", () => resolve()));
-
-    // SWITCH moment: reveal all 5 real columns at once
-    for (let c = 0; c < this.columns; c++) {
-        this.realReels[c].container.visible = true;
-    }
-
-    // Fade+freeze ALL blur columns near landing (same time)
-    gsap.delayedCall(DROP * FADE_AT, () => {
+        // align all to blur-view, all spinning
         for (let c = 0; c < this.columns; c++) {
-            const blurCol = this.blurReels[c]?.container;
-            if (!blurCol) continue;
-
-            gsap.killTweensOf(blurCol);
-            gsap.to(blurCol, {
-                alpha: 0,
-                duration: BLUR_FADE,
-                ease: "none",
-                onComplete: () => {
-                    this.blurFrozen[c] = true;
-                    blurCol.visible = false;
-                    blurCol.alpha = 1;
-                },
-            });
+            const col = this.realReels[c].container;
+            gsap.killTweensOf(col);
+            col.y = yFrom;
+            this.colActive[c] = true;
         }
-    });
 
-    // Drop ALL columns together (no bounce)
-    const drops: Promise<void>[] = [];
-    for (let c = 0; c < this.columns; c++) {
-        const t = gsap.to(this.realReels[c].container, {
-            y: -offsetY,
-            duration: DROP,
-            ease: "none",
-        });
-        drops.push(new Promise<void>((resolve) => t.eventCallback("onComplete", () => resolve())));
+        if (!sequential) {
+            // all land together -> stop spinning all during the landing tween
+            for (let c = 0; c < this.columns; c++) this.colActive[c] = false;
+
+            const ps: Promise<void>[] = [];
+            for (let c = 0; c < this.columns; c++) {
+                const col = this.realReels[c].container;
+                const t = gsap.to(col, { y: yTo, duration: slideDur, ease: "none" });
+                ps.push(new Promise<void>((resolve) => t.eventCallback("onComplete", () => resolve())));
+            }
+            await Promise.all(ps);
+
+            // after all landed together, finalize all at once
+            for (let c = 0; c < this.columns; c++) {
+                this.finalizeSingleColumnFromLandedBackendSegmentInPlace(c);
+            }
+            return;
+        }
+
+        for (let c = 0; c < this.columns; c++) {
+            // ✅ stop spinning THIS column only; others continue
+            this.colActive[c] = false;
+
+            const col = this.realReels[c].container;
+            const t = gsap.to(col, { y: yTo, duration: slideDur, ease: "none" });
+
+            await new Promise<void>((resolve) => t.eventCallback("onComplete", () => resolve()));
+
+            // ✅ IMPORTANT: immediately convert this landed column into real backend 5x5
+            // so the player sees the true result as soon as it lands.
+            this.finalizeSingleColumnFromLandedBackendSegmentInPlace(c);
+
+            if (between > 0 && c < this.columns - 1) await wait(between);
+        }
     }
 
-    await Promise.all(drops);
+    /**
+     * NORMAL:
+     * - other columns keep spinning while one column lands
+     * - landed column shows backend result immediately (no “result changed later”)
+     */
+    public async finishSpinNormal(): Promise<void> {
+        this.forceAllColumnsToBlurViewAndActive();
+        this.startSpinLoop();
 
-    this.stopBlurSpin();
+        this.appendResultSegmentBelowBlur();
 
-    gsap.killTweensOf(this.blurLayer);
-    const blurOut = gsap.to(this.blurLayer, {
-        y: -this.maskH - this.tileSize * 3,
-        duration: BLUR_OUT,
-        ease: "none",
-    });
+        const SLIDE = this.getBlurMatchedSlideDuration();
+        const BETWEEN = 0.06;
 
-    await new Promise<void>((resolve) => blurOut.eventCallback("onComplete", () => resolve()));
+        await this.slideColumnsToResult(true, SLIDE, BETWEEN);
 
-    this.ensureWildLayerOnTop();
+        // after all columns finalized, stop loop (everything is already 5x5 backend)
+        this.stopSpinLoop();
 
-    const wins = this.match3.process.getWinningPositions() ?? [];
-    this.animateWinningSymbols(wins);
+        this.ensureWildLayerOnTop();
 
-    this.setWildReels(this.match3.process.getWildReels());
-    this.testAnimateAllWildSymbols(wins);
-}
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
 
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
+    }
 
+    /**
+     * QUICK:
+     * - land together
+     * - backend already visible during landing
+     */
+    public async finishSpinQuick(): Promise<void> {
+        this.forceAllColumnsToBlurViewAndActive();
+        this.startSpinLoop();
 
+        this.appendResultSegmentBelowBlur();
+
+        const SLIDE = this.getBlurMatchedSlideDuration();
+        await this.slideColumnsToResult(false, SLIDE, 0);
+
+        this.stopSpinLoop();
+
+        this.ensureWildLayerOnTop();
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
+    }
+
+    /**
+     * TURBO:
+     * - land together faster
+     */
+    public async finishSpinTurbo(): Promise<void> {
+        this.forceAllColumnsToBlurViewAndActive();
+        this.startSpinLoop();
+
+        this.appendResultSegmentBelowBlur();
+
+        const SLIDE = Math.max(0.08, this.getBlurMatchedSlideDuration() * 0.75);
+        await this.slideColumnsToResult(false, SLIDE, 0);
+
+        this.stopSpinLoop();
+
+        this.ensureWildLayerOnTop();
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
+    }
+
+    // =========================================================================
+    // MULTIPLIER HELPER (your original)
+    // =========================================================================
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
         const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
@@ -1035,6 +976,9 @@ public async finishSpinTurbo(): Promise<void> {
         return this.isTubroSpin;
     }
 
+    // =========================================================================
+    // WILD LAYER (unchanged)
+    // =========================================================================
     private ensureWildLayerOnTop() {
         if (!this.wildLayer.parent) this.piecesContainer.addChild(this.wildLayer);
         this.piecesContainer.setChildIndex(this.wildLayer, this.piecesContainer.children.length - 1);
@@ -1045,12 +989,12 @@ public async finishSpinTurbo(): Promise<void> {
 
         for (let c = 0; c < this.columns; c++) {
             const reel = this.wildReels[c];
-            if (!reel || reel.symbols.length !== this.rows) return this.rebuildWildLayerStructure();
+            if (!reel || (reel as any).symbols.length !== this.rows) return this.rebuildWildLayerStructure();
         }
     }
 
     private rebuildWildLayerStructure() {
-        this.destroyReels(this.wildReels);
+        this.destroyReels(this.wildReels as any);
         this.wildReels = [];
         this.wildLayer.removeChildren();
 
@@ -1062,7 +1006,7 @@ public async finishSpinTurbo(): Promise<void> {
             col.y = -offsetY;
             this.wildLayer.addChild(col);
 
-            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
+            const reel: any = { container: col, symbols: [], position: 0 };
 
             for (let r = 0; r < this.rows; r++) {
                 const dummy = new Container() as any;
@@ -1084,10 +1028,10 @@ public async finishSpinTurbo(): Promise<void> {
         const tile = this.tileSize;
 
         this.forEachCell((r, c) => {
-            const reel = this.wildReels[c];
+            const reel: any = this.wildReels[c];
             if (!reel) return;
 
-            const current = reel.symbols[r];
+            const current: any = reel.symbols[r];
             const type = this.wildGrid?.[r]?.[c] ?? 0;
             const mult = this.backendMultipliers?.[r]?.[c] ?? 0;
 
@@ -1145,8 +1089,8 @@ public async finishSpinTurbo(): Promise<void> {
             const list: SlotSymbol[] = [];
 
             for (const { row, column } of positions) {
-                const reel = this.wildReels[column];
-                const cell = reel?.symbols[row];
+                const reel: any = this.wildReels[column];
+                const cell: any = reel?.symbols[row];
                 if (!(cell instanceof SlotSymbol)) continue;
 
                 if (!cell.visible) continue;
@@ -1161,11 +1105,11 @@ public async finishSpinTurbo(): Promise<void> {
 
     private resetWildSymbolsToIdle() {
         for (let c = 0; c < this.wildReels.length; c++) {
-            const reel = this.wildReels[c];
+            const reel: any = this.wildReels[c];
             if (!reel) continue;
 
             for (let r = 0; r < reel.symbols.length; r++) {
-                const cell = reel.symbols[r];
+                const cell: any = reel.symbols[r];
                 if (!(cell instanceof SlotSymbol)) continue;
 
                 cell.resetToSetupPose();
@@ -1176,6 +1120,9 @@ public async finishSpinTurbo(): Promise<void> {
         }
     }
 
+    // =========================================================================
+    // CLEAR
+    // =========================================================================
     public clearWildLayerAndMultipliers() {
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
