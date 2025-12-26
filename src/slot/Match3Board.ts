@@ -8,12 +8,8 @@ import { userSettings, SpinModeEnum } from "../utils/userSettings";
 
 interface ReelColumn {
     container: Container;
-    // symbols in this order:
-    // [0..rows-1] = lead (spine)
-    // [rows..rows+blurCount-1] = blur strip (blur sprite)
-    // finish will temporarily append result segment at the end
     symbols: SlotSymbol[];
-    position: number; // spin cursor for blur strip (in "symbol units")
+    position: number;
 }
 
 export class Match3Board {
@@ -25,95 +21,47 @@ export class Match3Board {
 
     public typesMap!: Record<number, string>;
 
-    // BACKEND RESULTS -------------------------------
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
 
-    // WILD OVERLAY (PERSISTENT) ----------------------
     private wildGrid: number[][] = [];
 
-    // LAYERS -----------------------------------------
     public piecesContainer: Container;
     public piecesMask: Graphics;
 
-    /**
-     * ✅ SINGLE LAYER:
-     * realLayer is the only layer used for spin + landing.
-     * We simulate blur by using SlotSymbol.showBlurSprite()
-     */
     private realLayer: Container;
     private wildLayer: Container;
 
-    // REELS ------------------------------------------
     private realReels: ReelColumn[] = [];
     private wildReels: ReelColumn[] = [];
 
-    // SPIN CONTROL -----------------------------------
     private ticker?: Ticker;
     private _spinning = false;
 
-    private readonly _defaultSpinSpeed = 0.45; // "symbols per frame @ 60fps"
+    private readonly _defaultSpinSpeed = 0.45;
     private _spinSpeed = 0.45;
 
-    // start spin sequential activation per column
     private colActive: boolean[] = [];
-    private startSpinCalls: gsap.core.Tween[] = [];
 
-    // SEGMENT CONTROL --------------------------------
+    private _startSeqId = 0;
+    private _startSequencePromise: Promise<void> | null = null;
+
     private readonly BLUR_EXTRA = 3;
 
-    private get leadCount() {
-        return this.rows;
-    }
     private get blurCount() {
         return this.rows + this.BLUR_EXTRA;
     }
 
-    private getYShowLead(offsetY: number) {
-        return -offsetY;
+    private blurIndexStart() {
+        return 0;
     }
-    private getYShowBlur(offsetY: number) {
-        return -offsetY - this.rows * this.tileSize;
+    private blurIndexEndExclusive() {
+        return this.blurCount;
     }
-    private getYStartAboveBlur(offsetY: number) {
-        return -offsetY - this.rows * this.tileSize * 2;
-    }
-
-    // ✅ match finish slide duration to blur speed
-    private getBlurMatchedSlideDuration(): number {
-        const spin = Math.max(0.001, this._spinSpeed);
-        const dur = this.rows / (spin * 60);
-        return Math.min(0.6, Math.max(0.1, dur));
+    private leadIndexStart() {
+        return this.blurCount;
     }
 
-    private initialReels: number[][] = [];
-    private initialMultipliers: number[][] = [];
-    private isTubroSpin = true;
-
-    // =========================================================================
-    // LOOP-BY-REPLAY ANIMATION CONTROL
-    // =========================================================================
-    public hasIncomingSpinTrigger = false;
-    private animating = false;
-
-    private winLoopTween?: gsap.core.Tween;
-    private wildLoopTween?: gsap.core.Tween;
-
-    private readonly WIN_ANIM_MS = 900;
-
-    private animationGate: Promise<void> | null = null;
-    private resolveAnimationGate: (() => void) | null = null;
-
-    // =========================================================================
-    // INTERRUPT SPIN CONTROL
-    // =========================================================================
-    private _spinInProgress = false;
-    private _interruptRequested = false;
-    private _hasBackendResult = false;
-
-    // =========================================================================
-    // SMALL HELPERS
-    // =========================================================================
     private get tile() {
         return this.tileSize;
     }
@@ -171,6 +119,35 @@ export class Match3Board {
         sym.showSpine();
     }
 
+    private sleep(ms: number) {
+        return new Promise<void>((resolve) => setTimeout(resolve, ms));
+    }
+
+    private initialReels: number[][] = [];
+    private initialMultipliers: number[][] = [];
+    private isTubroSpin = true;
+
+    // =========================================================================
+    // LOOP-BY-REPLAY ANIMATION CONTROL (unchanged)
+    // =========================================================================
+    public hasIncomingSpinTrigger = false;
+    private animating = false;
+
+    private winLoopTween?: gsap.core.Tween;
+    private wildLoopTween?: gsap.core.Tween;
+
+    private readonly WIN_ANIM_MS = 900;
+
+    private animationGate: Promise<void> | null = null;
+    private resolveAnimationGate: (() => void) | null = null;
+
+    // =========================================================================
+    // INTERRUPT SPIN CONTROL
+    // =========================================================================
+    private _spinInProgress = false;
+    private _interruptRequested = false;
+    private _hasBackendResult = false;
+
     constructor(match3: Match3) {
         this.match3 = match3;
 
@@ -197,6 +174,20 @@ export class Match3Board {
                 this.match3.board.interruptSpin();
             }
         });
+    }
+
+    private cancelStartSequence() {
+        this._startSeqId++;
+        this._startSequencePromise = null;
+    }
+
+    private stopAndDestroyTicker() {
+        this._spinning = false;
+        if (this.ticker) {
+            this.ticker.stop();
+            this.ticker.destroy();
+            this.ticker = undefined;
+        }
     }
 
     // =========================================================================
@@ -244,8 +235,6 @@ export class Match3Board {
         }
 
         this.refreshMask();
-
-        // initial idle state: show spine grid
         this.buildIdleGridFromInitial();
 
         this.rebuildWildLayerStructure();
@@ -260,9 +249,6 @@ export class Match3Board {
         this.initialMultipliers = multipliers;
     }
 
-    // =========================================================================
-    // PUBLIC: WILD GRID SETTER
-    // =========================================================================
     public setWildReels(wild: number[][]) {
         this.wildGrid = wild ?? [];
         if (this.rows > 0 && this.columns > 0) {
@@ -332,19 +318,13 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // DESTROY/REBUILD (single layer)
+    // DESTROY/REBUILD
     // =========================================================================
     private destroyAllLayers() {
         this.killLoops();
 
-        for (const t of this.startSpinCalls) t?.kill?.();
-        this.startSpinCalls = [];
-
-        if (this.ticker) {
-            this.ticker.stop();
-            this.ticker.destroy();
-            this.ticker = undefined;
-        }
+        this.cancelStartSequence();
+        this.stopAndDestroyTicker();
 
         gsap.killTweensOf(this.realLayer);
         for (const r of this.realReels) gsap.killTweensOf(r.container);
@@ -354,48 +334,52 @@ export class Match3Board {
         this.realReels = [];
 
         this.colActive = new Array(this.columns).fill(false);
-
         this.ensureWildLayerOnTop();
     }
 
     // =========================================================================
-    // BUILD STRIP PER COLUMN: [LEAD spine] + [BLUR strip]
+    // BUILD SPIN STRIP:
+    // (FIX flick-on-start): rebuild while realLayer is hidden, then show after built.
     // =========================================================================
     private buildSpinStripLayer(leadTypes: number[][], leadMults: number[][]) {
         const { offsetX, offsetY } = this.getOffsets();
+
+        // ---- flick fix: hide while rebuilding (prevents 1-frame empty/teleport) ----
+        this.realLayer.visible = false;
 
         this.realLayer.removeChildren();
         this.destroyReels(this.realReels);
         this.realReels = [];
 
-        const total = this.leadCount + this.blurCount;
-
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
             col.x = c * this.tile - offsetX;
-            col.y = this.getYStartAboveBlur(offsetY);
+            col.y = -offsetY; // shows LEAD initially
             this.realLayer.addChild(col);
 
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
-            for (let i = 0; i < total; i++) {
-                let type = 0;
-                let mult = 0;
+            const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
 
-                if (i < this.leadCount) {
-                    const r = i;
-                    type = leadTypes[r][c];
-                    mult = leadMults[r][c] ?? 0;
-                } else {
-                    type = this.randomType();
-                    mult = 0;
-                }
+            // blur symbols (above)
+            for (let j = 0; j < this.blurCount; j++) {
+                const type = this.randomType();
+                const sym = this.makeSlotSymbol(type, 0);
+                sym.y = yTop + j * this.tile;
+                this.showBlur(sym);
+
+                reel.symbols.push(sym);
+                col.addChild(sym);
+            }
+
+            // lead symbols (0..)
+            for (let r = 0; r < this.rows; r++) {
+                const type = leadTypes[r][c];
+                const mult = leadMults[r][c] ?? 0;
 
                 const sym = this.makeSlotSymbol(type, mult);
-                sym.y = i * this.tile;
-
-                if (i < this.leadCount) this.showSpine(sym);
-                else this.showBlur(sym);
+                sym.y = r * this.tile;
+                this.showSpine(sym);
 
                 reel.symbols.push(sym);
                 col.addChild(sym);
@@ -404,45 +388,56 @@ export class Match3Board {
             this.realReels.push(reel);
         }
 
+        // ticker for blur strip spinning
+        this.stopAndDestroyTicker();
         this.ticker = new Ticker();
-        this.ticker.add((t) => this.updateSpin(t));
-        this.ticker.start();
 
+        this.ticker.add((arg: any) => {
+            const delta = typeof arg === "number" ? arg : (arg?.deltaTime ?? arg?.deltaMS ?? 1);
+            this.updateSpin(delta);
+        });
+
+        this.ticker.start();
         this.ensureWildLayerOnTop();
+
+        // ---- flick fix: show after complete build (same tick, but after content exists) ----
+        this.realLayer.visible = true;
+    }
+
+    private setBlurVisibleForColumn(column: number, visible: boolean) {
+        const reel = this.realReels[column];
+        if (!reel) return;
+
+        for (let j = 0; j < this.blurCount; j++) {
+            const sym = reel.symbols[this.blurIndexStart() + j];
+            if (!sym) continue;
+            sym.visible = visible;
+        }
     }
 
     // =========================================================================
-    // SPIN UPDATE (blur segment only) - frame-rate independent
+    // SPIN UPDATE: only blur symbols move
     // =========================================================================
-    private updateSpin(tickerOrDelta: Ticker | number) {
+    private updateSpin(delta: number) {
         if (!this._spinning) return;
 
-        const delta =
-            typeof tickerOrDelta === "number"
-                ? tickerOrDelta
-                : ((tickerOrDelta as any).deltaTime ?? 1);
-
-        const tile = this.tileSize;
+        const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
+        const visibleBand = this.blurCount;
 
         for (let c = 0; c < this.realReels.length; c++) {
             if (!this.colActive[c]) continue;
 
             const reel = this.realReels[c];
-
             reel.position += this._spinSpeed * delta;
 
-            const start = this.leadCount;
-            const totalBlur = this.blurCount;
-
-            for (let j = 0; j < totalBlur; j++) {
-                const i = start + j;
-                const sym = reel.symbols[i];
+            for (let j = 0; j < this.blurCount; j++) {
+                const sym = reel.symbols[this.blurIndexStart() + j];
                 if (!sym) continue;
 
-                let idx = (reel.position + j) % totalBlur;
-                if (idx < 0) idx += totalBlur;
+                let idx = (reel.position + j) % visibleBand;
+                if (idx < 0) idx += visibleBand;
 
-                sym.y = (start + idx) * tile;
+                sym.y = yTop + idx * this.tile;
 
                 if (idx < 0.15) {
                     const nextType = this.randomType();
@@ -466,52 +461,78 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // START SPIN: seamless slide-down + sequential activation
+    // START SPIN: wave lift + drop into blur
     // =========================================================================
-    private startSpinSeamlessSequential() {
-        for (const t of this.startSpinCalls) t?.kill?.();
-        this.startSpinCalls = [];
+    private async startSpinSeamlessSequential(): Promise<void> {
+        const seq = ++this._startSeqId;
 
         const { offsetY } = this.getOffsets();
-        const yEnd = this.getYShowBlur(offsetY);
+        const yLead = -offsetY;
+        const yBlur = -offsetY + this.rows * this.tile;
 
+        // reset all columns to LEAD view
         this.colActive = new Array(this.columns).fill(false);
-
-        const PER_COL_DELAY = 0.07;
-        const SLIDE_DUR = 0.22;
-
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container;
             if (!col) continue;
-
-            const call = gsap.delayedCall(c * PER_COL_DELAY, () => {
-                this.colActive[c] = true;
-
-                gsap.killTweensOf(col);
-                gsap.to(col, {
-                    y: yEnd,
-                    duration: SLIDE_DUR,
-                    ease: "none",
-                });
-            });
-
-            this.startSpinCalls.push(call);
+            gsap.killTweensOf(col);
+            col.y = yLead;
+            // blur must be visible during spin
+            this.setBlurVisibleForColumn(c, true);
         }
+
+        // ---- TUNING ----
+        const WAVE_STAGGER = 0.06; // faster wave => reduce this
+        const LIFT_PX = 25;
+        const LIFT_DUR = 0.15;
+        const DROP_DUR = 0.2;
+        // --------------
+
+        // activate blur spin as wave reaches each column
+        for (let c = 0; c < this.columns; c++) {
+            gsap.delayedCall(c * WAVE_STAGGER, () => {
+                if (seq !== this._startSeqId) return;
+                this.colActive[c] = true;
+            });
+        }
+
+        const cols = this.realReels.map((r) => r.container);
+
+        const tl = gsap.timeline();
+        tl.to(cols, {
+            y: yLead - LIFT_PX,
+            duration: LIFT_DUR,
+            ease: "power1.out",
+            stagger: WAVE_STAGGER,
+        });
+        tl.to(
+            cols,
+            {
+                y: yBlur,
+                duration: DROP_DUR,
+                ease: "none",
+                stagger: WAVE_STAGGER,
+            },
+            ">-0.02"
+        );
+
+        await tl.then();
+        if (seq !== this._startSeqId) return;
     }
 
     private forceAllColumnsToBlurViewAndActive() {
-        for (const t of this.startSpinCalls) t?.kill?.();
-        this.startSpinCalls = [];
+        this.cancelStartSequence();
 
         const { offsetY } = this.getOffsets();
-        const yEnd = this.getYShowBlur(offsetY);
+        const yBlur = -offsetY + this.rows * this.tile;
 
         for (let c = 0; c < this.columns; c++) {
             this.colActive[c] = true;
             const col = this.realReels[c]?.container;
             if (!col) continue;
             gsap.killTweensOf(col);
-            col.y = yEnd;
+            col.y = yBlur;
+            this.setBlurVisibleForColumn(c, true);
         }
     }
 
@@ -529,22 +550,242 @@ export class Match3Board {
         }
     }
 
-    public getBackendReels() {
-        return this.backendReels;
+    // =========================================================================
+    // SPIN
+    // =========================================================================
+    public async startSpin(): Promise<void> {
+        if (this._spinInProgress) return;
+
+        this._spinInProgress = true;
+        this._interruptRequested = false;
+        this._hasBackendResult = false;
+
+        this._spinSpeed = this._defaultSpinSpeed;
+
+        this.killLoops();
+        this.resetWildSymbolsToIdle();
+
+        const snap = this.getCurrentGridSnapshot();
+
+        this.destroyAllLayers();
+        this.buildSpinStripLayer(snap.types, snap.mults);
+
+        this.startSpinLoop();
+
+        this._startSequencePromise = this.startSpinSeamlessSequential();
+
+        this.ensureWildLayerOnTop();
     }
 
-    public getBackendMultipliers() {
-        return this.backendMultipliers;
+    public interruptSpin(): void {
+        if (!this._spinInProgress) return;
+
+        this._interruptRequested = true;
+
+        this.forceAllColumnsToBlurViewAndActive();
+
+        if (!this._hasBackendResult) {
+            this._spinSpeed = Math.max(this._spinSpeed, 1.2);
+            this.startSpinLoop();
+            return;
+        }
+
+        this.finishSpinInstantFromInterrupt();
     }
 
-    public getWildReels() {
-        return this.wildGrid;
+    private finishSpinInstantFromInterrupt(): void {
+        if (!this._spinInProgress) return;
+        if (!this._hasBackendResult) return;
+
+        this.cancelStartSequence();
+        this.stopSpinLoop();
+        this.stopAndDestroyTicker();
+
+        for (const r of this.realReels) gsap.killTweensOf(r.container);
+
+        this.applyBackendToFinalStaticGrid();
+
+        this.ensureWildLayerOnTop();
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
+
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
+
+        this._spinSpeed = this._defaultSpinSpeed;
+
+        this._spinInProgress = false;
+        this._interruptRequested = false;
+    }
+
+    private async waitForBackendReady(): Promise<void> {
+        while (!this._hasBackendResult) {
+            await this.sleep(16);
+        }
+    }
+
+    public async finishSpin(): Promise<void> {
+        if (this._startSequencePromise) {
+            await this._startSequencePromise;
+        }
+        await this.waitForBackendReady();
+
+        const spinMode = userSettings.getSpinMode();
+
+        if (spinMode === SpinModeEnum.Normal) {
+            await this.finishSpinNormal();
+        } else if (spinMode === SpinModeEnum.Quick) {
+            await this.finishSpinQuick();
+        } else if (spinMode === SpinModeEnum.Turbo) {
+            await this.finishSpinTurbo();
+        } else {
+            await this.finishSpinQuick();
+        }
+
+        this._spinSpeed = this._defaultSpinSpeed;
+        this._spinInProgress = false;
+        this._interruptRequested = false;
     }
 
     // =========================================================================
-    // FINAL APPLY (STATIC 5x5 SPINE)  (used by interrupt only)
+    // LANDING CORE
+    // =========================================================================
+    private applyBackendToLeadColumn(column: number) {
+        const reel = this.realReels[column];
+        if (!reel) return;
+
+        for (let r = 0; r < this.rows; r++) {
+            const idx = this.leadIndexStart() + r;
+            const sym = reel.symbols[idx];
+            if (!sym) continue;
+
+            const type = this.backendReels[r][column];
+            const mult = this.backendMultipliers[r][column];
+
+            sym.setup({
+                name: this.typesMap[type],
+                type,
+                size: this.tileSize,
+                multiplier: mult,
+            });
+            this.showSpine(sym);
+            sym.y = r * this.tile;
+        }
+    }
+
+    // (FIX flick-on-landing): never hide blur until AFTER lead symbols are reattached
+    // and the column is already at yLead. That removes the 1-frame "nothing" gap.
+    private async landColumnsSequential(): Promise<void> {
+        const BOUNCE_PX = 15;
+        const BOUNCE_DOWN_DUR = 0.06;
+        const BOUNCE_UP_DUR = 0.08;
+
+        const { offsetY } = this.getOffsets();
+        const yLead = -offsetY;
+        const yBlur = -offsetY + this.rows * this.tile;
+        const yFromTop = yLead - this.rows * this.tile;
+
+        const SLIDE_DUR = 0.3;
+        const BETWEEN = 0.06;
+
+        const dropLayer = new Container();
+        this.realLayer.addChild(dropLayer);
+        this.realLayer.setChildIndex(dropLayer, this.realLayer.children.length - 1);
+
+        // everyone in blur view and spinning (blur visible)
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
+            gsap.killTweensOf(col);
+            col.y = yBlur;
+            this.colActive[c] = true;
+            this.setBlurVisibleForColumn(c, true);
+        }
+
+        for (let c = 0; c < this.columns; c++) {
+            const reel = this.realReels[c];
+            const col = reel?.container;
+            if (!reel || !col) continue;
+
+            // keep blur moving behind
+            this.colActive[c] = true;
+            col.y = yBlur;
+
+            this.applyBackendToLeadColumn(c);
+
+            const dropCol = new Container();
+            dropCol.x = col.x;
+            dropCol.y = yFromTop;
+            dropLayer.addChild(dropCol);
+
+            const leadSyms: SlotSymbol[] = [];
+            for (let r = 0; r < this.rows; r++) {
+                const idx = this.leadIndexStart() + r;
+                const sym = reel.symbols[idx];
+                if (!sym) continue;
+
+                if (sym.parent === col) col.removeChild(sym);
+                sym.y = r * this.tile;
+                dropCol.addChild(sym);
+                leadSyms.push(sym);
+            }
+
+            await new Promise<void>((resolve) => {
+                const t = gsap.to(dropCol, { y: yLead, duration: SLIDE_DUR, ease: "none" });
+                t.eventCallback("onComplete", () => resolve());
+            });
+
+            // ✅ commit order to prevent flick:
+            // 1) put column in final view
+            col.y = yLead;
+
+            // 2) reattach lead symbols FIRST (so something is always visible)
+            for (let r = 0; r < leadSyms.length; r++) {
+                const sym = leadSyms[r];
+                sym.y = r * this.tile;
+                col.addChild(sym);
+            }
+
+            // 3) now hide blur + stop blur motion for this column
+            this.colActive[c] = false;
+            this.setBlurVisibleForColumn(c, false);
+
+            dropCol.removeChildren();
+            dropCol.destroy();
+
+            // bounce at landing end (column already has final symbols)
+            await new Promise<void>((resolve) => {
+                const tl = gsap.timeline({
+                    onComplete: () => {
+                        col.y = yLead;
+                        resolve();
+                    },
+                });
+
+                tl.to(col, { y: yLead + BOUNCE_PX, duration: BOUNCE_DOWN_DUR, ease: "power1.out" }).to(col, {
+                    y: yLead,
+                    duration: BOUNCE_UP_DUR,
+                    ease: "power1.in",
+                });
+            });
+
+            if (c < this.columns - 1 && BETWEEN > 0) {
+                await new Promise<void>((resolve) => gsap.delayedCall(BETWEEN, () => resolve()));
+            }
+        }
+
+        dropLayer.removeChildren();
+        dropLayer.destroy();
+    }
+
+    // =========================================================================
+    // FINAL APPLY (STATIC 5x5 SPINE)
     // =========================================================================
     public applyBackendToFinalStaticGrid() {
+        this.cancelStartSequence();
+        this.stopAndDestroyTicker();
+
         const { offsetX, offsetY } = this.getOffsets();
 
         this.realLayer.removeChildren();
@@ -578,55 +819,34 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // ✅ NEW: Finalize ONE column immediately after it lands (no flick)
+    // FINISH
     // =========================================================================
-    private finalizeSingleColumnFromLandedBackendSegmentInPlace(c: number) {
-        const reel = this.realReels[c];
-        if (!reel) return;
+    public async finishSpinNormal(): Promise<void> {
+        await this.landColumnsSequential();
 
-        const { offsetY } = this.getOffsets();
-        const keepStart = this.leadCount + this.blurCount;
+        this.stopSpinLoop();
+        this.stopAndDestroyTicker();
+        this.applyBackendToFinalStaticGrid();
 
-        if (reel.symbols.length < keepStart + this.rows) {
-            // safety fallback
-            return;
-        }
+        this.ensureWildLayerOnTop();
 
-        const col = reel.container;
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinningSymbols(wins);
 
-        // remove lead+blur symbols
-        for (let i = 0; i < keepStart; i++) {
-            const s = reel.symbols[i];
-            if (!s) continue;
-            if (s.parent) s.parent.removeChild(s);
-            (s as any)?.destroy?.();
-        }
+        this.setWildReels(this.match3.process.getWildReels());
+        this.testAnimateAllWildSymbols(wins);
+    }
 
-        // keep result segment only
-        const result = reel.symbols.slice(keepStart, keepStart + this.rows);
+    public async finishSpinQuick(): Promise<void> {
+        await this.finishSpinNormal();
+    }
 
-        // shift into visible grid
-        for (let r = 0; r < result.length; r++) {
-            const s = result[r];
-            s.y = r * this.tile;
-            this.showSpine(s);
-        }
-
-        // commit
-        reel.symbols = result;
-        reel.position = 0;
-
-        // normalize container to final grid position
-        gsap.killTweensOf(col);
-        col.y = -offsetY;
-
-        // reorder children
-        col.removeChildren();
-        for (let r = 0; r < result.length; r++) col.addChild(result[r]);
+    public async finishSpinTurbo(): Promise<void> {
+        await this.finishSpinNormal();
     }
 
     // =========================================================================
-    // LOOP-BY-REPLAY HELPERS
+    // LOOP-BY-REPLAY HELPERS (unchanged)
     // =========================================================================
     private openAnimationGate() {
         if (this.animationGate) return;
@@ -649,11 +869,6 @@ export class Match3Board {
         this.wildLoopTween?.kill();
         this.winLoopTween = undefined;
         this.wildLoopTween = undefined;
-    }
-
-    private async waitForLoopToFinishIfNeeded() {
-        if (!this.animating || !this.animationGate) return;
-        await this.animationGate;
     }
 
     private startReplayLoop(getSymbols: () => SlotSymbol[], which: "win" | "wild") {
@@ -692,15 +907,13 @@ export class Match3Board {
         tick();
     }
 
-    // =========================================================================
-    // ANIMATE WINS
-    // =========================================================================
     public animateWinningSymbols(wins: { row: number; column: number }[]) {
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];
             for (const { row, column } of wins) {
                 const reel = this.realReels[column];
-                const symbol = reel?.symbols[row];
+                const idx = this.leadIndexStart() + row;
+                const symbol = reel?.symbols[idx];
                 if (symbol instanceof SlotSymbol) list.push(symbol);
             }
             return list;
@@ -708,263 +921,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // SPIN
-    // =========================================================================
-    public async startSpin(): Promise<void> {
-        this._spinInProgress = true;
-        this._interruptRequested = false;
-        this._hasBackendResult = false;
-
-        this._spinSpeed = this._defaultSpinSpeed;
-
-        if (this.animating) {
-            this.hasIncomingSpinTrigger = true;
-            await this.waitForLoopToFinishIfNeeded();
-        }
-
-        this.killLoops();
-        this.resetWildSymbolsToIdle();
-
-        const snap = this.getCurrentGridSnapshot();
-
-        this.destroyAllLayers();
-        this.buildSpinStripLayer(snap.types, snap.mults);
-
-        this.startSpinLoop();
-        this.startSpinSeamlessSequential();
-
-        this.ensureWildLayerOnTop();
-    }
-
-    public interruptSpin(): void {
-        if (!this._spinInProgress) return;
-
-        this._interruptRequested = true;
-
-        this.forceAllColumnsToBlurViewAndActive();
-
-        if (!this._hasBackendResult) {
-            this._spinSpeed = Math.max(this._spinSpeed, 1.2);
-            this.startSpinLoop();
-            return;
-        }
-
-        this.finishSpinInstantFromInterrupt();
-    }
-
-    private finishSpinInstantFromInterrupt(): void {
-        if (!this._spinInProgress) return;
-        if (!this._hasBackendResult) return;
-
-        this.killLoops();
-        this.hasIncomingSpinTrigger = false;
-
-        this.stopSpinLoop();
-        for (const r of this.realReels) gsap.killTweensOf(r.container);
-
-        this.applyBackendToFinalStaticGrid();
-
-        this.ensureWildLayerOnTop();
-
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
-        this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
-
-        this._spinSpeed = this._defaultSpinSpeed;
-
-        this._spinInProgress = false;
-        this._interruptRequested = false;
-    }
-
-    public async finishSpin(): Promise<void> {
-        const spinMode = userSettings.getSpinMode();
-
-        if (spinMode === SpinModeEnum.Normal) {
-            await this.finishSpinNormal();
-        } else if (spinMode === SpinModeEnum.Quick) {
-            await this.finishSpinQuick();
-        } else if (spinMode === SpinModeEnum.Turbo) {
-            await this.finishSpinTurbo();
-        } else {
-            await this.finishSpinQuick();
-        }
-
-        this._spinSpeed = this._defaultSpinSpeed;
-
-        this._spinInProgress = false;
-        this._interruptRequested = false;
-    }
-
-    // =========================================================================
-    // FINISH HELPERS
-    // =========================================================================
-    private appendResultSegmentBelowBlur() {
-        for (let c = 0; c < this.columns; c++) {
-            const reel = this.realReels[c];
-            const col = reel.container;
-
-            while (reel.symbols.length > this.leadCount + this.blurCount) {
-                const last = reel.symbols.pop();
-                (last as any)?.destroy?.();
-                if (last?.parent) last.parent.removeChild(last);
-            }
-
-            const baseY = (this.leadCount + this.blurCount) * this.tile;
-
-            // ✅ append BACKEND symbols (these will be the landing symbols)
-            for (let r = 0; r < this.rows; r++) {
-                const type = this.backendReels[r][c];
-                const mult = this.backendMultipliers[r][c];
-
-                const sym = this.makeSlotSymbol(type, mult);
-                sym.y = baseY + r * this.tile;
-                this.showSpine(sym);
-
-                reel.symbols.push(sym);
-                col.addChild(sym);
-            }
-        }
-    }
-
-    /**
-     * ✅ Sequential landing:
-     * - other columns keep spinning
-     * - the landed column becomes REAL backend 5x5 immediately (no "change at the end")
-     */
-    private async slideColumnsToResult(sequential: boolean, slideDur: number, between: number) {
-        const { offsetY } = this.getOffsets();
-
-        const yFrom = this.getYShowBlur(offsetY);
-        const yTo = yFrom + this.rows * this.tile;
-
-        const wait = (sec: number) =>
-            new Promise<void>((resolve) => gsap.delayedCall(sec, () => resolve()));
-
-        // align all to blur-view, all spinning
-        for (let c = 0; c < this.columns; c++) {
-            const col = this.realReels[c].container;
-            gsap.killTweensOf(col);
-            col.y = yFrom;
-            this.colActive[c] = true;
-        }
-
-        if (!sequential) {
-            // all land together -> stop spinning all during the landing tween
-            for (let c = 0; c < this.columns; c++) this.colActive[c] = false;
-
-            const ps: Promise<void>[] = [];
-            for (let c = 0; c < this.columns; c++) {
-                const col = this.realReels[c].container;
-                const t = gsap.to(col, { y: yTo, duration: slideDur, ease: "none" });
-                ps.push(new Promise<void>((resolve) => t.eventCallback("onComplete", () => resolve())));
-            }
-            await Promise.all(ps);
-
-            // after all landed together, finalize all at once
-            for (let c = 0; c < this.columns; c++) {
-                this.finalizeSingleColumnFromLandedBackendSegmentInPlace(c);
-            }
-            return;
-        }
-
-        for (let c = 0; c < this.columns; c++) {
-            // ✅ stop spinning THIS column only; others continue
-            this.colActive[c] = false;
-
-            const col = this.realReels[c].container;
-            const t = gsap.to(col, { y: yTo, duration: slideDur, ease: "none" });
-
-            await new Promise<void>((resolve) => t.eventCallback("onComplete", () => resolve()));
-
-            // ✅ IMPORTANT: immediately convert this landed column into real backend 5x5
-            // so the player sees the true result as soon as it lands.
-            this.finalizeSingleColumnFromLandedBackendSegmentInPlace(c);
-
-            if (between > 0 && c < this.columns - 1) await wait(between);
-        }
-    }
-
-    /**
-     * NORMAL:
-     * - other columns keep spinning while one column lands
-     * - landed column shows backend result immediately (no “result changed later”)
-     */
-    public async finishSpinNormal(): Promise<void> {
-        this.forceAllColumnsToBlurViewAndActive();
-        this.startSpinLoop();
-
-        this.appendResultSegmentBelowBlur();
-
-        const SLIDE = this.getBlurMatchedSlideDuration();
-        const BETWEEN = 0.06;
-
-        await this.slideColumnsToResult(true, SLIDE, BETWEEN);
-
-        // after all columns finalized, stop loop (everything is already 5x5 backend)
-        this.stopSpinLoop();
-
-        this.ensureWildLayerOnTop();
-
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
-        this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
-    }
-
-    /**
-     * QUICK:
-     * - land together
-     * - backend already visible during landing
-     */
-    public async finishSpinQuick(): Promise<void> {
-        this.forceAllColumnsToBlurViewAndActive();
-        this.startSpinLoop();
-
-        this.appendResultSegmentBelowBlur();
-
-        const SLIDE = this.getBlurMatchedSlideDuration();
-        await this.slideColumnsToResult(false, SLIDE, 0);
-
-        this.stopSpinLoop();
-
-        this.ensureWildLayerOnTop();
-
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
-        this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
-    }
-
-    /**
-     * TURBO:
-     * - land together faster
-     */
-    public async finishSpinTurbo(): Promise<void> {
-        this.forceAllColumnsToBlurViewAndActive();
-        this.startSpinLoop();
-
-        this.appendResultSegmentBelowBlur();
-
-        const SLIDE = Math.max(0.08, this.getBlurMatchedSlideDuration() * 0.75);
-        await this.slideColumnsToResult(false, SLIDE, 0);
-
-        this.stopSpinLoop();
-
-        this.ensureWildLayerOnTop();
-
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
-        this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
-    }
-
-    // =========================================================================
-    // MULTIPLIER HELPER (your original)
+    // MULTIPLIER HELPER
     // =========================================================================
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
@@ -977,7 +934,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // WILD LAYER (unchanged)
+    // WILD LAYER (same as your version)
     // =========================================================================
     private ensureWildLayerOnTop() {
         if (!this.wildLayer.parent) this.piecesContainer.addChild(this.wildLayer);
@@ -1120,9 +1077,6 @@ export class Match3Board {
         }
     }
 
-    // =========================================================================
-    // CLEAR
-    // =========================================================================
     public clearWildLayerAndMultipliers() {
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
