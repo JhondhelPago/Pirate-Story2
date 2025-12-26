@@ -191,7 +191,7 @@ export class Match3Process {
 
         await this.runProcessRound();
         await this.match3.board.finishSpin();
-        this.match3.board.clearWildLayerAndMultipliers({ clearWilds: true });
+        this.match3.board.clearWildLayerAndMultipliers();
 
 
         // Turbo post-spin delay

@@ -213,6 +213,59 @@ export class Match3Board {
     }
 
     // =========================================================================
+    // ✅ FLICKER FIX CORE: swap layers atomically (never show an “empty” frame)
+    // =========================================================================
+    private swapRealLayer(nextLayer: Container, nextReels: ReelColumn[]) {
+        const parent = this.piecesContainer;
+
+        const oldLayer = this.realLayer;
+        const oldReels = this.realReels;
+
+        // Insert next where old was (keeps draw order stable)
+        const insertIndex =
+            oldLayer.parent === parent ? parent.getChildIndex(oldLayer) : Math.max(0, parent.children.length - 1);
+
+        parent.addChildAt(nextLayer, Math.min(insertIndex, parent.children.length));
+
+        // Remove old layer from stage BEFORE destroying (avoid 1-frame “empty”)
+        if (oldLayer.parent === parent) parent.removeChild(oldLayer);
+
+        // Destroy old reels/containers
+        this.destroyReels(oldReels);
+        oldLayer.removeChildren();
+
+        // Destroy old layer shell
+        try {
+            (oldLayer as any).destroy?.({ children: false });
+        } catch {
+            oldLayer.destroy();
+        }
+
+        // Commit new references
+        this.realLayer = nextLayer;
+        this.realReels = nextReels;
+
+        // Keep wild on top
+        this.ensureWildLayerOnTop();
+    }
+
+    /**
+     * Stop timers/tweens safely without clearing the visible grid.
+     * (Clearing visuals before building the next grid is the main cause of flicker.)
+     */
+    private prepareSpinTransitionNoClear() {
+        this.killLoops();
+        this.cancelStartSequence();
+        this.stopSpinLoop();
+        this.stopAndDestroyTicker();
+
+        gsap.killTweensOf(this.realLayer);
+        for (const r of this.realReels) gsap.killTweensOf(r.container);
+
+        this._spinning = false;
+    }
+
+    // =========================================================================
     // MASK
     // =========================================================================
     private refreshMask() {
@@ -290,6 +343,7 @@ export class Match3Board {
     private buildIdleGridFromInitial() {
         const { offsetX, offsetY } = this.getOffsets();
 
+        // (setup-time rebuild is OK; flicker here is not part of spin)
         this.realLayer.removeChildren();
         this.destroyReels(this.realReels);
         this.realReels = [];
@@ -383,22 +437,20 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // BUILD SPIN STRIP
+    // BUILD SPIN STRIP (built off-screen then swapped -> removes visible flick)
     // =========================================================================
     private buildSpinStripLayer(leadTypes: number[][], leadMults: number[][]) {
         const { offsetX, offsetY } = this.getOffsets();
 
-        this.realLayer.visible = false;
-
-        this.realLayer.removeChildren();
-        this.destroyReels(this.realReels);
-        this.realReels = [];
+        // Build into a fresh layer first (do NOT clear current visible layer yet)
+        const nextLayer = new Container();
+        const nextReels: ReelColumn[] = [];
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
             col.x = c * this.tile - offsetX;
             col.y = -offsetY;
-            this.realLayer.addChild(col);
+            nextLayer.addChild(col);
 
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
@@ -426,9 +478,13 @@ export class Match3Board {
                 col.addChild(sym);
             }
 
-            this.realReels.push(reel);
+            nextReels.push(reel);
         }
 
+        // Swap instantly (no empty frame)
+        this.swapRealLayer(nextLayer, nextReels);
+
+        // Start ticker AFTER swap (so updateSpin uses current reels)
         this.stopAndDestroyTicker();
         this.ticker = new Ticker();
 
@@ -439,7 +495,6 @@ export class Match3Board {
 
         this.ticker.start();
         this.ensureWildLayerOnTop();
-        this.realLayer.visible = true;
     }
 
     private setBlurVisibleForColumn(column: number, visible: boolean) {
@@ -595,12 +650,14 @@ export class Match3Board {
 
         this._spinSpeed = this._defaultSpinSpeed;
 
-        this.killLoops();
+        // ✅ stop everything WITHOUT clearing visuals (prevents “start flick”)
+        this.prepareSpinTransitionNoClear();
+
         this.resetWildSymbolsToIdle();
 
         const snap = this.getCurrentGridSnapshot();
 
-        this.destroyAllLayers();
+        // ✅ build next spin-strip off-screen then swap in (atomic)
         this.buildSpinStripLayer(snap.types, snap.mults);
 
         this.startSpinLoop();
@@ -933,7 +990,7 @@ export class Match3Board {
     }
 
     // =========================================================================
-    // FINAL APPLY (STATIC 5x5)
+    // FINAL APPLY (STATIC 5x5) - built then swapped (prevents “end flick”)
     // =========================================================================
     public applyBackendToFinalStaticGrid() {
         this.cancelStartSequence();
@@ -941,15 +998,14 @@ export class Match3Board {
 
         const { offsetX, offsetY } = this.getOffsets();
 
-        this.realLayer.removeChildren();
-        this.destroyReels(this.realReels);
-        this.realReels = [];
+        const nextLayer = new Container();
+        const nextReels: ReelColumn[] = [];
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
             col.x = c * this.tile - offsetX;
             col.y = -offsetY;
-            this.realLayer.addChild(col);
+            nextLayer.addChild(col);
 
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
@@ -965,8 +1021,11 @@ export class Match3Board {
                 col.addChild(sym);
             }
 
-            this.realReels.push(reel);
+            nextReels.push(reel);
         }
+
+        // Atomic swap -> no empty/flash frame at finish
+        this.swapRealLayer(nextLayer, nextReels);
 
         this.ensureWildLayerOnTop();
     }
