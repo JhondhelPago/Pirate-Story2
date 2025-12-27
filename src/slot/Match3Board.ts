@@ -356,6 +356,21 @@ export class Match3Board {
         return s instanceof SlotSymbol ? s : null;
     }
 
+    // ✅ NEW: fetch the currently displayed wild symbol (if any) at row/col
+    private getDisplayedWildSymbol(row: number, column: number): SlotSymbol | null {
+        const reel = this.wildReels[column] as any;
+        if (!reel) return null;
+
+        const cell = reel.symbols?.[row];
+        if (!(cell instanceof SlotSymbol)) return null;
+
+        if (!cell.visible) return null;
+        const type = (cell as any).type ?? 0;
+        if (type === 0) return null;
+
+        return cell;
+    }
+
     private getCurrentGridSnapshot(): { types: number[][]; mults: number[][] } {
         const types = this.initGrid(this.rows, this.columns, 0);
         const mults = this.initGrid(this.rows, this.columns, 0);
@@ -1071,11 +1086,11 @@ export class Match3Board {
         this.compactToFinalStaticGridInPlace();
         this.ensureWildLayerOnTop();
 
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
+        // update wild visuals before animating (so priority check sees real wild symbols)
         this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinsWithWildPriority(wins);
     }
 
     public async finishSpinQuick(): Promise<void> {
@@ -1101,11 +1116,11 @@ export class Match3Board {
         this.compactToFinalStaticGridInPlace();
         this.ensureWildLayerOnTop();
 
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
+        // update wild visuals before animating (so priority check sees real wild symbols)
         this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinsWithWildPriority(wins);
     }
 
     public async finishSpinTurbo(): Promise<void> {
@@ -1130,11 +1145,11 @@ export class Match3Board {
         this.compactToFinalStaticGridInPlace();
         this.ensureWildLayerOnTop();
 
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinningSymbols(wins);
-
+        // update wild visuals before animating (so priority check sees real wild symbols)
         this.setWildReels(this.match3.process.getWildReels());
-        this.testAnimateAllWildSymbols(wins);
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        this.animateWinsWithWildPriority(wins);
     }
 
     // =========================================================================
@@ -1228,6 +1243,48 @@ export class Match3Board {
             for (const { row, column } of wins) {
                 const symbol = this.getDisplayedRealSymbol(row, column);
                 if (symbol) list.push(symbol);
+            }
+            return list;
+        }, "win");
+    }
+
+    // ✅ NEW: Animate wilds first (priority), then animate real symbols excluding positions covered by wilds
+    public animateWinsWithWildPriority(wins: { row: number; column: number }[]) {
+        // de-dup
+        const uniq: { row: number; column: number }[] = [];
+        const seen = new Set<string>();
+        for (const p of wins) {
+            const k = `${p.row}:${p.column}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            uniq.push(p);
+        }
+
+        const wildPositions: { row: number; column: number }[] = [];
+        const realPositions: { row: number; column: number }[] = [];
+
+        for (const { row, column } of uniq) {
+            const wild = this.getDisplayedWildSymbol(row, column);
+            if (wild) wildPositions.push({ row, column });
+            else realPositions.push({ row, column });
+        }
+
+        // start wild loop (if any)
+        this.startReplayLoop(() => {
+            const list: SlotSymbol[] = [];
+            for (const { row, column } of wildPositions) {
+                const s = this.getDisplayedWildSymbol(row, column);
+                if (s) list.push(s);
+            }
+            return list;
+        }, "wild");
+
+        // start win loop on real symbols excluding those already animated by wild layer
+        this.startReplayLoop(() => {
+            const list: SlotSymbol[] = [];
+            for (const { row, column } of realPositions) {
+                const s = this.getDisplayedRealSymbol(row, column);
+                if (s) list.push(s);
             }
             return list;
         }, "win");
@@ -1352,25 +1409,6 @@ export class Match3Board {
         });
 
         this.ensureWildLayerOnTop();
-    }
-
-    public testAnimateAllWildSymbols(positions: { row: number; column: number }[]) {
-        this.startReplayLoop(() => {
-            const list: SlotSymbol[] = [];
-
-            for (const { row, column } of positions) {
-                const reel = this.wildReels[column] as any;
-                const cell = reel?.symbols[row];
-                if (!(cell instanceof SlotSymbol)) continue;
-
-                if (!cell.visible) continue;
-                if ((cell as any).type === 0) continue;
-
-                list.push(cell);
-            }
-
-            return list;
-        }, "wild");
     }
 
     private resetWildSymbolsToIdle() {
