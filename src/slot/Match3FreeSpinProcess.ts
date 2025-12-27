@@ -1,7 +1,7 @@
 import { userSettings } from "../utils/userSettings";
 import { Match3 } from "./Match3";
 import { Match3Process } from "./Match3Process";
-import { calculateTotalWin, gridZeroReset } from "./SlotUtility";
+import { calculateTotalWin, gridZeroReset, slotEvaluateClusterWins } from "./SlotUtility";
 
 export class Match3FreeSpinProcess extends Match3Process {
     constructor(match3: Match3) {
@@ -13,6 +13,10 @@ export class Match3FreeSpinProcess extends Match3Process {
     private accumulatedWin = 0;
     private remainingSpins = 0;
     private currentSpin = 0;
+
+    private reelsTraversed = gridZeroReset();
+    private bonusTraversed = gridZeroReset();
+    
 
     /**
      * Decrements remaining spins and increments current spin.
@@ -105,15 +109,18 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         // Merge incoming reels/multipliers with existing ones (continuous/free-spin behavior)
         const reelsTraversed = this.mergeReels(
-            this.match3.board.getBackendReels(),
+            this.reelsTraversed,
             result.reels
         );
+        this.reelsTraversed = reelsTraversed;
+
         const multiplierTraversed = this.mergeMultipliers(
-            this.match3.board.getBackendMultipliers(),
+            this.bonusTraversed,
             result.bonusReels
         );
+        this.bonusTraversed = multiplierTraversed;
 
-        this.match3.board.applyBackendResults(reelsTraversed, multiplierTraversed);
+        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
 
         await this.runProcessRound();
         await this.match3.board.finishSpin();
@@ -124,27 +131,27 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.match3.onFreeSpinRoundComplete?.();
     }
 
-    /**
-     * Free-spin round processing:
-     * - Evaluate wins
-     * - Update round win
-     * - Accumulate total win across free spins
-     * - Update winning positions
-     * - Merge sticky wilds across spins
-     */
+
     public runProcessRound(): void {
         this.round++;
-
-        this.queue.add(async () => this.setRoundResult());
-        this.queue.add(async () => this.setRoundWin());
-        this.queue.add(async () => this.addRoundWin());
-        this.queue.add(async () => this.setWinningPositions());
+        
         this.queue.add(async () =>
             this.setMergeStickyWilds(
                 this.match3.board.getWildReels(),
                 this.match3.board.getBackendReels()
             )
         );
+        this.queue.add(async () => this.setRoundResult());
+        this.queue.add(async () => this.setRoundWin());
+        this.queue.add(async () => this.addRoundWin());
+        this.queue.add(async () => this.setWinningPositions());
+    }
+
+    protected setRoundResult() {
+        const reels = this.reelsTraversed;
+        const multipliers = this.bonusTraversed;
+        // merge with the wild reels
+        this.roundResult = slotEvaluateClusterWins(reels, multipliers);
     }
 
     public addRoundWin() {
@@ -183,6 +190,8 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.wildReels = gridZeroReset();
         this.match3.board.setWildReels(this.wildReels);
         this.match3.board.clearWildLayerAndMultipliers();
+        this.reelsTraversed = gridZeroReset();
+        this.bonusTraversed = gridZeroReset();
 
         this.currentSpin = 0;
         this.remainingSpins = 0;
