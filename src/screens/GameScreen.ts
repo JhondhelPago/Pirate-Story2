@@ -16,7 +16,6 @@ import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
 import { SpinRoundBanner } from '../popups/SpinRoundBanner';
 import { RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
-import { gameConfig } from '../utils/gameConfig';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 
@@ -108,18 +107,20 @@ export class GameScreen extends Container {
         this.controlPanel.setBet(2.0);
         this.controlPanel.setMessage('HOLD SPACE FOR TURBO SPIN');
 
+        // ✅ Spin now supports interrupt-on-second-press
         this.controlPanel.onSpin(() => this.startSpinning());
         this.controlPanel.onSpacebar(() => this.startSpinning());
+
         this.controlPanel.onAutoplay(() => {
             const spinMode = 'normal-spin';
             navigation.presentPopup<AutoplayPopupData>(AutoplayPopup, {
-                    spinMode,
-                    callback: async (spins: number) => {
-                        if (this.finished) return;
-                        await navigation.dismissPopup();
-                        this.onAutoSpinStart(spins);
-                    },
-                });
+                spinMode,
+                callback: async (spins: number) => {
+                    if (this.finished) return;
+                    await navigation.dismissPopup();
+                    this.onAutoSpinStart(spins);
+                },
+            });
         });
 
         this.controlPanel.onSettings(() => {
@@ -143,7 +144,7 @@ export class GameScreen extends Container {
             });
         });
 
-        // Bet buttons still work normally
+        // Bet buttons still work normally (but are disabled when busy)
         this.controlPanel.setBet(userSettings.getBet());
         this.controlPanel.onIncreaseBet(() => {
             if (this.finished) return;
@@ -162,13 +163,14 @@ export class GameScreen extends Container {
         this.syncFeatureAvailability();
     }
 
-    /** Busy flags based on your exact getters */
+    // =========================================================================
+    // BUSY FLAGS
+    // =========================================================================
     private getNormalProcessing(): boolean {
         return this.match3.process?.isProcessing?.() ?? false;
     }
 
     private getFreeSpinProcessing(): boolean {
-        // ✅ per your note: freeSpinProcess.getFreeSpinProcessing()
         return this.match3.freeSpinProcess?.getFreeSpinProcessing?.() ?? false;
     }
 
@@ -180,6 +182,7 @@ export class GameScreen extends Container {
      * ✅ BuyFreeSpin stays VISIBLE but is DISABLED while:
      * - normal process is processing
      * - OR free spin process is processing
+     * - OR auto spin process is processing
      *
      * ✅ Spin/betting disabled while either processing is active
      */
@@ -198,17 +201,38 @@ export class GameScreen extends Container {
         else this.controlPanel.disableBetting();
     }
 
-
-    /** Hard lock (used while waiting 2s + while popup is showing) */
+    /** Hard lock (used while waiting + while popup is showing) */
     private lockInteraction() {
         this.buyFreeSpin.setEnabled(false);
         this.controlPanel.disableBetting();
     }
 
+    // =========================================================================
+    // ✅ INTERRUPT HOOK
+    // =========================================================================
+    private requestSpinInterrupt() {
+        // stop win/wild replay loop immediately (board checks this flag)
+        this.match3.board.hasIncomingSpinTrigger = true;
+
+        // request interrupt; Turbo is ignored inside board.interruptSpin()
+        this.match3.board.interruptSpin();
+    }
+
+    // =========================================================================
+    // SPIN ENTRY
+    // =========================================================================
     public async startSpinning() {
-        if (this.match3.spinning) return;
-        // if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
+        // ✅ Second press while spinning = interrupt
+        if (this.match3.spinning) {
+            this.requestSpinInterrupt();
+            return;
+        }
+
+        // Don’t start a new spin if any process is busy
         if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
+
+        // If we’re idle but animations are still looping, stop them before spinning
+        this.match3.board.hasIncomingSpinTrigger = true;
 
         this.lockInteraction();
         await this.match3.spin();
@@ -216,7 +240,6 @@ export class GameScreen extends Container {
 
     public freeSpinStartSpinning(spins: number) {
         if (this.finished) return;
-        // if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
         if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
 
         this.lockInteraction();
@@ -224,6 +247,9 @@ export class GameScreen extends Container {
         this.finished = true;
     }
 
+    // =========================================================================
+    // LIFECYCLE
+    // =========================================================================
     public prepare() {
         const match3Config = slotGetConfig();
         this.barrelBoard?.setup(match3Config);
@@ -253,7 +279,6 @@ export class GameScreen extends Container {
 
     public resize(width: number, height: number) {
         const centerX = width * 0.5;
-        const centerY = height * 0.5;
 
         if (width > height) {
             this.gameContainer.x = centerX;
@@ -272,7 +297,6 @@ export class GameScreen extends Container {
 
             this.overtime.x = this.gameContainer.x;
             this.overtime.y = this.gameContainer.y;
-
         } else {
             this.gameContainer.x = centerX;
             this.gameContainer.y = this.gameContainer.height * 0.78;
@@ -309,6 +333,9 @@ export class GameScreen extends Container {
         await waitFor(0.3);
     }
 
+    // =========================================================================
+    // CALLBACKS
+    // =========================================================================
     private async onSpinStart() {
         this.lockInteraction();
     }
@@ -322,38 +349,34 @@ export class GameScreen extends Container {
         this.finished = true;
     }
 
-    // Auto Spin Feature after spins Trigger (SESSION COMPLETE)
     private async onAutoSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Auto Spin: `, this.match3.autoSpinProcess.getAccumulatedWin());
 
         this.drawTotalWinBanner(this.match3.autoSpinProcess.getAccumulatedWin());
 
-        // ✅ UNLOCK ONLY WHEN AUTO SPIN SESSION IS FINISHED
+        // ✅ Unlock only when auto spin session is finished
         this.controlPanel.enableBetting();
         this.finished = false;
 
         this.syncFeatureAvailability();
     }
 
-    // Auto Spin Feature Trigger before spins animation (ROUND START)
     private async onAutoSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         this.controlPanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
         this.lockInteraction();
     }
 
-    // Auto Spin Feature Trigger after spin round (ROUND COMPLETE)
     private async onAutoSpinRoundComplete() {
         console.log("onAutoSpinRoundComplete trigger using the autospinprocess");
 
-        const TotalWon = this.match3.autoSpinProcess.getAccumulatedWin();
+        const totalWon = this.match3.autoSpinProcess.getAccumulatedWin();
 
-        if (TotalWon > 0) this.controlPanel.setTitle(`Win ${TotalWon}`);
+        if (totalWon > 0) this.controlPanel.setTitle(`Win ${totalWon}`);
         else this.controlPanel.setTitle(`GOOD LUCK`);
 
         this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
 
-        // Only run end-of-round visuals when this round is fully done
         if (!this.match3.autoSpinProcess.isProcessing()) {
             await this.finish();
             await this.drawWinBannerAsync(this.match3.autoSpinProcess.getRoundWin());
@@ -366,11 +389,8 @@ export class GameScreen extends Container {
         this.syncFeatureAvailability();
     }
 
-
-    // Free Spin Feature Trigger
     public async onFreeSpinStart(spins: number) {
         if (this.finished) return;
-        // if (this.getNormalProcessing() || this.getFreeSpinProcessing()) return;
         if (this.getFreeSpinProcessing()) return;
 
         this.lockInteraction();
@@ -378,31 +398,27 @@ export class GameScreen extends Container {
         this.finished = true;
     }
 
-    // Free Spin Feature after spins Trigger
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
         this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
         this.syncFeatureAvailability();
     }
 
-    // Free Spin Feature Trigger before spins animation
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
         this.lockInteraction();
     }
 
-    // Free Spin Feature Trigger after spin round 
-    private async onFreeSpinRoundComplete() { // used by freespinprocess and autospinprocess
+    private async onFreeSpinRoundComplete() {
         console.log("onFreeSpinRoundComplete trigger using the freespinprocess");
-        const TotalWon = this.match3.freeSpinProcess.getAccumulatedWin();
+        const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
 
-        if (TotalWon > 0) this.controlPanel.setTitle(`Win ${TotalWon}`);
+        if (totalWon > 0) this.controlPanel.setTitle(`Win ${totalWon}`);
         else this.controlPanel.setTitle(`GOOD LUCK`);
 
         this.messageMatchQueuing(this.match3.freeSpinProcess.getRoundResult());
 
-        // when both processes are not processing (end of a round)
         if (!this.match3.freeSpinProcess.isProcessing()) {
             await this.finish();
             await this.drawWinBannerAsync(this.match3.freeSpinProcess.getRoundWin());
@@ -427,10 +443,7 @@ export class GameScreen extends Container {
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
 
-        /**
-         * ✅ KEY: if NOT in free-spin session, show banner.
-         * While waiting & showing popup, keep UI locked.
-         */
+        // ✅ If NOT in free-spin session, show banner. Keep UI locked while popup shows.
         if (!this.getFreeSpinProcessing()) {
             this.lockInteraction();
             await this.drawWinBannerAsync(roundWin);
