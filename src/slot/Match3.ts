@@ -153,6 +153,15 @@ export class Match3 extends Container {
         this.spinning = false;
     }
 
+    public async freeSpinInitial() {
+        if (this.spinning) return;
+        this.spinning = true;
+
+        await this.actions.actionFreeSpinInitial();
+
+        this.spinning = false;
+    }
+
     /** Start free spin sequence */
     public async freeSpin(spins: number) {
         if (this.spinning) return;

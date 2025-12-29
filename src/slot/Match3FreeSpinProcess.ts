@@ -16,12 +16,51 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     private reelsTraversed = gridZeroReset();
     private multiplierTraversed = gridZeroReset();
-    
 
-    /**
-     * Decrements remaining spins and increments current spin.
-     * Returns true if there is another spin to process.
-     */
+    public async freeSpinStartInitialBonus() {
+        if (this.processing) return;
+        this.processing = true;
+
+        const token = { cancelled: false };
+        this.cancelToken = token;
+
+        const spinMode = userSettings.getSpinMode();
+        const { minSpinMs } = this.getSpinModeDelays();
+
+        console.log("intial bonus spin trigger from free spin process");
+
+        await this.match3.board.startSpin();
+
+        // Fetch backend + dynamic delay (ticker-driven)
+        const backendPromise = this.fetchBackendSpin();
+        const delayPromise =
+            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+
+        const result = await backendPromise;
+
+        // Only wait the delay if we actually configured one
+        if (minSpinMs > 0) {
+            await delayPromise;
+        }
+
+        // If the whole process was stopped/cancelled during wait, bail cleanly
+        if (!this.processing || token.cancelled) {
+            this.processing = false;
+            return;
+        }
+
+        this.bonusReels = result.bonusReels;
+        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
+
+        await this.runInitialBonusProcess();
+        await this.match3.board.finishSpin();
+
+        this.processing = false;
+
+        // Free-spin initial bonus spin specific callback
+        await this.match3.onFreeSpinInitialBonusScatterComplete?.();
+    }
+    
     public processCheckpoint() {
         if (this.remainingSpins > 0) {
             this.remainingSpins--;
@@ -31,10 +70,6 @@ export class Match3FreeSpinProcess extends Match3Process {
         return false;
     }
 
-    /**
-     * Entry point for the continuous free-spin process.
-     * Recursively calls itself until no spins remain.
-     */
     public async freeSpinStart() {
         // set the continuous process flag
         this.freeSpinProcessing = true;
@@ -129,6 +164,10 @@ export class Match3FreeSpinProcess extends Match3Process {
         return this.bonusReels;
     }
 
+
+    public runInitialBonusProcess() {
+        this.queue.add(async () => this.checkBonus(this.bonusReels));
+    }
 
     public runProcessRound(): void {
         this.round++;

@@ -391,6 +391,15 @@ export class GameScreen extends Container {
         this.syncFeatureAvailability();
     }
 
+    public async onFreeSpinInitialStart() {
+        if (this.finished) return;
+        if (this.getFreeSpinProcessing()) return;
+
+        this.lockInteraction();
+        this.match3.freeSpinInitial();
+        this.finished = true;
+    }
+
     public async onFreeSpinStart(spins: number) {
         if (this.finished) return;
         if (this.getFreeSpinProcessing()) return;
@@ -433,8 +442,11 @@ export class GameScreen extends Container {
         this.syncFeatureAvailability();
     }
 
-    private onFreeSpinInitialBonusScatterComplete() {
+    private async onFreeSpinInitialBonusScatterComplete() {
+        this.finished = false;
+        await waitFor(3);
         this.drawFreeSpinWonBanner(12);
+        this.syncFeatureAvailability();
     }
 
     private onProcessStart() {

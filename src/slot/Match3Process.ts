@@ -195,7 +195,6 @@ export class Match3Process {
 
         // setting the bonusReels
         this.bonusReels = result.bonusReels;
-
         this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runProcessRound();
@@ -235,6 +234,10 @@ export class Match3Process {
         console.log("checking bonus: ", countScatterBonus(reels))
         // if the  bonus condition satisfied, proceed to play the free spin won. 
         // show the banner with the number of free spin won
+        
+
+        // reset the bonus reels
+        this.bonusReels = gridZeroReset();
     }
 
     protected setRoundResult() {
