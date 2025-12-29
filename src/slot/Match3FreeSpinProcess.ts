@@ -16,7 +16,6 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     private reelsTraversed = gridZeroReset();
     private multiplierTraversed = gridZeroReset();
-    private bonusReels = gridZeroReset();
     
 
     /**
@@ -141,6 +140,7 @@ export class Match3FreeSpinProcess extends Match3Process {
             )
         );
         // check the bonus reels -> then process to add spins if its pass the game condition for the bonus
+        
         this.queue.add(async () => this.setRoundResult());
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.addRoundWin());

@@ -75,6 +75,14 @@ let bonusReels = [
     [0, 0, 11, 0, 0]
 ];
 
+let initialReels = [
+    [1, 2, 3, 4, 5],
+    [6, 7, 8, 9, 11],
+    [11, 10, 1, 8, 3],
+    [4, 5, 8, 11, 8],
+    [4, 7, 9, 8, 8],
+];
+
 app.get('/spin', async (req, res) => {
 
     // Generate 5 reels, each with 5 random symbols (1-12)
@@ -106,6 +114,7 @@ app.get('/spin', async (req, res) => {
     res.json({
         // reels: grandReels,
         reels: reels,
+        // reels: initialReels,
         multiplierReels: multiplier,
         bonusReels: bonus 
     });

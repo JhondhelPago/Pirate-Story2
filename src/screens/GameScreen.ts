@@ -18,6 +18,7 @@ import { RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
+import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -81,6 +82,7 @@ export class GameScreen extends Container {
         this.match3.onFreeSpinComplete = this.onFreeSpinComplete.bind(this);
         this.match3.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
         this.match3.onFreeSpinRoundComplete = this.onFreeSpinRoundComplete.bind(this);
+        this.match3.onFreeSpinInitialBonusScatterComplete = this.onFreeSpinInitialBonusScatterComplete.bind(this);
 
         this.match3.onAutoSpinStart = this.onAutoSpinStart.bind(this);
         this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
@@ -400,7 +402,8 @@ export class GameScreen extends Container {
 
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
-        this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
+        // this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
+        this.drawFreeSpinWonBanner(11);
         this.syncFeatureAvailability();
     }
 
@@ -428,6 +431,10 @@ export class GameScreen extends Container {
         this.finished = false;
 
         this.syncFeatureAvailability();
+    }
+
+    private onFreeSpinInitialBonusScatterComplete() {
+        this.drawFreeSpinWonBanner(12);
     }
 
     private onProcessStart() {
@@ -474,6 +481,10 @@ export class GameScreen extends Container {
 
     private drawTotalWinBanner(winAmount: number) {
         navigation.presentPopup(TotalWinBanner, { win: winAmount });
+    }
+
+    private drawFreeSpinWonBanner(spins: number) {
+        navigation.presentPopup(FreeSpinWinBanner, { spins: spins });
     }
 
     private messageMatchQueuing(roundResult: RoundResult) {

@@ -2,6 +2,7 @@ import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
 import { userSettings } from "../utils/userSettings";
+
 import {
     RoundResult,
     slotEvaluateClusterWins,
@@ -10,6 +11,8 @@ import {
     mergeNonZero,
     mergeReels,
     calculateTotalWin,
+    gridZeroReset,
+    countScatterBonus
 } from "./SlotUtility";
 
 export interface BackendSpinResult {
@@ -42,6 +45,8 @@ export class Match3Process {
     protected delayRemainingMs = 0;
     protected delayResolver: (() => void) | null = null;
     protected delayToken: { cancelled: boolean } | null = null;
+
+    protected bonusReels = gridZeroReset();
 
     constructor(match3: Match3) {
         this.match3 = match3;
@@ -188,6 +193,9 @@ export class Match3Process {
             return;
         }
 
+        // setting the bonusReels
+        this.bonusReels = result.bonusReels;
+
         this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runProcessRound();
@@ -216,9 +224,17 @@ export class Match3Process {
     public runProcessRound(): void {
         this.round++;
 
+        this.queue.add(async () => this.checkBonus(this.bonusReels));
         this.queue.add(async () => this.setRoundResult());
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.setWinningPositions());
+
+    }
+
+    public checkBonus(reels: number[][]): void {
+        console.log("checking bonus: ", countScatterBonus(reels))
+        // if the  bonus condition satisfied, proceed to play the free spin won. 
+        // show the banner with the number of free spin won
     }
 
     protected setRoundResult() {

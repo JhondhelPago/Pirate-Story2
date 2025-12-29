@@ -408,7 +408,7 @@ export type ScatterResult = {
 };
 
 export function countScatterBonus(
-    grid: Match3Grid
+    grid: number[][]
 ): ScatterResult {
     let count = 0;
     const positions: Match3Position[] = [];
