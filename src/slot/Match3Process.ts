@@ -14,6 +14,7 @@ import {
 
 export interface BackendSpinResult {
     reels: number[][];
+    multiplierReels: number[][];
     bonusReels: number[][];
 }
 export type GridPosition = { row: number; column: number };
@@ -187,7 +188,7 @@ export class Match3Process {
             return;
         }
 
-        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runProcessRound();
         await this.match3.board.finishSpin();

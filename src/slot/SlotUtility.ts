@@ -119,22 +119,6 @@ export function match3GetRandomType(types: Match3Type[], exclude?: Match3Type[])
     return list[index];
 }
 
-/**
- * Swap two pieces in the grid, based on their positions
- * @param grid The grid to be changed
- * @param positionA The first piece to swap
- * @param positionB The second piece to swap
- */
-export function match3SwapPieces(grid: Match3Grid, positionA: Match3Position, positionB: Match3Position) {
-    const typeA = match3GetPieceType(grid, positionA);
-    const typeB = match3GetPieceType(grid, positionB);
-
-    // Only swap pieces if both types are valid (not undefined)
-    if (typeA !== undefined && typeB !== undefined) {
-        match3SetPieceType(grid, positionA, typeB);
-        match3SetPieceType(grid, positionB, typeA);
-    }
-}
 
 /**
  * Set the piece type in the grid, by position
@@ -181,243 +165,7 @@ export function match3ForEach(grid: Match3Grid, fn: (position: Match3Position, t
     }
 }
 
-/**
- * Check if two positions are the same
- * @param a First position to compare
- * @param b Second position to compare
- * @returns True if position A row & column are the same of position B
- */
-export function match3ComparePositions(a: Match3Position, b: Match3Position) {
-    return a.row === b.row && a.column == b.column;
-}
 
-/**
- * Check if list of positions includes given position
- * @param positions List of positions to check
- * @param position The position to be checked
- * @returns True if position list contains the provided position, false otherwise
- */
-export function match3IncludesPosition(positions: Match3Position[], position: Match3Position) {
-    for (const p of positions) {
-        if (match3ComparePositions(p, position)) return true;
-    }
-    return false;
-}
-
-/**
- * Get all matches in the grid, optionally filtering results that involves given positions
- * Example:
- * [[{row: 1, column: 1}, {row: 1, column: 2}, {row: 1, column: 3}]
- *  [{row: 1, column: 1}, {row: 2, column: 1}, {row: 2, column: 1}]]
- * @param grid The grid to be analysed
- * @param filter Optional list of positions that every match should have
- * @param matchSize The length of the match, defaults to 3
- * @returns A list of positions grouped by match, excluding ones not involving filter positions if provided
- */
-export function slotGetMatches(grid: Match3Grid) {
-    const paytable = gameConfig.getPaytables();
-    const specialBlocks = gameConfig.getSpecialBlocks();
-    const specialTypes = specialBlocks.map((sb) => sb.type);
-
-    const gridMap: Record<string, { positions: Match3Position[] }> = {};
-
-    for (let row = 0; row < grid.length; row++) {
-        for (let col = 0; col < grid[row].length; col++) {
-            const symbolType = grid[row][col];
-
-            // Do not include special symbols
-            if (!specialTypes.includes(symbolType)) {
-                if (gridMap[symbolType]) {
-                    // Symbol already exists, add position to existing array
-                    gridMap[symbolType].positions.push({ column: col, row: row });
-                } else {
-                    // First occurrence of this symbol, create new entry
-                    gridMap[symbolType] = {
-                        positions: [{ column: col, row: row }],
-                    };
-                }
-            }
-        }
-    }
-
-    let allMatches: Match3Position[][] = [];
-
-    for (let i = 0; i < paytable.length; i++) {
-        const symbolType = paytable[i].type;
-
-        if (gridMap[symbolType]) {
-            const patterns = paytable[i].patterns;
-            const positions = gridMap[symbolType].positions;
-
-            let matchedPattern: Pattern | null = null;
-
-            // Patterns are ordered lowest to highest, so last match wins
-            for (let p = 0; p < patterns.length; p++) {
-                if (positions.length >= patterns[p].min && positions.length <= patterns[p].max) {
-                    matchedPattern = patterns[p];
-                }
-            }
-
-            // If we found a matching pattern, add to results
-            if (matchedPattern) {
-                allMatches.push(positions);
-            }
-        }
-    }
-
-    return allMatches;
-}
-
-/**
- * Get all special block positions in the grid, grouped by their special type
- * Example:
- * [
- *   [{row: 0, column: 1}, {row: 2, column: 3}],
- *   [{row: 1, column: 2}],
- *   [{row: 3, column: 4}, {row: 4, column: 0}]
- * ]
- * @param grid The grid to be analysed
- * @returns An array of position groups, where each group contains positions of the same special type
- */
-export function slotGetJackpotMatches(grid: Match3Grid): Match3Position[][] {
-    const jackpotBlocks = gameConfig.getJackpots();
-    const jackpotTypes = jackpotBlocks.map((block) => block.type);
-
-    // Use Map to efficiently group by type
-    const matchesByType = new Map<number, Match3Position[]>();
-
-    for (let row = 0; row < grid.length; row++) {
-        for (let col = 0; col < grid[0].length; col++) {
-            const cellType = grid[row][col];
-
-            if (jackpotTypes.includes(cellType)) {
-                // Get or create group for this type
-                let group = matchesByType.get(cellType);
-                if (!group) {
-                    group = [];
-                    matchesByType.set(cellType, group);
-                }
-
-                // Add position to the group
-                group.push({ row, column: col });
-            }
-        }
-    }
-
-    // Convert Map values to array
-    const allMatches = Array.from(matchesByType.values());
-
-    return allMatches;
-}
-
-/**
- * Get all special block positions in the grid, grouped by their special type
- * Example:
- * [
- *   [{row: 0, column: 1}, {row: 2, column: 3}],
- *   [{row: 1, column: 2}],
- *   [{row: 3, column: 4}, {row: 4, column: 0}]
- * ]
- * @param grid The grid to be analysed
- * @returns An array of position groups, where each group contains positions of the same special type
- */
-export function slotGetScatterMatches(grid: Match3Grid): Match3Position[][] {
-    const scatterBlocksTrigger = gameConfig.getScatterBlocksTrigger();
-    const scatterBlocks = gameConfig.getScatterBlocks();
-    const scatterTypes = scatterBlocks.map((sb) => sb.type);
-
-    // Use Map to efficiently group by type
-    const matchesByType = new Map<number, Match3Position[]>();
-
-    for (let row = 0; row < grid.length; row++) {
-        for (let col = 0; col < grid[0].length; col++) {
-            const cellType = grid[row][col];
-
-            if (scatterTypes.includes(cellType)) {
-                // Get or create group for this type
-                let group = matchesByType.get(cellType);
-                if (!group) {
-                    group = [];
-                    matchesByType.set(cellType, group);
-                }
-
-                // Add position to the group
-                group.push({ row, column: col });
-            }
-        }
-    }
-
-    // Convert Map values to array
-    const allMatches = Array.from(matchesByType.values());
-
-    // Check if any group meets the trigger requirement
-    const hasTriggered = allMatches.some((group) => group.length >= scatterBlocksTrigger);
-    if (!hasTriggered) {
-        return [];
-    }
-
-    return allMatches;
-}
-
-/**
- * Move all pieces in the grid to their next empty position, vertically
- * @param grid The grid to be changed
- * @returns All position that have been changed.
- * Ex.: [[{row: 1, column: 1}, {row: 2, column: 1}]] - That piece moved 1 row down
- */
-export function match3ApplyGravity(grid: Match3Grid) {
-    const rows = grid.length;
-    const columns = grid[0].length;
-    const changes: Match3Position[][] = [];
-    for (let r = rows - 1; r >= 0; r--) {
-        for (let c = 0; c < columns; c++) {
-            let position = { row: r, column: c };
-            const belowPosition = { row: r + 1, column: c };
-            let hasChanged = false;
-
-            // Skip this one if position below is out of bounds
-            if (!match3IsValidPosition(grid, belowPosition)) continue;
-
-            // Retrive the type of the position below
-            let belowType = match3GetPieceType(grid, belowPosition);
-
-            // Keep moving the piece down if position below is valid and empty
-            while (match3IsValidPosition(grid, belowPosition) && belowType === 0) {
-                hasChanged = true;
-                match3SwapPieces(grid, position, belowPosition);
-                position = { ...belowPosition };
-                belowPosition.row += 1;
-                belowType = match3GetPieceType(grid, belowPosition);
-            }
-
-            if (hasChanged) {
-                // Append a new change if position has changed [<from>, <to>]
-                changes.push([{ row: r, column: c }, position]);
-            }
-        }
-    }
-
-    return changes;
-}
-
-/**
- * Find out all empty spaces (type=0) in the grid
- * @param grid The grid to be verified
- * @returns A list of empty positions
- */
-export function match3GetEmptyPositions(grid: Match3Grid) {
-    const positions: Match3Position[] = [];
-    const rows = grid.length;
-    const columns = grid[0].length;
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < columns; c++) {
-            if (!grid[r][c]) {
-                positions.push({ row: r, column: c });
-            }
-        }
-    }
-    return positions;
-}
 
 /**
  * Convert grid to a visual string representation, useful for debugging
@@ -433,28 +181,6 @@ export function match3GridToString(grid: Match3Grid) {
     return lines.join('\n');
 }
 
-/**
- * Loop through the grid and fill up all empty positions with random types
- * @param grid The grid to be changed
- * @param types List of types available to randomise
- * @returns A list with all positions that have their types changed from empty (0) to something
- */
-export function match3FillUp(grid: Match3Grid, _types: Match3Type[], tempGrid: Match3Grid) {
-    const rows = grid.length;
-    const columns = grid[0].length;
-    const newPositions: Match3Position[] = [];
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < columns; c++) {
-            // If this position is empty (0)...
-            if (!grid[r][c]) {
-                grid[r][c] = tempGrid[r][c];
-                newPositions.push({ row: r, column: c });
-            }
-        }
-    }
-
-    return newPositions.reverse();
-}
 
 /**
  * Filter out repeated positions from position list
@@ -506,6 +232,7 @@ export function getRandomMultiplier(): MultipliersValues {
 // ======================================================
 
 export const WILD = 12;
+export const SCATTERBONUS = 11;
 type ClusterWinResult = {
     type: number;
     count: number;
@@ -650,7 +377,6 @@ export function slotEvaluateClusterWins(
         );
         if (!pattern) continue;
 
-        const baseMultiplier = pattern.multiplier;
 
         // ------ BONUS WILD MULTIPLIERS ------
         let wildBonus = 0;
@@ -675,6 +401,30 @@ export function slotEvaluateClusterWins(
 
     return results;
 }
+
+export type ScatterResult = {
+    count: number;
+    positions: Match3Position[];
+};
+
+export function countScatterBonus(
+    grid: Match3Grid
+): ScatterResult {
+    let count = 0;
+    const positions: Match3Position[] = [];
+
+    for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < grid[r].length; c++) {
+            if (grid[r][c] === SCATTERBONUS) {
+                count++;
+                positions.push({ row: r, column: c });
+            }
+        }
+    }
+
+    return { count, positions };
+}
+
 
 export function calculateTotalWin(
     results: ClusterWinResult[],
@@ -815,7 +565,7 @@ export function mergeReels(
             const inc = inRow[c] ?? 0;
 
             // accept incoming unless current is locked (12)
-            if (cur !== 12) {
+            if (cur !== WILD) {
                 newRow[c] = inc;
             } else {
                 newRow[c] = cur;
@@ -836,4 +586,23 @@ export function gridRandomTypeReset(){
     return Array.from({ length: 5 }, () =>
         Array.from({ length: 5 }, () => Math.floor(Math.random() * 10) + 1)
     );
+}
+
+
+export function initGrid<T>(rows: number, cols: number, fill: T): T[][] {
+    return Array.from({ length: rows }, () => Array(cols).fill(fill));
+}
+
+export function forEachCell(
+    rows: number,
+    cols: number,
+    fn: (r: number, c: number) => void
+) {
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) fn(r, c);
+    }
+}
+
+export function sleep(ms: number) {
+    return new Promise<void>(resolve => setTimeout(resolve, ms));
 }

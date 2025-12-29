@@ -3,7 +3,7 @@ import gsap from "gsap";
 import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import { SlotSymbol } from "./SlotSymbol";
-import { gridRandomTypeReset } from "./SlotUtility";
+import { gridRandomTypeReset, initGrid, forEachCell } from "./SlotUtility";
 import { userSettings, SpinModeEnum } from "../utils/userSettings";
 
 interface ReelColumn {
@@ -23,6 +23,7 @@ export class Match3Board {
 
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
+    private backendBonus: number[][] = [];
 
     // WILD OVERLAY (PERSISTENT)
     private wildGrid: number[][] = [];
@@ -67,22 +68,12 @@ export class Match3Board {
         return this.tileSize;
     }
 
-    private initGrid(rows: number, cols: number, fill = 0) {
-        return Array.from({ length: rows }, () => Array(cols).fill(fill));
-    }
-
     private getOffsets() {
         const tile = this.tileSize;
         return {
             offsetX: ((this.columns - 1) * tile) / 2,
             offsetY: ((this.rows - 1) * tile) / 2,
         };
-    }
-
-    private forEachCell(fn: (r: number, c: number) => void) {
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.columns; c++) fn(r, c);
-        }
     }
 
     private destroyReels(reels: ReelColumn[]) {
@@ -147,12 +138,10 @@ export class Match3Board {
     private animationGate: Promise<void> | null = null;
     private resolveAnimationGate: (() => void) | null = null;
 
-    // ✅ NEW: token-based stop condition (reliable infinite loop)
     private _spinToken = 0;
 
-    // =========================================================================
+
     // INTERRUPT / LANDING CONTROL
-    // =========================================================================
     private _spinInProgress = false;
     private _interruptRequested = false;
     private _hasBackendResult = false;
@@ -183,15 +172,15 @@ export class Match3Board {
 
         this.realLayer = new Container();
 
-        this.backendMultipliers = this.initGrid(5, 5, 0);
-        this.wildGrid = this.initGrid(5, 5, 0);
+        this.backendMultipliers = initGrid(5, 5, 0);
+        this.wildGrid = initGrid(5, 5, 0);
 
         this.wildLayer = new Container();
 
         this.piecesContainer.addChild(this.realLayer);
         this.piecesContainer.addChild(this.wildLayer);
 
-        // TEST: press "I" to request an interrupt
+
         window.addEventListener("keydown", (e) => {
             if (e.key.toLowerCase() === "i") {
                 this.interruptSpin();
@@ -207,7 +196,6 @@ export class Match3Board {
         return this.backendMultipliers;
     }
 
-    // like old board
     public getWildReels() {
         return this.wildGrid;
     }
@@ -238,9 +226,7 @@ export class Match3Board {
         this._spinning = false;
     }
 
-    // =========================================================================
-    // MASK
-    // =========================================================================
+    // Mask
     private refreshMask() {
         const w = this.columns * this.tileSize;
         const h = this.rows * this.tileSize;
@@ -253,15 +239,12 @@ export class Match3Board {
         this.piecesMask.endFill();
     }
 
-    // =========================================================================
-    // SETUP
-    // =========================================================================
     public setup(config: Match3Config) {
         this.rows = config.rows;
         this.columns = config.columns;
         this.tileSize = config.tileSize;
 
-        this.backendMultipliers = this.initGrid(this.rows, this.columns, 0);
+        this.backendMultipliers = initGrid(this.rows, this.columns, 0);
 
         const blocks = slotGetBlocks();
         this.typesMap = {};
@@ -269,17 +252,19 @@ export class Match3Board {
 
         if (this.initialReels.length === 0) {
             const types = Object.keys(this.typesMap).map(Number);
-            this.initialReels = this.initGrid(this.rows, this.columns, 0);
-            this.initialMultipliers = this.initGrid(this.rows, this.columns, 0);
+            this.initialReels = initGrid(this.rows, this.columns, 0);
+            this.initialMultipliers = initGrid(this.rows, this.columns, 0);
 
-            this.forEachCell((r, c) => {
-                this.initialReels[r][c] = types[Math.floor(Math.random() * types.length)];
+            forEachCell(this.rows, this.columns, (r, c) => {
+                this.initialReels[r][c] =
+                    types[Math.floor(Math.random() * types.length)];
                 this.initialMultipliers[r][c] = 0;
             });
+
         }
 
         if (this.wildGrid.length === 0) {
-            this.wildGrid = this.initGrid(this.rows, this.columns, 0);
+            this.wildGrid = initGrid(this.rows, this.columns, 0);
         }
 
         this.refreshMask();
@@ -306,9 +291,6 @@ export class Match3Board {
         }
     }
 
-    // =========================================================================
-    // IDLE GRID (SPINE)
-    // =========================================================================
     private buildIdleGridFromInitial() {
         const { offsetX, offsetY } = this.getOffsets();
 
@@ -356,7 +338,7 @@ export class Match3Board {
         return s instanceof SlotSymbol ? s : null;
     }
 
-    // ✅ NEW: fetch the currently displayed wild symbol (if any) at row/col
+    // fetch the currently displayed wild symbol (if any) at row/col
     private getDisplayedWildSymbol(row: number, column: number): SlotSymbol | null {
         const reel = this.wildReels[column] as any;
         if (!reel) return null;
@@ -372,8 +354,8 @@ export class Match3Board {
     }
 
     private getCurrentGridSnapshot(): { types: number[][]; mults: number[][] } {
-        const types = this.initGrid(this.rows, this.columns, 0);
-        const mults = this.initGrid(this.rows, this.columns, 0);
+        const types = initGrid(this.rows, this.columns, 0);
+        const mults = initGrid(this.rows, this.columns, 0);
 
         for (let c = 0; c < this.columns; c++) {
             for (let r = 0; r < this.rows; r++) {
@@ -1352,7 +1334,7 @@ export class Match3Board {
 
         const tile = this.tileSize;
 
-        this.forEachCell((r, c) => {
+        forEachCell(this.rows, this.columns, (r, c) => {
             const reel = this.wildReels[c];
             if (!reel) return;
 
@@ -1361,7 +1343,9 @@ export class Match3Board {
             const mult = this.backendMultipliers?.[r]?.[c] ?? 0;
 
             const removeCurrent = () => {
-                if (current?.parent === reel.container) reel.container.removeChild(current);
+                if (current?.parent === reel.container) {
+                    reel.container.removeChild(current);
+                }
             };
 
             if (type === 0 || !this.typesMap[type]) {
@@ -1408,6 +1392,7 @@ export class Match3Board {
             this.showSpine(existing);
         });
 
+
         this.ensureWildLayerOnTop();
     }
 
@@ -1432,8 +1417,8 @@ export class Match3Board {
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
 
-        this.backendMultipliers = this.initGrid(rows, cols, 0);
-        this.wildGrid = this.initGrid(rows, cols, 0);
+        this.backendMultipliers = initGrid(rows, cols, 0);
+        this.wildGrid = initGrid(rows, cols, 0);
         this.backendReels = gridRandomTypeReset();
 
         if (this.rows > 0 && this.columns > 0) {
@@ -1452,8 +1437,8 @@ export class Match3Board {
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
 
-        const safeTypes = this.initGrid(rows, cols, 0);
-        const safeMults = this.initGrid(rows, cols, 0);
+        const safeTypes = initGrid(rows, cols, 0);
+        const safeMults = initGrid(rows, cols, 0);
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
@@ -1538,6 +1523,4 @@ export class Match3Board {
             this.killLoops();
         }
     }
-
-
 }

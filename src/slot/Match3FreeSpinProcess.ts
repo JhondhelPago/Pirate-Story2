@@ -15,7 +15,8 @@ export class Match3FreeSpinProcess extends Match3Process {
     private currentSpin = 0;
 
     private reelsTraversed = gridZeroReset();
-    private bonusTraversed = gridZeroReset();
+    private multiplierTraversed = gridZeroReset();
+    private bonusReels = gridZeroReset();
     
 
     /**
@@ -115,10 +116,10 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.reelsTraversed = reelsTraversed;
 
         const multiplierTraversed = this.mergeMultipliers(
-            this.bonusTraversed,
+            this.multiplierTraversed,
             result.bonusReels
         );
-        this.bonusTraversed = multiplierTraversed;
+        this.multiplierTraversed = multiplierTraversed;
 
         this.match3.board.applyBackendResults(result.reels, result.bonusReels);
 
@@ -141,6 +142,7 @@ export class Match3FreeSpinProcess extends Match3Process {
                 this.match3.board.getBackendReels()
             )
         );
+        // check the bonus reels
         this.queue.add(async () => this.setRoundResult());
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.addRoundWin());
@@ -149,7 +151,7 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     protected setRoundResult() {
         const reels = this.reelsTraversed;
-        const multipliers = this.bonusTraversed;
+        const multipliers = this.multiplierTraversed;
         // merge with the wild reels
         this.roundResult = slotEvaluateClusterWins(reels, multipliers);
     }
@@ -192,10 +194,10 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         // board cleaning specific for the free spin process
         this.match3.board.clearWildLayerAndMultipliers();
-        this.match3.board.rebuildReelsAndAnimatePositions(this.reelsTraversed, this.bonusTraversed, this.winningPositions!)
+        this.match3.board.rebuildReelsAndAnimatePositions(this.reelsTraversed, this.multiplierTraversed, this.winningPositions!)
 
         this.reelsTraversed = gridZeroReset();
-        this.bonusTraversed = gridZeroReset();
+        this.multiplierTraversed = gridZeroReset();
 
         this.currentSpin = 0;
         this.remainingSpins = 0;
