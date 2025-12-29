@@ -1442,4 +1442,102 @@ export class Match3Board {
             this.ensureWildLayerOnTop();
         }
     }
+
+    // specific function for the end spin session of the free spin process
+    public rebuildReelsAndAnimatePositions(
+        reels5x5: number[][],
+        bonus5x5: number[][],
+        positions: { row: number; column: number }[]
+    ) {
+        const rows = this.rows > 0 ? this.rows : 5;
+        const cols = this.columns > 0 ? this.columns : 5;
+
+        const safeTypes = this.initGrid(rows, cols, 0);
+        const safeMults = this.initGrid(rows, cols, 0);
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                safeTypes[r][c] = reels5x5?.[r]?.[c] ?? this.initialReels?.[r]?.[c] ?? this.randomType();
+                safeMults[r][c] = bonus5x5?.[r]?.[c] ?? 0;
+            }
+        }
+
+        this.prepareSpinTransitionNoClear();
+        this.stopAndDestroyTicker();
+
+        this.backendReels = safeTypes;
+        this.backendMultipliers = safeMults;
+        this._hasBackendResult = true;
+
+        this.compactToFinalStaticGridInPlace();
+
+
+        for (let c = 0; c < cols; c++) {
+            const reel = this.realReels[c];
+            const col = reel?.container as any;
+            if (!reel || !col || col?.destroyed) continue;
+
+
+            if (reel.symbols.length !== rows) {
+                reel.symbols = reel.symbols.slice(0, rows);
+            }
+
+            for (let r = 0; r < rows; r++) {
+                const type = safeTypes[r][c];
+                const mult = safeMults[r][c] ?? 0;
+
+                let sym = reel.symbols[r];
+                if (!sym) {
+                    sym = this.makeSlotSymbol(type, mult);
+                    reel.symbols[r] = sym;
+                    col.addChild(sym);
+                }
+
+                sym.setup({
+                    name: this.typesMap[type],
+                    type,
+                    size: this.tileSize,
+                    multiplier: mult,
+                });
+                this.showSpine(sym);
+                sym.visible = true;
+                sym.y = r * this.tile;
+                if (sym.parent !== col) col.addChild(sym);
+            }
+
+            reel.position = 0;
+            this.colActive[c] = false;
+            this.setBlurVisibleForColumn(c, false);
+
+            const { offsetY } = this.getOffsets();
+            col.y = -offsetY;
+        }
+
+        this.ensureWildLayerOnTop();
+
+        if (this.rows > 0 && this.columns > 0) {
+            this.rebuildWildLayerStructureIfNeeded();
+            this.applyWildGridToWildLayer();
+            this.ensureWildLayerOnTop();
+        }
+
+        const cleaned: { row: number; column: number }[] = [];
+        const seen = new Set<string>();
+        for (const p of positions ?? []) {
+            const row = Math.max(0, Math.min(rows - 1, p.row));
+            const column = Math.max(0, Math.min(cols - 1, p.column));
+            const k = `${row}:${column}`;
+            if (seen.has(k)) continue;
+            seen.add(k);
+            cleaned.push({ row, column });
+        }
+
+        if (cleaned.length) {
+            this.animateWinsWithWildPriority(cleaned);
+        } else {
+            this.killLoops();
+        }
+    }
+
+
 }

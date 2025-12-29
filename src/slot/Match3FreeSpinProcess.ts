@@ -189,7 +189,11 @@ export class Match3FreeSpinProcess extends Match3Process {
     public reset() {
         this.wildReels = gridZeroReset();
         this.match3.board.setWildReels(this.wildReels);
+
+        // board cleaning specific for the free spin process
         this.match3.board.clearWildLayerAndMultipliers();
+        this.match3.board.rebuildReelsAndAnimatePositions(this.reelsTraversed, this.bonusTraversed, this.winningPositions!)
+
         this.reelsTraversed = gridZeroReset();
         this.bonusTraversed = gridZeroReset();
 
