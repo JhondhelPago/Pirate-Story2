@@ -140,7 +140,6 @@ export class Match3Board {
 
     private _spinToken = 0;
 
-
     // INTERRUPT / LANDING CONTROL
     private _spinInProgress = false;
     private _interruptRequested = false;
@@ -179,7 +178,6 @@ export class Match3Board {
 
         this.piecesContainer.addChild(this.realLayer);
         this.piecesContainer.addChild(this.wildLayer);
-
 
         window.addEventListener("keydown", (e) => {
             if (e.key.toLowerCase() === "i") {
@@ -260,7 +258,6 @@ export class Match3Board {
                     types[Math.floor(Math.random() * types.length)];
                 this.initialMultipliers[r][c] = 0;
             });
-
         }
 
         if (this.wildGrid.length === 0) {
@@ -496,6 +493,9 @@ export class Match3Board {
         this.ticker.start();
     }
 
+    /**
+     * NORMAL start: wave + lift + stagger (unchanged)
+     */
     private async startSpinSeamlessSequential(): Promise<void> {
         const seq = ++this._startSeqId;
 
@@ -563,6 +563,58 @@ export class Match3Board {
 
         this._allColumnsSpinning = true;
 
+        if (this._interruptPending && this._hasBackendResult) {
+            this._interruptPending = false;
+            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
+        }
+    }
+
+    /**
+     * QUICK start: NO lift, NO stagger. All columns animate at the same time.
+     * (This is what you requested.)
+     */
+    private async startSpinSeamlessQuickAllAtOnce(): Promise<void> {
+        const seq = ++this._startSeqId;
+
+        const { offsetY } = this.getOffsets();
+        const yLead = -offsetY;
+        const yBlur = -offsetY + this.rows * this.tile;
+
+        // make blur spin active immediately for all columns
+        this.colActive = new Array(this.columns).fill(true);
+
+        // reset all columns to lead position
+        const cols = this.realReels.map((r) => r.container).filter(Boolean) as Container[];
+        for (const col of cols) {
+            gsap.killTweensOf(col);
+            col.y = yLead;
+        }
+
+        // drop all at once (no lift)
+        const DROP_DUR = 0.22; // tweakable: "slower turbo-ish" but still quick
+        const t = gsap.to(cols, { y: yBlur, duration: DROP_DUR, ease: "none" });
+
+        await t.then();
+        if (seq !== this._startSeqId) return;
+
+        if (!this.hasSpinStripBuilt()) {
+            const snap = this.getCurrentGridSnapshot();
+            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+        }
+
+        // lock everyone to blur-view
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
+            gsap.killTweensOf(col);
+            col.y = yBlur;
+            this.setBlurVisibleForColumn(c, true);
+            this.colActive[c] = true;
+        }
+
+        this._allColumnsSpinning = true;
+
+        // if user already requested interrupt and backend is ready, speed up immediately
         if (this._interruptPending && this._hasBackendResult) {
             this._interruptPending = false;
             this._spinSpeed = Math.max(this._spinSpeed, 1.8);
@@ -648,6 +700,19 @@ export class Match3Board {
             return;
         }
 
+        // ✅ QUICK: no lift + all columns same time
+        if (spinMode === SpinModeEnum.Quick) {
+            // rebuild strip shortly after the drop begins (optional but keeps your “hide rebuild” behavior)
+            gsap.delayedCall(0.08, () => {
+                this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+            });
+
+            this._startSequencePromise = this.startSpinSeamlessQuickAllAtOnce();
+            this.ensureWildLayerOnTop();
+            return;
+        }
+
+        // NORMAL (unchanged): wave + lift + stagger
         const WAVE_STAGGER = 0.06;
         const LIFT_DUR = 0.15;
         const DROP_DUR = 0.2;
@@ -1392,7 +1457,6 @@ export class Match3Board {
             this.showSpine(existing);
         });
 
-
         this.ensureWildLayerOnTop();
     }
 
@@ -1456,12 +1520,10 @@ export class Match3Board {
 
         this.compactToFinalStaticGridInPlace();
 
-
         for (let c = 0; c < cols; c++) {
             const reel = this.realReels[c];
             const col = reel?.container as any;
             if (!reel || !col || col?.destroyed) continue;
-
 
             if (reel.symbols.length !== rows) {
                 reel.symbols = reel.symbols.slice(0, rows);

@@ -109,19 +109,13 @@ export class Match3FreeSpinProcess extends Match3Process {
         }
 
         // Merge incoming reels/multipliers with existing ones (continuous/free-spin behavior)
-        const reelsTraversed = this.mergeReels(
-            this.reelsTraversed,
-            result.reels
-        );
+        const reelsTraversed = this.mergeReels(this.reelsTraversed, result.reels);
         this.reelsTraversed = reelsTraversed;
 
-        const multiplierTraversed = this.mergeMultipliers(
-            this.multiplierTraversed,
-            result.bonusReels
-        );
+        const multiplierTraversed = this.mergeMultipliers(this.multiplierTraversed, result.multiplierReels);
         this.multiplierTraversed = multiplierTraversed;
 
-        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runProcessRound();
         await this.match3.board.finishSpin();
@@ -132,17 +126,21 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.match3.onFreeSpinRoundComplete?.();
     }
 
+    public getBonusReels() {
+        return this.bonusReels;
+    }
+
 
     public runProcessRound(): void {
         this.round++;
-        
+
         this.queue.add(async () =>
             this.setMergeStickyWilds(
                 this.match3.board.getWildReels(),
                 this.match3.board.getBackendReels()
             )
         );
-        // check the bonus reels
+        // check the bonus reels -> then process to add spins if its pass the game condition for the bonus
         this.queue.add(async () => this.setRoundResult());
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.addRoundWin());
