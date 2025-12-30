@@ -22,7 +22,7 @@ function generateBonusReels() {
     const grid = Array.from({ length: 5 }, () => Array(5).fill(0));
 
     // Decide how many 11s to place (1-5), with higher numbers being less likely
-    const weights = [50, 25, 15, 7, 3]; // probabilities for 1,2,3,4,5
+    const weights = [25, 25, 15, 7, 3]; // probabilities for 1,2,3,4,5
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     let rand = Math.random() * totalWeight;
     let num11s = 1;

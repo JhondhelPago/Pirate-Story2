@@ -225,7 +225,7 @@ export class GameScreen extends Container {
     // =========================================================================
     public async startSpinning() {
 
-        // block the trigger of the spin if there is current popups, to prevent keyboard input to trigger spins
+        // block the trigger of the spin if there is current popups, to prevent keyboard input to trigger spins 
         if (navigation.currentPopup) return;
         
         // Second press while spinning = interrupt
