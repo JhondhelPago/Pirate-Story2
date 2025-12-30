@@ -27,8 +27,7 @@ type SpinModeDelays = {
     betweenWinMs: number;     // delay BEFORE next spin if there was a win
     betweenNoWinMs: number;   // delay BEFORE next spin if no win
 };
-
-export class Match3Process {
+ export class Match3Process {
     protected match3: Match3;
     protected processing = false;
     protected round = 0;

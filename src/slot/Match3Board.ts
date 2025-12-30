@@ -106,6 +106,8 @@ export class Match3Board {
             multiplier,
         });
 
+        sym.setBonusFlag(true);
+
         return sym;
     }
 

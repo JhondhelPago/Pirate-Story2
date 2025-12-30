@@ -906,68 +906,92 @@ export class SlotSymbol extends Container {
         this.applyBonusEffect();
     }
 
-    /** Zoom in/out + shake when small (loop) */
-    private applyBonusEffect() {
-        const target = this.bonusSprite;
-        if (!target) return;
-        if (this.paused) return;
+/** Slower zoom in/out, shake on zoom-in, with rest after zoom-out */
+private applyBonusEffect() {
+    const target = this.bonusSprite;
+    if (!target) return;
+    if (this.paused) return;
 
-        if (this.bonusTween) {
-            this.bonusTween.kill();
-            this.bonusTween = undefined;
-        }
+    if (this.bonusTween) {
+        this.bonusTween.kill();
+        this.bonusTween = undefined;
+    }
 
-        const baseScale = 0.45;
-        const bigScale = 0.62;
-        const smallScale = 0.40;
+    const baseScale = 0.45;
+    const bigScale = 0.62;
+    const smallScale = 0.40;
 
-        const baseX = target.x;
-        const baseRot = target.rotation;
+    const baseX = target.x;
+    const baseRot = target.rotation;
 
-        // Ensure clean start
-        target.scale.set(baseScale);
-        target.x = baseX;
-        target.rotation = baseRot;
+    // Clean start
+    gsap.killTweensOf(target);
+    gsap.killTweensOf(target.scale);
+    target.scale.set(baseScale);
+    target.x = baseX;
+    target.rotation = baseRot;
 
-        // Looping attention cycle
-        const tl = gsap.timeline({ repeat: -1 });
+    const tl = gsap.timeline({ repeat: -1 });
 
-        tl.to(target.scale, {
+    // ─────────────────────────────────────────────
+    // ZOOM IN (slower) + SHAKE DURING ZOOM-IN
+    // ─────────────────────────────────────────────
+    tl.to(
+        target.scale,
+        {
             x: bigScale,
             y: bigScale,
-            duration: 0.18,
-            ease: 'back.out(2)',
-        })
-            .to(target.scale, {
-                x: smallScale,
-                y: smallScale,
-                duration: 0.16,
-                ease: 'power2.inOut',
-            })
-            // Shake burst while small
-            .to(target, {
-                x: baseX + 3,
-                rotation: baseRot + 0.1,
-                duration: 0.06,
-                ease: 'sine.inOut',
-                yoyo: true,
-                repeat: 7,
-            })
-            .to(target, {
-                x: baseX,
-                rotation: baseRot,
-                duration: 0.08,
-                ease: 'power2.out',
-            })
-            .to(target.scale, {
-                x: baseScale,
-                y: baseScale,
-                duration: 0.1,
-                ease: 'power2.out',
-            });
+            duration: 0.28, // ⬅ slower zoom-in
+            ease: 'back.out(1.8)',
+        },
+        0,
+    ).to(
+        target,
+        {
+            x: baseX + 3,
+            rotation: baseRot + 0.08,
+            duration: 0.06, // ⬅ slower shake steps
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: 4,
+        },
+        0,
+    );
 
-        this.bonusTween = tl;
-    }
+    // ─────────────────────────────────────────────
+    // ZOOM OUT (slower, calm)
+    // ─────────────────────────────────────────────
+    tl.to(target.scale, {
+        x: smallScale,
+        y: smallScale,
+        duration: 0.24,
+        ease: 'power2.inOut',
+    });
+
+    // Reset transforms
+    tl.to(target, {
+        x: baseX,
+        rotation: baseRot,
+        duration: 0.12,
+        ease: 'power2.out',
+    });
+
+    // Return to base size
+    tl.to(target.scale, {
+        x: baseScale,
+        y: baseScale,
+        duration: 0.16,
+        ease: 'power2.out',
+    });
+
+    // ─────────────────────────────────────────────
+    // REST / IDLE PAUSE (important!)
+    // ─────────────────────────────────────────────
+    tl.to({}, { duration: 0.6 }); // ⬅ rest time before looping again
+
+    this.bonusTween = tl;
+}
+
 
     // =========================================================
 }
