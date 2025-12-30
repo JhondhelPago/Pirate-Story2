@@ -11,6 +11,7 @@ export class Match3FreeSpinProcess extends Match3Process {
     // state flag for this continuous process
     protected freeSpinProcessing = false;
     private accumulatedWin = 0;
+    private spins = 0
     private remainingSpins = 0;
     private currentSpin = 0;
 
@@ -64,7 +65,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.processing = false;
 
         // Free-spin initial bonus spin specific callback
-        await this.match3.onFreeSpinInitialBonusScatterComplete?.();
+        await this.match3.onFreeSpinInitialBonusScatterComplete?.(this.spins);
     }
     
     public processCheckpoint() {
@@ -115,13 +116,6 @@ export class Match3FreeSpinProcess extends Match3Process {
         const spinMode = userSettings.getSpinMode();
         const { minSpinMs } = this.getSpinModeDelays();
 
-        console.log(
-            "From Match3FreeSpinProcess, SpinMode:",
-            spinMode,
-            "minSpinMs:",
-            minSpinMs
-        );
-
         // Notify free-spin round start (for UI)
         this.match3.onFreeSpinRoundStart?.(
             this.currentSpin,
@@ -148,10 +142,15 @@ export class Match3FreeSpinProcess extends Match3Process {
             return;
         }
 
+        
+        // setting the 3 layers reels
+        this.reels = result.reels;
+        this.multiplierReels = result.multiplierReels;
+        this.bonusReels = result.bonusReels;
+
         // Merge incoming reels/multipliers with existing ones (continuous/free-spin behavior)
         const reelsTraversed = this.mergeReels(this.reelsTraversed, result.reels);
         this.reelsTraversed = reelsTraversed;
-
         const multiplierTraversed = this.mergeMultipliers(this.multiplierTraversed, result.multiplierReels);
         this.multiplierTraversed = multiplierTraversed;
 
@@ -178,8 +177,8 @@ export class Match3FreeSpinProcess extends Match3Process {
     public runProcessRound(): void {
         this.round++;
     
+        this.queue.add(async () => this.checkBonus(this.bonusReels));
         this.queue.add(async () => {this.bonusReels = gridZeroReset()});
-
         this.queue.add(async () =>
             this.setMergeStickyWilds(
                 this.match3.board.getWildReels(),
@@ -210,6 +209,9 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.accumulatedWin += totalRoundWin;
     }
 
+    public setSpinRounds(spins: number) {
+        this.spins = spins;
+    }
     public setSpins(spins: number) {
         this.remainingSpins = spins;
     }

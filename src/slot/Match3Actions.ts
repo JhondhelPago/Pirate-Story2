@@ -14,8 +14,9 @@ export class Match3Actions {
         await this.match3.process.start();
     }
 
-    public async actionFreeSpinInitial() {
+    public async actionFreeSpinInitial(spins: number) {
         this.match3.useFreeSpinProcess();
+        this.match3.freeSpinProcess.setSpinRounds(spins);
         this.match3.freeSpinProcess.freeSpinStartInitialBonus();
     }
 

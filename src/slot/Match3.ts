@@ -74,7 +74,7 @@ export class Match3 extends Container {
     public onFreeSpinComplete?: (current: number, remaining: number) => void;
     public onFreeSpinRoundStart?: (current: number, remaining: number) => void;
     public onFreeSpinRoundComplete?: () => void;
-    public onFreeSpinInitialBonusScatterComplete?: () => void;
+    public onFreeSpinInitialBonusScatterComplete?: (spins: number) => void;
 
     public onAutoSpinStart?: (count: number) => void;
     public onAutoSpinComplete?: (current: number, remaining: number) => void;
@@ -153,11 +153,11 @@ export class Match3 extends Container {
         this.spinning = false;
     }
 
-    public async freeSpinInitial() {
+    public async freeSpinInitial(spins: number) {
         if (this.spinning) return;
         this.spinning = true;
 
-        await this.actions.actionFreeSpinInitial();
+        await this.actions.actionFreeSpinInitial(spins);
 
         this.spinning = false;
     }

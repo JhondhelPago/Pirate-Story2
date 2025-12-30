@@ -149,7 +149,7 @@ export class BuyFreeSpinPopup extends Container {
                 // trigger for the free spin session
                 // game.onFreeSpinStart(spinCount);
 
-                game.onFreeSpinInitialStart();
+                game.onFreeSpinInitialStart(spinCount);
             },
         });
     }
