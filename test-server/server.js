@@ -107,12 +107,12 @@ app.get('/spin', async (req, res) => {
     
     //const reels = winReels;
 
-    // const multiplier = reels.map(reel => {
-    //     const multiplierOptions = [2, 3, 5];
-    //     const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
-    //     // return reel.map(symbol => (symbol === 11 || symbol === 12 ? randomMultiplier : 0)); // type shoild only be generetedby the initail spin, configure by the server
-    //     return reel.map(symbol => (symbol === 12 ? randomMultiplier : 0));
-    // })
+    const multiplier = reels.map(reel => {
+        const multiplierOptions = [2, 3, 5];
+        const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
+        // return reel.map(symbol => (symbol === 11 || symbol === 12 ? randomMultiplier : 0)); // type shoild only be generetedby the initail spin, configure by the server
+        return reel.map(symbol => (symbol === 12 ? randomMultiplier : 0));
+    })
 
     const bonus = generateBonusReels();
     
@@ -121,8 +121,8 @@ app.get('/spin', async (req, res) => {
 
     res.json({
         // reels: grandReels,
-        //reels: reels,
-        reels: initialReels,
+        reels: reels,
+        //reels: initialReels,
         multiplierReels: multiplier,
         bonusReels: bonus 
     });

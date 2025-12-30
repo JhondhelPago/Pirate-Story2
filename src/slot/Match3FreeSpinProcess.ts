@@ -49,10 +49,16 @@ export class Match3FreeSpinProcess extends Match3Process {
             return;
         }
 
+        this.reels = result.reels;
+        this.multiplierReels = result.multiplierReels;
         this.bonusReels = result.bonusReels;
         this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runInitialBonusProcess();
+
+        // check the bonus symbol in the reels
+        this.checkBonus(this.reels);
+
         await this.match3.board.finishSpin();
 
         this.processing = false;
@@ -171,6 +177,8 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     public runProcessRound(): void {
         this.round++;
+    
+        this.queue.add(async () => {this.bonusReels = gridZeroReset()});
 
         this.queue.add(async () =>
             this.setMergeStickyWilds(

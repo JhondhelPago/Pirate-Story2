@@ -46,6 +46,8 @@ export class Match3Process {
     protected delayResolver: (() => void) | null = null;
     protected delayToken: { cancelled: boolean } | null = null;
 
+    protected reels = gridZeroReset();
+    protected multiplierReels = gridZeroReset();
     protected bonusReels = gridZeroReset();
 
     constructor(match3: Match3) {
@@ -193,9 +195,12 @@ export class Match3Process {
             return;
         }
 
-        // setting the bonusReels
+        // setting the 3 layers reels
+        this.reels = result.reels;
+        this.multiplierReels = result.multiplierReels;
         this.bonusReels = result.bonusReels;
-        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
+
+        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
         await this.runProcessRound();
         await this.match3.board.finishSpin();
@@ -223,7 +228,7 @@ export class Match3Process {
     public runProcessRound(): void {
         this.round++;
 
-        this.queue.add(async () => this.checkBonus(this.bonusReels));
+        this.queue.add(async () => this.checkBonus(this.reels));
         this.queue.add(async () => this.setRoundResult());
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.setWinningPositions());
@@ -231,12 +236,14 @@ export class Match3Process {
     }
 
     public checkBonus(reels: number[][]): void {
+        const checked_result = countScatterBonus(reels)
         console.log("checking bonus: ", countScatterBonus(reels))
         // if the  bonus condition satisfied, proceed to play the free spin won. 
         // show the banner with the number of free spin won
         
 
         // reset the bonus reels
+        this.match3.board.setBonusPositions(checked_result.positions);
         this.bonusReels = gridZeroReset();
     }
 

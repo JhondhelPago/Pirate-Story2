@@ -23,7 +23,7 @@ export class Match3Board {
 
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
-    private backendBonus: number[][] = [];
+    private backendBonusPositions: {row: number, column: number}[] = [];
 
     // WILD OVERLAY (PERSISTENT)
     private wildGrid: number[][] = [];
@@ -196,6 +196,14 @@ export class Match3Board {
 
     public getWildReels() {
         return this.wildGrid;
+    }
+
+    public setBonusPositions(positions: {row: number, column: number}[]) {
+        this.backendBonusPositions = positions;
+    }
+
+    public getBonusPositions() {
+        return this.backendBonusPositions;
     }
 
     private cancelStartSequence() {
@@ -1137,7 +1145,8 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
 
         const wins = this.match3.process.getWinningPositions() ?? [];
-        this.animateWinsWithWildPriority(wins);
+        this.animateWinsWithWildPriority(wins, this.getBonusPositions());
+        
     }
 
     public async finishSpinQuick(): Promise<void> {
@@ -1167,6 +1176,8 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
 
         const wins = this.match3.process.getWinningPositions() ?? [];
+        
+        // add the position argument of the bonusPositions
         this.animateWinsWithWildPriority(wins);
     }
 
@@ -1196,6 +1207,7 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
 
         const wins = this.match3.process.getWinningPositions() ?? [];
+        // add the position argument of the bonusPositions
         this.animateWinsWithWildPriority(wins);
     }
 
@@ -1295,16 +1307,37 @@ export class Match3Board {
         }, "win");
     }
 
-    // ✅ NEW: Animate wilds first (priority), then animate real symbols excluding positions covered by wilds
-    public animateWinsWithWildPriority(wins: { row: number; column: number }[]) {
-        // de-dup
+    public animateWinsWithWildPriority( // this animate the winning positions plus animating the bonus symbol by the given positions of it
+        wins: { row: number; column: number }[],
+        extraPositions?: { row: number; column: number }[]
+    ) {
+        const rows = this.rows > 0 ? this.rows : 5;
+        const cols = this.columns > 0 ? this.columns : 5;
+
         const uniq: { row: number; column: number }[] = [];
         const seen = new Set<string>();
-        for (const p of wins) {
-            const k = `${p.row}:${p.column}`;
-            if (seen.has(k)) continue;
+
+        const push = (p: { row: number; column: number } | null | undefined) => {
+            if (!p) return;
+            const row = Math.max(0, Math.min(rows - 1, p.row));
+            const column = Math.max(0, Math.min(cols - 1, p.column));
+            const k = `${row}:${column}`;
+            if (seen.has(k)) return;
             seen.add(k);
-            uniq.push(p);
+            uniq.push({ row, column });
+        };
+
+        // always include wins
+        for (const p of wins ?? []) push(p);
+
+        // ✅ include bonus/pattern ONLY if it has 2+ positions
+        if (Array.isArray(extraPositions) && extraPositions.length > 1) {
+            for (const p of extraPositions) push(p);
+        }
+
+        if (!uniq.length) {
+            this.killLoops();
+            return;
         }
 
         const wildPositions: { row: number; column: number }[] = [];
@@ -1316,7 +1349,6 @@ export class Match3Board {
             else realPositions.push({ row, column });
         }
 
-        // start wild loop (if any)
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];
             for (const { row, column } of wildPositions) {
@@ -1326,7 +1358,6 @@ export class Match3Board {
             return list;
         }, "wild");
 
-        // start win loop on real symbols excluding those already animated by wild layer
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];
             for (const { row, column } of realPositions) {
@@ -1337,9 +1368,6 @@ export class Match3Board {
         }, "win");
     }
 
-    // =========================================================================
-    // MULTIPLIER HELPER
-    // =========================================================================
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
         const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
@@ -1350,9 +1378,6 @@ export class Match3Board {
         return this.isTubroSpin;
     }
 
-    // =========================================================================
-    // WILD LAYER (COPIED BEHAVIOR FROM OLD BOARD)
-    // =========================================================================
     private ensureWildLayerOnTop() {
         if (!this.wildLayer.parent) this.piecesContainer.addChild(this.wildLayer);
         this.piecesContainer.setChildIndex(this.wildLayer, this.piecesContainer.children.length - 1);

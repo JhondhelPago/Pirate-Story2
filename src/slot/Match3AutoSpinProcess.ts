@@ -81,7 +81,7 @@ export class Match3AutoSpinProcess extends Match3Process {
             return;
         }
 
-        this.match3.board.applyBackendResults(result.reels, result.bonusReels);
+        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runProcessRound();
         await this.match3.board.finishSpin();
