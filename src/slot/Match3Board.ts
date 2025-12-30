@@ -1331,7 +1331,7 @@ export class Match3Board {
         for (const p of wins ?? []) push(p);
 
         // ✅ include bonus/pattern ONLY if it has 2+ positions
-        if (Array.isArray(extraPositions) && extraPositions.length > 1) {
+        if (Array.isArray(extraPositions) && extraPositions.length >=  3) {
             for (const p of extraPositions) push(p);
         }
 

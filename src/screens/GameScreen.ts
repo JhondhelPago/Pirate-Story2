@@ -224,7 +224,11 @@ export class GameScreen extends Container {
     // SPIN ENTRY
     // =========================================================================
     public async startSpinning() {
-        // ✅ Second press while spinning = interrupt
+
+        // block the trigger of the spin if there is current popups, to prevent keyboard input to trigger spins
+        if (navigation.currentPopup) return;
+        
+        // Second press while spinning = interrupt
         if (this.match3.spinning) {
             this.requestSpinInterrupt();
             return;
@@ -411,8 +415,7 @@ export class GameScreen extends Container {
 
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
-        // this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
-        this.drawFreeSpinWonBanner(11);
+        this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
         this.syncFeatureAvailability();
     }
 
@@ -445,7 +448,7 @@ export class GameScreen extends Container {
     private async onFreeSpinInitialBonusScatterComplete() {
         this.finished = false;
         await waitFor(3);
-        this.drawFreeSpinWonBanner(12);
+        this.drawFreeSpinWonBanner(10);
         this.syncFeatureAvailability();
     }
 

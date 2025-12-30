@@ -8,6 +8,7 @@ import {
 } from "pixi.js";
 import gsap from "gsap";
 import { navigation } from "../utils/navigation";
+import { GameScreen } from "../screens/GameScreen";
 
 export type FreeSpinWinBannerData = {
     spins: number;
@@ -31,7 +32,7 @@ export class FreeSpinWinBanner extends Container {
     private continueText!: Text;
 
     private currentDisplayValue = 0;
-    private targetDisplayValue = 0;
+    private spins = 0;
 
     private canClickAnywhere = false;
     private onClosed?: () => void;
@@ -44,8 +45,34 @@ export class FreeSpinWinBanner extends Container {
     private keyListenerAdded = false;
     private readonly keyDownHandler = (e: KeyboardEvent) => {
         if (!this.canClickAnywhere) return;
-        this.hide();
+        if (e.code !== "Space" && e.code !== "Enter") return;       
+        this.requestClose();
     };
+
+    private isClosing = false;
+    private async requestClose() {
+        if (!this.canClickAnywhere) return;
+        if (this.isClosing) return; // prevent double trigger
+        this.isClosing = true;
+        this.canClickAnywhere = false;
+
+        // ✅ TRIGGER YOUR PROCESS HERE (start freespin process, etc.)
+        // Example options:
+        // 1) call a callback you passed in
+        // 2) emit an event
+        // 3) call match3 process starter directly (not recommended if you want UI decoupled)
+
+        // If you want it via callback, add it to data:
+        // d?.onContinue?.();
+
+        const gamescreen = navigation.currentScreen as GameScreen;
+
+        // trigger the free spin with the number of spins pass to this banner
+        gamescreen.onFreeSpinStart(this.spins);
+
+        await this.hide(); // then dismiss popup
+
+    }
 
     constructor() {
         super();
@@ -64,7 +91,7 @@ export class FreeSpinWinBanner extends Container {
         // close on click anywhere
         this.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
-            this.hide();
+            this.requestClose();
         });
 
         this.panel = new Container();
@@ -77,7 +104,7 @@ export class FreeSpinWinBanner extends Container {
     public async prepare<T>(data?: T) {
         const d = data as any as FreeSpinWinBannerData;
 
-        this.targetDisplayValue = Math.max(0, Math.floor(d?.spins ?? 0));
+        this.spins = Math.max(0, Math.floor(d?.spins ?? 0));
         this.onClosed = d?.onClosed;
 
         const topLabel = d?.topText ?? "YOU HAVE WON";
@@ -290,7 +317,7 @@ export class FreeSpinWinBanner extends Container {
         this.currentDisplayValue = 0;
 
         gsap.to(this, {
-            currentDisplayValue: this.targetDisplayValue,
+            currentDisplayValue: this.spins,
             duration: 0.9,
             ease: "power2.out",
             onUpdate: () => {
