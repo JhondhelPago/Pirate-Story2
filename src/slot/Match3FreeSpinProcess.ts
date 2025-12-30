@@ -25,7 +25,6 @@ export class Match3FreeSpinProcess extends Match3Process {
         const token = { cancelled: false };
         this.cancelToken = token;
 
-        const spinMode = userSettings.getSpinMode();
         const { minSpinMs } = this.getSpinModeDelays();
 
         console.log("intial bonus spin trigger from free spin process");
@@ -56,9 +55,6 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runInitialBonusProcess();
-
-        // check the bonus symbol in the reels
-        this.checkBonus(this.reels);
 
         await this.match3.board.finishSpin();
 
@@ -171,22 +167,22 @@ export class Match3FreeSpinProcess extends Match3Process {
 
 
     public runInitialBonusProcess() {
-        this.queue.add(async () => this.checkBonus(this.bonusReels));
+        this.queue.add(async () => this.checkBonus(this.reels));
     }
 
     public runProcessRound(): void {
         this.round++;
     
-        this.queue.add(async () => this.checkBonus(this.bonusReels));
-        this.queue.add(async () => {this.bonusReels = gridZeroReset()});
+        
         this.queue.add(async () =>
             this.setMergeStickyWilds(
                 this.match3.board.getWildReels(),
                 this.match3.board.getBackendReels()
             )
         );
-        // check the bonus reels -> then process to add spins if its pass the game condition for the bonus
         
+        // check the bonus reels -> then process to add spins if its pass the game condition for the bonus    
+        this.queue.add(async () => this.checkBonus(this.bonusReels));
         this.queue.add(async () => this.setRoundResult());
         this.queue.add(async () => this.setRoundWin());
         this.queue.add(async () => this.addRoundWin());

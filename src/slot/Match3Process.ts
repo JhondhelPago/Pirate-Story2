@@ -240,7 +240,6 @@ type SpinModeDelays = {
         // if the  bonus condition satisfied, proceed to play the free spin won. 
         // show the banner with the number of free spin won
         
-
         // reset the bonus reels
         this.match3.board.setBonusPositions(checked_result.positions);
         this.bonusReels = gridZeroReset();

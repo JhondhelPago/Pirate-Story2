@@ -105,7 +105,7 @@ export class Match3Board {
             size: this.tileSize,
             multiplier,
         });
-
+        sym.setBonusFlag(false);
         return sym;
     }
 
@@ -317,6 +317,8 @@ export class Match3Board {
                 const mult = this.initialPieceMutliplier(type);
 
                 const sym = this.makeSlotSymbol(type, mult);
+                sym.setBonusFlag(false); // ✅ reset bonus flag on build
+
                 sym.y = r * this.tile;
                 this.showSpine(sym);
 
@@ -329,6 +331,7 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
     }
+
 
     private getDisplayedRealSymbol(row: number, column: number): SlotSymbol | null {
         const reel = this.realReels[column];
@@ -788,10 +791,14 @@ export class Match3Board {
                 size: this.tileSize,
                 multiplier: mult,
             });
+
+            sym.setBonusFlag(false); // ✅ reset bonus flag whenever we rebuild lead
+
             this.showSpine(sym);
             sym.y = r * this.tile;
         }
     }
+
 
     private compactToFinalStaticGridInPlace() {
         const { offsetY } = this.getOffsets();
@@ -1308,66 +1315,93 @@ export class Match3Board {
         }, "win");
     }
 
-    public animateWinsWithWildPriority( // this animate the winning positions plus animating the bonus symbol by the given positions of it
-        wins: { row: number; column: number }[],
-        extraPositions?: { row: number; column: number }[]
-    ) {
-        const rows = this.rows > 0 ? this.rows : 5;
-        const cols = this.columns > 0 ? this.columns : 5;
+    public animateWinsWithWildPriority(
+    wins: { row: number; column: number }[],
+    extraPositions?: { row: number; column: number }[]
+) {
+    const rows = this.rows > 0 ? this.rows : 5;
+    const cols = this.columns > 0 ? this.columns : 5;
 
-        const uniq: { row: number; column: number }[] = [];
-        const seen = new Set<string>();
+    const uniq: { row: number; column: number }[] = [];
+    const seen = new Set<string>();
 
-        const push = (p: { row: number; column: number } | null | undefined) => {
-            if (!p) return;
-            const row = Math.max(0, Math.min(rows - 1, p.row));
-            const column = Math.max(0, Math.min(cols - 1, p.column));
-            const k = `${row}:${column}`;
-            if (seen.has(k)) return;
-            seen.add(k);
-            uniq.push({ row, column });
-        };
+    const push = (p: { row: number; column: number } | null | undefined) => {
+        if (!p) return;
+        const row = Math.max(0, Math.min(rows - 1, p.row));
+        const column = Math.max(0, Math.min(cols - 1, p.column));
+        const k = `${row}:${column}`;
+        if (seen.has(k)) return;
+        seen.add(k);
+        uniq.push({ row, column });
+    };
 
-        // always include wins
-        for (const p of wins ?? []) push(p);
+    // always include wins
+    for (const p of wins ?? []) push(p);
 
-        // ✅ include bonus/pattern ONLY if it has 2+ positions
-        if (Array.isArray(extraPositions) && extraPositions.length >=  3) {
+    // ✅ only include extraPositions if NOT currently using FreeSpinProcess
+    const isFreeSpin =
+        this.match3?.process === this.match3?.freeSpinProcess;
+
+    if (!isFreeSpin) {
+        if (Array.isArray(extraPositions) && extraPositions.length >= 3) {
             for (const p of extraPositions) push(p);
         }
+    } else {
+        if (Array.isArray(extraPositions)) {
+            for (const { row, column } of extraPositions) {
+                const r = Math.max(0, Math.min(rows - 1, row));
+                const c = Math.max(0, Math.min(cols - 1, column));
 
-        if (!uniq.length) {
-            this.killLoops();
-            return;
-        }
+                // priority: wild layer first
+                const wild = this.getDisplayedWildSymbol(r, c);
+                if (wild) {
+                    wild.setBonusFlag(true);
+                    continue;
+                }
 
-        const wildPositions: { row: number; column: number }[] = [];
-        const realPositions: { row: number; column: number }[] = [];
-
-        for (const { row, column } of uniq) {
-            const wild = this.getDisplayedWildSymbol(row, column);
-            if (wild) wildPositions.push({ row, column });
-            else realPositions.push({ row, column });
-        }
-
-        this.startReplayLoop(() => {
-            const list: SlotSymbol[] = [];
-            for (const { row, column } of wildPositions) {
-                const s = this.getDisplayedWildSymbol(row, column);
-                if (s) list.push(s);
+                const real = this.getDisplayedRealSymbol(r, c);
+                if (real) {
+                    real.setBonusFlag(true);
+                }
             }
-            return list;
-        }, "wild");
-
-        this.startReplayLoop(() => {
-            const list: SlotSymbol[] = [];
-            for (const { row, column } of realPositions) {
-                const s = this.getDisplayedRealSymbol(row, column);
-                if (s) list.push(s);
-            }
-            return list;
-        }, "win");
+            // set to emtpy after using the position to the UI
+            this.backendBonusPositions = [];
+        }
     }
+
+    if (!uniq.length) {
+        this.killLoops();
+        return;
+    }
+
+    const wildPositions: { row: number; column: number }[] = [];
+    const realPositions: { row: number; column: number }[] = [];
+
+    for (const { row, column } of uniq) {
+        const wild = this.getDisplayedWildSymbol(row, column);
+        if (wild) wildPositions.push({ row, column });
+        else realPositions.push({ row, column });
+    }
+
+    this.startReplayLoop(() => {
+        const list: SlotSymbol[] = [];
+        for (const { row, column } of wildPositions) {
+            const s = this.getDisplayedWildSymbol(row, column);
+            if (s) list.push(s);
+        }
+        return list;
+    }, "wild");
+
+    this.startReplayLoop(() => {
+        const list: SlotSymbol[] = [];
+        for (const { row, column } of realPositions) {
+            const s = this.getDisplayedRealSymbol(row, column);
+            if (s) list.push(s);
+        }
+        return list;
+    }, "win");
+}
+
 
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
@@ -1453,6 +1487,7 @@ export class Match3Board {
                 removeCurrent();
 
                 const sym = this.makeSlotSymbol(type, mult);
+                sym.setBonusFlag(false); // ✅ reset bonus flag on create
                 sym.y = r * tile;
 
                 this.showSpine(sym);
@@ -1469,6 +1504,7 @@ export class Match3Board {
                 removeCurrent();
 
                 const sym = this.makeSlotSymbol(type, mult);
+                sym.setBonusFlag(false); // ✅ reset bonus flag on create
                 sym.y = r * tile;
 
                 this.showSpine(sym);
@@ -1478,6 +1514,7 @@ export class Match3Board {
                 return;
             }
 
+            existing.setBonusFlag(false); // ✅ reset bonus flag on reuse
             existing.visible = true;
             existing.y = r * tile;
             this.showSpine(existing);
@@ -1485,6 +1522,7 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
     }
+
 
     private resetWildSymbolsToIdle() {
         for (let c = 0; c < this.wildReels.length; c++) {
@@ -1532,7 +1570,11 @@ export class Match3Board {
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                safeTypes[r][c] = reels5x5?.[r]?.[c] ?? this.initialReels?.[r]?.[c] ?? this.randomType();
+                safeTypes[r][c] =
+                    reels5x5?.[r]?.[c] ??
+                    this.initialReels?.[r]?.[c] ??
+                    this.randomType();
+
                 safeMults[r][c] = bonus5x5?.[r]?.[c] ?? 0;
             }
         }
@@ -1546,6 +1588,7 @@ export class Match3Board {
 
         this.compactToFinalStaticGridInPlace();
 
+        // ✅ rebuild REAL 5x5 and always reset bonus flags
         for (let c = 0; c < cols; c++) {
             const reel = this.realReels[c];
             const col = reel?.container as any;
@@ -1572,6 +1615,9 @@ export class Match3Board {
                     size: this.tileSize,
                     multiplier: mult,
                 });
+
+                sym.setBonusFlag(false); // ✅ IMPORTANT: clear any previous bonus UI state
+
                 this.showSpine(sym);
                 sym.visible = true;
                 sym.y = r * this.tile;
@@ -1588,9 +1634,10 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
 
+        // ✅ rebuild WILD layer and also ensure flags are reset inside applyWildGridToWildLayer()
         if (this.rows > 0 && this.columns > 0) {
             this.rebuildWildLayerStructureIfNeeded();
-            this.applyWildGridToWildLayer();
+            this.applyWildGridToWildLayer(); // (make sure this function resets bonus flags too)
             this.ensureWildLayerOnTop();
         }
 
@@ -1611,4 +1658,5 @@ export class Match3Board {
             this.killLoops();
         }
     }
+
 }
