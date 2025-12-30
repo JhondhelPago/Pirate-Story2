@@ -15,6 +15,9 @@ const defaultSlotSymbolOptions = {
     size: 50,
     interactive: false,
     multiplier: 0,
+
+    // ✅ NEW (optional): if you want to pass bonus in setup
+    // bonus: false,
 };
 
 /** Piece configuration parameters */
@@ -60,6 +63,18 @@ export class SlotSymbol extends Container {
 
     public _isLooping: boolean = false;
     public __match3ProcessRef: any = null;
+
+    // =========================================================
+    // ✅ NEW: BONUS COIN MARKER (top-right) + effect
+    // =========================================================
+    /** Bonus flag: show/hide coin marker */
+    private bonus = false;
+
+    /** Bonus coin sprite */
+    private bonusSprite: Sprite | null = null;
+
+    /** Bonus animation tween */
+    private bonusTween?: gsap.core.Tween | gsap.core.Timeline;
 
     constructor() {
         super();
@@ -181,30 +196,61 @@ export class SlotSymbol extends Container {
         // ⭐ After multiplier is assigned
         this.updateMultiplierSprite();
 
+        // =========================================================
+        // ✅ NEW: reset & re-apply bonus visuals based on current flag
+        // =========================================================
+        if (this.bonusTween) {
+            this.bonusTween.kill();
+            this.bonusTween = undefined;
+        }
+        if (this.bonusSprite) {
+            this.removeChild(this.bonusSprite);
+            this.bonusSprite.destroy();
+            this.bonusSprite = null;
+        }
+        this.updateBonusSprite();
+        // =========================================================
+
         this.unlock();
     }
 
     /** Fall to position animation */
-    public async animateFall(x: number, y: number, onStart?: () => void, onComplete?: () => void) {
+    public async animateFall(
+        x: number,
+        y: number,
+        onStart?: () => void,
+        onComplete?: () => void,
+    ) {
         this.lock();
         resolveAndKillTweens(this.position);
         const duration = 0.5;
-        await gsap.to(this.position, { x, y, duration, ease: easeSingleBounce, onStart, onComplete });
+        await gsap.to(this.position, {
+            x,
+            y,
+            duration,
+            ease: easeSingleBounce,
+            onStart,
+            onComplete,
+        });
         this.unlock();
     }
 
     /** Reel spin animation — smooth scrolling with random temporary symbols */
-    public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number): Promise<void> {
+    public async animateColumnSpin(
+        finalX: number,
+        finalY: number,
+        spinIndex: number,
+    ): Promise<void> {
         this.lock();
         resolveAndKillTweens(this.position);
 
-        const spinDuration = 2;                // total spin time
-        const scrollSpeed = 900;               // pixels per second
-        const stagger = spinIndex * 0.15;      // delay per column
+        const spinDuration = 2; // total spin time
+        const scrollSpeed = 900; // pixels per second
+        const stagger = spinIndex * 0.15; // delay per column
 
         const reelContainer = this.parent; // SlotSymbol parent = piecesContainer
         if (!reelContainer) {
-            console.warn("animateColumnSpin(): Missing reelContainer");
+            console.warn('animateColumnSpin(): Missing reelContainer');
             this.unlock();
             return;
         }
@@ -240,16 +286,16 @@ export class SlotSymbol extends Container {
                 while (elapsed < spinDuration) {
                     const dist = symbolHeight;
 
-                    const movs = tempSymbols.map(sym =>
+                    const movs = tempSymbols.map((sym) =>
                         gsap.to(sym, {
                             y: sym.y + dist,
                             duration: dist / scrollSpeed,
-                            ease: "none"
-                        })
+                            ease: 'none',
+                        }),
                     );
                     await Promise.all(movs);
 
-                    tempSymbols.forEach(sym => {
+                    tempSymbols.forEach((sym) => {
                         if (sym.y > boardHeight + 100) {
                             sym.y -= symbolHeight * needed;
                         }
@@ -258,17 +304,21 @@ export class SlotSymbol extends Container {
                     elapsed += dist / scrollSpeed;
                 }
 
-                tempSymbols.forEach(sym => sym.destroy());
+                tempSymbols.forEach((sym) => sym.destroy());
 
                 this.x = finalX;
                 this.y = finalY;
 
                 this.visible = true;
-                gsap.fromTo(this, { y: finalY - 50 }, {
-                    y: finalY,
-                    ease: "back.out(1.8)",
-                    duration: 0.25
-                });
+                gsap.fromTo(
+                    this,
+                    { y: finalY - 50 },
+                    {
+                        y: finalY,
+                        ease: 'back.out(1.8)',
+                        duration: 0.25,
+                    },
+                );
 
                 this.unlock();
                 resolve();
@@ -279,7 +329,8 @@ export class SlotSymbol extends Container {
     /** Play animation */
     public animatePlay(loop: boolean = false): Promise<void> {
         return new Promise((resolve) => {
-            const process = (((this.parent as any)?.parent) as any)?.__match3ProcessRef;
+            const process = (((this.parent as any)?.parent) as any)
+                ?.__match3ProcessRef;
 
             // Prevent infinite invalid loops
             if (loop && this._isLooping) {
@@ -423,6 +474,18 @@ export class SlotSymbol extends Container {
             this.multiplierTriggerTween.kill();
             this.multiplierTriggerTween = undefined;
         }
+
+        // =========================================================
+        // ✅ NEW: kill bonus tween too
+        // =========================================================
+        if (this.bonusSprite) {
+            resolveAndKillTweens(this.bonusSprite);
+        }
+        if (this.bonusTween) {
+            this.bonusTween.kill();
+            this.bonusTween = undefined;
+        }
+        // =========================================================
     }
 
     /** Pause all current tweens */
@@ -441,6 +504,14 @@ export class SlotSymbol extends Container {
         if (this.multiplierSprite) {
             pauseTweens(this.multiplierSprite);
         }
+
+        // =========================================================
+        // ✅ NEW: pause bonus
+        // =========================================================
+        if (this.bonusSprite) {
+            pauseTweens(this.bonusSprite);
+        }
+        // =========================================================
     }
 
     /** Resume pending tweens */
@@ -459,6 +530,14 @@ export class SlotSymbol extends Container {
         if (this.multiplierSprite) {
             resumeTweens(this.multiplierSprite);
         }
+
+        // =========================================================
+        // ✅ NEW: resume bonus
+        // =========================================================
+        if (this.bonusSprite) {
+            resumeTweens(this.bonusSprite);
+        }
+        // =========================================================
     }
 
     /** Lock piece interactivity, preventing mouse/touch events */
@@ -497,6 +576,20 @@ export class SlotSymbol extends Container {
             this.multiplierSprite = null;
         }
 
+        // =========================================================
+        // ✅ NEW: cleanup bonus
+        // =========================================================
+        if (this.bonusTween) {
+            this.bonusTween.kill();
+            this.bonusTween = undefined;
+        }
+        if (this.bonusSprite) {
+            this.removeChild(this.bonusSprite);
+            this.bonusSprite.destroy();
+            this.bonusSprite = null;
+        }
+        // =========================================================
+
         if (this.spine) {
             this.spine.destroy();
         }
@@ -520,10 +613,13 @@ export class SlotSymbol extends Container {
 
         // Pick correct asset based on multiplier value
         const assetName =
-            this.multiplier === 2 ? '2XMutliplier' :
-            this.multiplier === 3 ? '3XMutliplier' :
-            this.multiplier === 5 ? '5XMutliplier' :
-            null;
+            this.multiplier === 2
+                ? '2XMutliplier'
+                : this.multiplier === 3
+                  ? '3XMutliplier'
+                  : this.multiplier === 5
+                    ? '5XMutliplier'
+                    : null;
 
         if (!assetName) return;
 
@@ -561,17 +657,18 @@ export class SlotSymbol extends Container {
         const baseY = target.y; // remember base Y
 
         // Timeline
-        this.multiplierTween = gsap.timeline({ repeat: 0 })
+        this.multiplierTween = gsap
+            .timeline({ repeat: 0 })
             .to(target, {
                 alpha: 1,
-                scale: .68,
+                scale: 0.68,
                 duration: 0.35,
-                ease: "back.out(1.8)",
+                ease: 'back.out(1.8)',
             })
             .to(target, {
                 y: baseY - 8,
                 duration: 0.8,
-                ease: "sine.inOut",
+                ease: 'sine.inOut',
                 yoyo: true,
                 repeat: -1,
             });
@@ -603,7 +700,7 @@ export class SlotSymbol extends Container {
         const jumpUpPx = 22;
 
         const airShakeX = 10;
-        const airShakeRot = 0.10;
+        const airShakeRot = 0.1;
         const airShakeStep = 0.08;
 
         const landShakeX = 14;
@@ -612,7 +709,11 @@ export class SlotSymbol extends Container {
         const landShakeRepeats = 6;
 
         const isTargetAlive = () => {
-            return !!this.multiplierSprite && this.multiplierSprite === target && !target.destroyed;
+            return (
+                !!this.multiplierSprite &&
+                this.multiplierSprite === target &&
+                !target.destroyed
+            );
         };
 
         const startAirShake = () => {
@@ -659,7 +760,11 @@ export class SlotSymbol extends Container {
                     if (!isTargetAlive()) return;
                     airShakeTween = startAirShake();
                 })
-                .to(target, { y: baseY - jumpUpPx, duration: 0.18, ease: 'power2.out' }, 0)
+                .to(
+                    target,
+                    { y: baseY - jumpUpPx, duration: 0.18, ease: 'power2.out' },
+                    0,
+                )
                 .to(target, { y: baseY, duration: 0.22, ease: 'power2.in' })
                 .add(() => {
                     if (airShakeTween) {
@@ -681,7 +786,7 @@ export class SlotSymbol extends Container {
                 .to(target, {
                     x: baseX,
                     rotation: baseRot,
-                    duration: 0.10,
+                    duration: 0.1,
                     ease: 'power2.out',
                 });
         });
@@ -695,7 +800,7 @@ export class SlotSymbol extends Container {
         this._isLooping = false;
 
         if (this.spine) {
-            this.spine.state.clearTracks();        // remove all animations immediately
+            this.spine.state.clearTracks(); // remove all animations immediately
             this.spine.state.setEmptyAnimation(0, 0); // reset animation track
         }
     }
@@ -718,7 +823,7 @@ export class SlotSymbol extends Container {
 
     public showBlurSprite() {
         if (!this.sprite) {
-            const assetName = "blur_" + this.type.toString();
+            const assetName = 'blur_' + this.type.toString();
 
             const spr = Sprite.from(assetName);
             spr.anchor.set(0.5);
@@ -752,4 +857,117 @@ export class SlotSymbol extends Container {
     public setType(type: number) {
         this.type = type;
     }
+
+
+    public setBonusFlag(value: boolean) {
+        this.bonus = value;
+        this.updateBonusSprite();
+    }
+
+    /** Create or update bonus coin sprite */
+    private updateBonusSprite() {
+        // If bonus OFF -> remove sprite + kill tweens
+        if (!this.bonus) {
+            if (this.bonusTween) {
+                this.bonusTween.kill();
+                this.bonusTween = undefined;
+            }
+            if (this.bonusSprite) {
+                this.removeChild(this.bonusSprite);
+                this.bonusSprite.destroy();
+                this.bonusSprite = null;
+            }
+            return;
+        }
+
+        // Bonus ON -> create if missing
+        if (!this.bonusSprite) {
+            // ✅ Change "coin" to your actual texture key
+            this.bonusSprite = Sprite.from('bonus-coin');
+            this.bonusSprite.anchor.set(0.5);
+
+            // Put above everything else
+            this.addChild(this.bonusSprite);
+        }
+
+        // Position at top-right corner of SlotSymbol container
+        // (works best when your symbol visuals are centered around 0,0)
+        const w = this.width || 120;
+        const h = this.height || 150;
+
+        this.bonusSprite.x = w * 0.5 - 40;
+        this.bonusSprite.y = -h * 0.5 + 40;
+
+        // Base size
+        this.bonusSprite.scale.set(0.45);
+        this.bonusSprite.alpha = 1;
+
+        // Apply effect
+        this.applyBonusEffect();
+    }
+
+    /** Zoom in/out + shake when small (loop) */
+    private applyBonusEffect() {
+        const target = this.bonusSprite;
+        if (!target) return;
+        if (this.paused) return;
+
+        if (this.bonusTween) {
+            this.bonusTween.kill();
+            this.bonusTween = undefined;
+        }
+
+        const baseScale = 0.45;
+        const bigScale = 0.62;
+        const smallScale = 0.40;
+
+        const baseX = target.x;
+        const baseRot = target.rotation;
+
+        // Ensure clean start
+        target.scale.set(baseScale);
+        target.x = baseX;
+        target.rotation = baseRot;
+
+        // Looping attention cycle
+        const tl = gsap.timeline({ repeat: -1 });
+
+        tl.to(target.scale, {
+            x: bigScale,
+            y: bigScale,
+            duration: 0.18,
+            ease: 'back.out(2)',
+        })
+            .to(target.scale, {
+                x: smallScale,
+                y: smallScale,
+                duration: 0.16,
+                ease: 'power2.inOut',
+            })
+            // Shake burst while small
+            .to(target, {
+                x: baseX + 3,
+                rotation: baseRot + 0.1,
+                duration: 0.06,
+                ease: 'sine.inOut',
+                yoyo: true,
+                repeat: 7,
+            })
+            .to(target, {
+                x: baseX,
+                rotation: baseRot,
+                duration: 0.08,
+                ease: 'power2.out',
+            })
+            .to(target.scale, {
+                x: baseScale,
+                y: baseScale,
+                duration: 0.1,
+                ease: 'power2.out',
+            });
+
+        this.bonusTween = tl;
+    }
+
+    // =========================================================
 }

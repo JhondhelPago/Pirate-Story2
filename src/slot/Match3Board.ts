@@ -105,6 +105,7 @@ export class Match3Board {
             size: this.tileSize,
             multiplier,
         });
+
         return sym;
     }
 
