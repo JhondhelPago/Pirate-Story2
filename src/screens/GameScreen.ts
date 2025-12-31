@@ -358,7 +358,7 @@ export class GameScreen extends Container {
     private async onAutoSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Auto Spin: `, this.match3.autoSpinProcess.getAccumulatedWin());
 
-        this.drawTotalWinBanner(this.match3.autoSpinProcess.getAccumulatedWin());
+        this.drawTotalWinBanner(this.match3.autoSpinProcess.getAccumulatedWin(), 7);
 
         // ✅ Unlock only when auto spin session is finished
         this.controlPanel.enableBetting();
@@ -415,7 +415,8 @@ export class GameScreen extends Container {
 
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
-        this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin());
+
+        this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
         this.syncFeatureAvailability();
     }
 
@@ -494,8 +495,8 @@ export class GameScreen extends Container {
         });
     }
 
-    private drawTotalWinBanner(winAmount: number) {
-        navigation.presentPopup(TotalWinBanner, { win: winAmount });
+    private drawTotalWinBanner(winAmount: number, freeSpins: number) {
+        navigation.presentPopup(TotalWinBanner, { win: winAmount, spins: freeSpins });
     }
 
     private drawFreeSpinWonBanner(spins: number) {

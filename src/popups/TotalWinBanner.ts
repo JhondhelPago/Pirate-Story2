@@ -19,7 +19,6 @@ export class TotalWinBanner extends Container {
 
     private banner!: Sprite;
 
-    // 🔥 two glow instances behind the board (same behavior as SpinRoundBanner)
     private glowA?: Sprite;
     private glowB?: Sprite;
     private glowBaseScale = 1;
@@ -40,11 +39,23 @@ export class TotalWinBanner extends Container {
     private currentDisplayValue = 0;
     private targetDisplayValue = 0;
 
+    // ✅ NEW: spins line under amount
+    private spinsText!: Text;
+    private freeSpins = 0;
+
     private canClickAnywhere = false;
 
     private readonly HEADER_OFFSET_Y = -180;
     private readonly AMOUNT_OFFSET_Y = 40;
     private readonly HEADER_LINE_GAP = 10;
+
+    // ✅ UPDATED:
+    // spinsText will take the old "PRESS ANYWHERE TO CONTINUE" position
+    private readonly SPINS_OFFSET_Y = 150;
+
+    // ✅ NEW:
+    // move "PRESS ANYWHERE TO CONTINUE" down since spinsText takes its original spot
+    private readonly CONTINUE_OFFSET_Y = 220;
 
     // ✅ Keyboard handling
     private keyListenerAdded = false;
@@ -91,6 +102,10 @@ export class TotalWinBanner extends Container {
         const anyData = data as any;
         const win = typeof anyData?.win === "number" ? anyData.win : 0;
 
+        // ✅ accept spins
+        const spins = typeof anyData?.spins === "number" ? anyData.spins : 0;
+        this.freeSpins = spins;
+
         this.targetDisplayValue = win;
 
         // ✅ Ensure fonts are loaded before measuring Text heights
@@ -100,6 +115,7 @@ export class TotalWinBanner extends Container {
         this.createGlow(); // ✅ added
         this.createHeaderText();
         this.createAmountText();
+        this.createSpinsText();
         this.createContinueText();
 
         this.animateEntrance();
@@ -258,7 +274,11 @@ export class TotalWinBanner extends Container {
         gB.scale.set(this.glowBaseScale * 0.97);
 
         // playful rotation in eased chunks
-        const makePlayfulSpin = (target: Sprite, direction: 1 | -1, totalDuration: number) => {
+        const makePlayfulSpin = (
+            target: Sprite,
+            direction: 1 | -1,
+            totalDuration: number
+        ) => {
             gsap.killTweensOf(target);
 
             const step = (Math.PI * 2) / 3; // 120deg steps
@@ -267,20 +287,32 @@ export class TotalWinBanner extends Container {
             const d3 = totalDuration * 0.33;
 
             const tl = gsap.timeline({ repeat: -1 });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: "sine.inOut" });
+            tl.to(target, {
+                rotation: `+=${direction * step}`,
+                duration: d1,
+                ease: "sine.inOut",
+            });
+            tl.to(target, {
+                rotation: `+=${direction * step}`,
+                duration: d2,
+                ease: "sine.inOut",
+            });
+            tl.to(target, {
+                rotation: `+=${direction * step}`,
+                duration: d3,
+                ease: "sine.inOut",
+            });
             return tl;
         };
 
-        makePlayfulSpin(gA, 1, 18);   // CW
-        makePlayfulSpin(gB, -1, 26);  // CCW (different speed)
+        makePlayfulSpin(gA, 1, 18); // CW
+        makePlayfulSpin(gB, -1, 26); // CCW (different speed)
 
         // alternating opacity (never 0)
         const A_MAX = 0.95;
-        const A_MIN = 0.40;
+        const A_MIN = 0.4;
         const B_MAX = 0.85;
-        const B_MIN = 0.30;
+        const B_MIN = 0.3;
 
         gA.alpha = A_MAX;
         gB.alpha = B_MIN;
@@ -402,7 +434,29 @@ export class TotalWinBanner extends Container {
     }
 
     // ==================================================
-    // "PRESS ANYWHERE TO CONTINUE"
+    // ✅ "IN X FREE SPINS" (now takes old continue position)
+    // ==================================================
+    private createSpinsText() {
+        if (this.spinsText) this.spinsText.destroy();
+
+        const text = this.freeSpins > 0 ? `IN ${this.freeSpins} FREE SPINS` : "";
+
+        this.spinsText = new Text(text, {
+            ...this.createSubHeaderGradientStyle(64),
+            fontFamily: "Bangers",
+            letterSpacing: 4,
+        });
+        this.spinsText.anchor.set(0.5);
+        this.spinsText.x = 0;
+
+        // ✅ spins takes the previous continue position
+        this.spinsText.y = this.AMOUNT_OFFSET_Y + this.SPINS_OFFSET_Y;
+
+        this.panel.addChild(this.spinsText);
+    }
+
+    // ==================================================
+    // "PRESS ANYWHERE TO CONTINUE" (moved down)
     // ==================================================
     private createContinueText() {
         if (this.continueText) this.continueText.destroy();
@@ -414,7 +468,9 @@ export class TotalWinBanner extends Container {
         });
         this.continueText.anchor.set(0.5);
         this.continueText.x = 0;
-        this.continueText.y = this.AMOUNT_OFFSET_Y + 150;
+
+        // ✅ moved down because spinsText now uses the old spot
+        this.continueText.y = this.AMOUNT_OFFSET_Y + this.CONTINUE_OFFSET_Y;
 
         this.panel.addChild(this.continueText);
     }
@@ -521,9 +577,11 @@ export class TotalWinBanner extends Container {
     private animateHeaderPulse() {
         gsap.killTweensOf(this.headerGroup.scale);
         if (this.continueText) gsap.killTweensOf(this.continueText.scale);
+        if (this.spinsText) gsap.killTweensOf(this.spinsText.scale);
 
         this.headerGroup.scale.set(1);
         if (this.continueText) this.continueText.scale.set(1);
+        if (this.spinsText) this.spinsText.scale.set(1);
 
         gsap.to(this.headerGroup.scale, {
             x: 1.08,
@@ -533,6 +591,18 @@ export class TotalWinBanner extends Container {
             yoyo: true,
             ease: "sine.inOut",
         });
+
+        // ✅ same effect as "YOU HAVE WON"
+        if (this.spinsText) {
+            gsap.to(this.spinsText.scale, {
+                x: 1.08,
+                y: 1.08,
+                duration: 1.2,
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
+            });
+        }
 
         if (this.continueText) {
             gsap.to(this.continueText.scale, {
@@ -592,6 +662,7 @@ export class TotalWinBanner extends Container {
             this.banner,
             this.headerGroup,
             this.amountText,
+            this.spinsText,
             this.continueText,
             ...this.getGlows(),
         ]);
@@ -615,6 +686,7 @@ export class TotalWinBanner extends Container {
         const bannerY = this.banner.y;
         const headerY = this.headerGroup.y;
         const amountY = this.amountText.y;
+        const spinsY = this.spinsText?.y ?? 0;
         const continueY = this.continueText.y;
 
         // keep glow locked to banner center before animations
@@ -630,11 +702,13 @@ export class TotalWinBanner extends Container {
         this.banner.alpha = 0;
         this.headerGroup.alpha = 0;
         this.amountText.alpha = 0;
+        if (this.spinsText) this.spinsText.alpha = 0;
         this.continueText.alpha = 0;
 
         this.banner.y = bannerY + startOffset;
         this.headerGroup.y = headerY + startOffset;
         this.amountText.y = amountY + startOffset;
+        if (this.spinsText) this.spinsText.y = spinsY + startOffset;
         this.continueText.y = continueY + startOffset;
 
         gsap.to(this.banner, {
@@ -668,6 +742,16 @@ export class TotalWinBanner extends Container {
             delay: 0.1,
             ease: "bounce.out",
         });
+
+        if (this.spinsText) {
+            gsap.to(this.spinsText, {
+                alpha: 1,
+                y: spinsY,
+                duration: 0.7,
+                delay: 0.125,
+                ease: "bounce.out",
+            });
+        }
 
         gsap.to(this.continueText, {
             alpha: 1,
@@ -730,6 +814,8 @@ export class TotalWinBanner extends Container {
         gsap.killTweensOf(this.headerGroup.scale);
         gsap.killTweensOf(this.amountText.scale);
         if (this.continueText) gsap.killTweensOf(this.continueText.scale);
+        if (this.spinsText) gsap.killTweensOf(this.spinsText.scale);
+
         gsap.killTweensOf(this);
 
         // kill glow tweens
@@ -754,7 +840,15 @@ export class TotalWinBanner extends Container {
         }
 
         await gsap.to(
-            [this.banner, ...this.getGlows(), this.headerGroup, this.amountText, this.continueText, this.bg],
+            [
+                this.banner,
+                ...this.getGlows(),
+                this.headerGroup,
+                this.amountText,
+                this.spinsText,
+                this.continueText,
+                this.bg,
+            ],
             {
                 alpha: 0,
                 duration: 0.25,
@@ -774,6 +868,8 @@ export class TotalWinBanner extends Container {
         gsap.killTweensOf(this.headerGroup?.scale);
         gsap.killTweensOf(this.amountText?.scale);
         if (this.continueText) gsap.killTweensOf(this.continueText.scale);
+        if (this.spinsText) gsap.killTweensOf(this.spinsText.scale);
+
         gsap.killTweensOf(this);
 
         if (this.glowEntranceTween) this.glowEntranceTween.kill();
