@@ -389,51 +389,42 @@ export class Match3Board {
     }
 
     private buildSpinStripIntoCurrentLayer(leadTypes: number[][], leadMults: number[][]) {
-        if (this.hasSpinStripBuilt()) return;
+    if (this.hasSpinStripBuilt()) return;
 
-        const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
+    const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
 
-        for (let c = 0; c < this.columns; c++) {
-            const reel = this.realReels[c];
-            const col = reel?.container;
-            if (!reel || !col) continue;
+    for (let c = 0; c < this.columns; c++) {
+        const reel = this.realReels[c];
+        const col = reel?.container;
+        if (!reel || !col) continue;
 
-            if (reel.symbols.length !== this.rows) continue;
+        if (reel.symbols.length !== this.rows) continue;
 
-            for (let r = 0; r < this.rows; r++) {
-                const sym = reel.symbols[r];
-                const type = leadTypes[r][c];
-                const mult = leadMults[r][c] ?? 0;
+        // ✅ FLICK FIX:
+        // Do NOT call setup/showSpine on the visible 5x5 here.
+        // Rebuilding the strip should only add blur symbols above.
+        // (The visible grid is already correct; touching it can cause 1-frame pop.)
 
-                sym.setup({
-                    name: this.typesMap[type],
-                    type,
-                    size: this.tileSize,
-                    multiplier: mult,
-                });
-                this.showSpine(sym);
-                sym.y = r * this.tile;
-            }
-
-            const blurSyms: SlotSymbol[] = [];
-            for (let j = 0; j < this.blurCount; j++) {
-                const type = this.randomType();
-                const sym = this.makeSlotSymbol(type, 0);
-                sym.y = yTop + j * this.tile;
-                this.showBlur(sym);
-                blurSyms.push(sym);
-            }
-
-            for (const b of blurSyms) col.addChildAt(b, 0);
-
-            reel.symbols = [...blurSyms, ...reel.symbols];
-            reel.position = 0;
+        const blurSyms: SlotSymbol[] = [];
+        for (let j = 0; j < this.blurCount; j++) {
+            const type = this.randomType();
+            const sym = this.makeSlotSymbol(type, 0);
+            sym.y = yTop + j * this.tile;
+            this.showBlur(sym);
+            blurSyms.push(sym);
         }
 
-        for (let c = 0; c < this.columns; c++) {
-            this.setBlurVisibleForColumn(c, true);
-        }
+        for (const b of blurSyms) col.addChildAt(b, 0);
+
+        reel.symbols = [...blurSyms, ...reel.symbols];
+        reel.position = 0;
     }
+
+    for (let c = 0; c < this.columns; c++) {
+        this.setBlurVisibleForColumn(c, true);
+    }
+}
+
 
     private setBlurVisibleForColumn(column: number, visible: boolean) {
         const reel = this.realReels[column];
@@ -538,6 +529,16 @@ export class Match3Board {
         const cols = this.realReels.map((r) => r.container).filter(Boolean);
 
         const tl = gsap.timeline();
+
+        // ✅ Flick fix: rebuild strip DURING the lift (so user won't notice)
+        tl.call(() => {
+            if (seq !== this._startSeqId) return;
+            if (!this.hasSpinStripBuilt()) {
+                const snap = this.getCurrentGridSnapshot();
+                this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+            }
+        }, [], 0.01);
+
         tl.to(cols, {
             y: yLead - LIFT_PX,
             duration: LIFT_DUR,
@@ -560,10 +561,7 @@ export class Match3Board {
 
         for (let c = 0; c < this.columns; c++) this.colActive[c] = true;
 
-        if (!this.hasSpinStripBuilt()) {
-            const snap = this.getCurrentGridSnapshot();
-            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-        }
+        // ✅ Flick fix: strip is already built during lift, so don't rebuild here.
 
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container;
@@ -606,13 +604,19 @@ export class Match3Board {
         const DROP_DUR = 0.22; // tweakable: "slower turbo-ish" but still quick
         const t = gsap.to(cols, { y: yBlur, duration: DROP_DUR, ease: "none" });
 
+        // ✅ Flick fix: rebuild strip DURING the drop (so user won't notice)
+        gsap.delayedCall(0.01, () => {
+            if (seq !== this._startSeqId) return;
+            if (!this.hasSpinStripBuilt()) {
+                const snap = this.getCurrentGridSnapshot();
+                this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+            }
+        });
+
         await t.then();
         if (seq !== this._startSeqId) return;
 
-        if (!this.hasSpinStripBuilt()) {
-            const snap = this.getCurrentGridSnapshot();
-            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-        }
+        // ✅ Flick fix: strip is already built during drop, so don't rebuild here.
 
         // lock everyone to blur-view
         for (let c = 0; c < this.columns; c++) {
@@ -714,27 +718,14 @@ export class Match3Board {
 
         // ✅ QUICK: no lift + all columns same time
         if (spinMode === SpinModeEnum.Quick) {
-            // rebuild strip shortly after the drop begins (optional but keeps your “hide rebuild” behavior)
-            gsap.delayedCall(0.08, () => {
-                this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-            });
-
+            // ✅ Flick fix: rebuild is handled INSIDE startSpinSeamlessQuickAllAtOnce during drop
             this._startSequencePromise = this.startSpinSeamlessQuickAllAtOnce();
             this.ensureWildLayerOnTop();
             return;
         }
 
         // NORMAL (unchanged): wave + lift + stagger
-        const WAVE_STAGGER = 0.06;
-        const LIFT_DUR = 0.15;
-        const DROP_DUR = 0.2;
-        const totalWaveTime = (this.columns - 1) * WAVE_STAGGER + LIFT_DUR + DROP_DUR;
-        const midTime = Math.max(0.06, totalWaveTime * 0.55);
-
-        gsap.delayedCall(midTime, () => {
-            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-        });
-
+        // ✅ Flick fix: rebuild is handled INSIDE startSpinSeamlessSequential during lift
         this._startSequencePromise = this.startSpinSeamlessSequential();
         this.ensureWildLayerOnTop();
     }
