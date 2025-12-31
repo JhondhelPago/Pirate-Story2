@@ -238,6 +238,9 @@ export class Match3FreeSpinProcess extends Match3Process {
         // board cleaning specific for the free spin process
         this.match3.board.clearWildLayerAndMultipliers();
         this.match3.board.rebuildReelsAndAnimatePositions(this.reelsTraversed, this.multiplierTraversed, this.winningPositions!)
+        // // refresh set the winning positions and bonus positions. 
+        this.winningPositions = [];
+        
 
         this.reelsTraversed = gridZeroReset();
         this.multiplierTraversed = gridZeroReset();

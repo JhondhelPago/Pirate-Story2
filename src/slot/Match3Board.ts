@@ -1356,7 +1356,6 @@ export class Match3Board {
                 const wild = this.getDisplayedWildSymbol(r, c);
                 if (wild) {
                     wild.setBonusFlag(true);
-                    continue;
                 }
 
                 const real = this.getDisplayedRealSymbol(r, c);
@@ -1616,7 +1615,6 @@ export class Match3Board {
                     multiplier: mult,
                 });
 
-                sym.setBonusFlag(false); // ✅ IMPORTANT: clear any previous bonus UI state
 
                 this.showSpine(sym);
                 sym.visible = true;
@@ -1653,7 +1651,7 @@ export class Match3Board {
         }
 
         if (cleaned.length) {
-            this.animateWinsWithWildPriority(cleaned);
+            this.animateWinsWithWildPriority(cleaned, this.getBonusPositions());
         } else {
             this.killLoops();
         }
