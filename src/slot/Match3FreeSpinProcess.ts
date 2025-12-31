@@ -4,9 +4,8 @@ import { Match3Process } from "./Match3Process";
 import {
     calculateTotalWin,
     countScatterBonus,
-    flattenClusterPositions,
     gridZeroReset,
-    slotEvaluateClusterWins
+    slotEvaluateClusterWins,
 } from "./SlotUtility";
 
 export class Match3FreeSpinProcess extends Match3Process {
@@ -14,10 +13,8 @@ export class Match3FreeSpinProcess extends Match3Process {
         super(match3);
     }
 
-    // state flag for this continuous process
     protected freeSpinProcessing = false;
 
-    // 🔹 TRUE only during the initial bonus spin
     private isInitialFreeSpin = false;
 
     private accumulatedWin = 0;
@@ -28,14 +25,10 @@ export class Match3FreeSpinProcess extends Match3Process {
     private reelsTraversed = gridZeroReset();
     private multiplierTraversed = gridZeroReset();
 
-    // =========================
-    // INITIAL BONUS FREE SPIN
-    // =========================
     public async freeSpinStartInitialBonus() {
         if (this.processing) return;
         this.processing = true;
 
-        // 🔹 SET INITIAL SPIN FLAG
         this.isInitialFreeSpin = true;
 
         const token = { cancelled: false };
@@ -45,19 +38,20 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         console.log("initial bonus spin trigger from free spin process");
 
+        await this.waitIfPaused();
         await this.match3.board.startSpin();
 
         const backendPromise = this.fetchBackendSpin();
         const delayPromise =
-            minSpinMs > 0
-                ? this.createCancelableDelay(minSpinMs, token)
-                : Promise.resolve();
+            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         const result = await backendPromise;
 
         if (minSpinMs > 0) {
             await delayPromise;
         }
+
+        await this.waitIfPaused();
 
         if (!this.processing || token.cancelled) {
             this.processing = false;
@@ -68,25 +62,41 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.multiplierReels = result.multiplierReels;
         this.bonusReels = result.bonusReels;
 
-        this.match3.board.applyBackendResults(
-            result.reels,
-            result.multiplierReels
-        );
+        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runInitialBonusProcess();
+
+        await this.waitIfPaused();
         await this.match3.board.finishSpin();
 
         this.processing = false;
 
-        // 🔹 UNSET INITIAL SPIN FLAG
         this.isInitialFreeSpin = false;
 
         await this.match3.onFreeSpinInitialBonusScatterComplete?.(this.spins);
     }
 
-    // =========================
-    // FREE SPIN LOOP CONTROL
-    // =========================
+    // ✅ truly awaited, queue-based, pause-aware
+    public async runInitialBonusProcess(): Promise<void> {
+        await this.waitIfPaused();
+
+        await this.queue.add(async () => this.checkBonus(this.reels), false);
+        await this.queue.add(async () => {
+            console.log(this.bonusReels);
+        }, false);
+
+        await this.queue.add(async () => {
+            const checked_result = countScatterBonus(this.reels);
+            console.log("checking bonus positions:", checked_result.positions);
+            this.match3.board.setBonusPositions(checked_result.positions);
+            this.bonusReels = gridZeroReset();
+        }, false);
+
+        await this.queue.process();
+
+        await this.waitIfPaused();
+    }
+
     public processCheckpoint() {
         if (this.remainingSpins > 0) {
             this.remainingSpins--;
@@ -97,30 +107,28 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public async freeSpinStart() {
-        // 🔹 ACTUAL FREE SPINS START HERE
         this.isInitialFreeSpin = false;
         this.freeSpinProcessing = true;
+
+        await this.waitIfPaused();
 
         if (!this.processCheckpoint()) {
             this.freeSpinProcessing = false;
 
-            this.match3.onFreeSpinComplete?.(
-                this.currentSpin,
-                this.remainingSpins
-            );
+            this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
 
             this.reset();
             return;
         }
 
         await this.start();
+
         await this.delayBetweenSpins();
+
+        await this.waitIfPaused();
         await this.freeSpinStart();
     }
 
-    // =========================
-    // ONE FREE SPIN ROUND
-    // =========================
     public async start() {
         if (this.processing) return;
         this.processing = true;
@@ -130,24 +138,22 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         const { minSpinMs } = this.getSpinModeDelays();
 
-        this.match3.onFreeSpinRoundStart?.(
-            this.currentSpin,
-            this.remainingSpins
-        );
+        this.match3.onFreeSpinRoundStart?.(this.currentSpin, this.remainingSpins);
 
+        await this.waitIfPaused();
         await this.match3.board.startSpin();
 
         const backendPromise = this.fetchBackendSpin();
         const delayPromise =
-            minSpinMs > 0
-                ? this.createCancelableDelay(minSpinMs, token)
-                : Promise.resolve();
+            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         const result = await backendPromise;
 
         if (minSpinMs > 0) {
             await delayPromise;
         }
+
+        await this.waitIfPaused();
 
         if (!this.processing || token.cancelled) {
             this.processing = false;
@@ -158,24 +164,17 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.multiplierReels = result.multiplierReels;
         this.bonusReels = result.bonusReels;
 
-        const reelsTraversed = this.mergeReels(
-            this.reelsTraversed,
-            result.reels
-        );
-        this.reelsTraversed = reelsTraversed;
-
-        const multiplierTraversed = this.mergeMultipliers(
+        this.reelsTraversed = this.mergeReels(this.reelsTraversed, result.reels);
+        this.multiplierTraversed = this.mergeMultipliers(
             this.multiplierTraversed,
             result.multiplierReels
         );
-        this.multiplierTraversed = multiplierTraversed;
 
-        this.match3.board.applyBackendResults(
-            result.reels,
-            result.multiplierReels
-        );
+        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runProcessRound();
+
+        await this.waitIfPaused();
         await this.match3.board.finishSpin();
 
         this.processing = false;
@@ -183,42 +182,32 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.match3.onFreeSpinRoundComplete?.();
     }
 
-    // =========================
-    // BONUS / ROUND LOGIC
-    // =========================
     public getBonusReels() {
         return this.bonusReels;
     }
 
-    public runInitialBonusProcess() {
-        this.queue.add(async () => this.checkBonus(this.reels));
-        this.queue.add(async () => {
-            console.log(this.bonusReels);
-        });
-
-        this.queue.add(async () => {
-            const checked_result = countScatterBonus(this.reels);
-            console.log("checking bonus positions:", checked_result.positions);
-            this.match3.board.setBonusPositions(checked_result.positions);
-            this.bonusReels = gridZeroReset();
-        });
-    }
-
-    public runProcessRound(): void {
+    // ✅ override: queue-based, awaited, pause-aware
+    public async runProcessRound(): Promise<void> {
         this.round++;
 
-        this.queue.add(async () =>
+        await this.waitIfPaused();
+
+        await this.queue.add(async () =>
             this.setMergeStickyWilds(
                 this.match3.board.getWildReels(),
                 this.match3.board.getBackendReels()
-            )
+            ), false
         );
 
-        this.queue.add(async () => this.checkBonus(this.bonusReels));
-        this.queue.add(async () => this.setRoundResult());
-        this.queue.add(async () => this.setRoundWin());
-        this.queue.add(async () => this.addRoundWin());
-        this.queue.add(async () => this.setWinningPositions());
+        await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
+        await this.queue.add(async () => this.setRoundResult(), false);
+        await this.queue.add(async () => this.setRoundWin(), false);
+        await this.queue.add(async () => this.addRoundWin(), false);
+        await this.queue.add(async () => this.setWinningPositions(), false);
+
+        await this.queue.process();
+
+        await this.waitIfPaused();
     }
 
     protected setRoundResult() {
@@ -228,10 +217,7 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public addRoundWin() {
-        const totalRoundWin = calculateTotalWin(
-            this.roundResult,
-            userSettings.getBet()
-        );
+        const totalRoundWin = calculateTotalWin(this.roundResult, userSettings.getBet());
         this.accumulatedWin += totalRoundWin;
     }
 
@@ -247,18 +233,15 @@ export class Match3FreeSpinProcess extends Match3Process {
         return this.accumulatedWin;
     }
 
+    // ✅ pause-aware delay (replaces setTimeout)
     private async delayBetweenSpins() {
         const hasWin = this.roundResult.length > 0;
         const { betweenWinMs, betweenNoWinMs } = this.getSpinModeDelays();
         const ms = hasWin ? betweenWinMs : betweenNoWinMs;
 
-        if (ms <= 0) return;
-        await new Promise<void>((resolve) => setTimeout(resolve, ms));
+        await this.pauseAwareDelay(ms);
     }
 
-    // =========================
-    // GETTERS
-    // =========================
     public getFreeSpinProcessing() {
         return this.freeSpinProcessing;
     }
@@ -267,9 +250,6 @@ export class Match3FreeSpinProcess extends Match3Process {
         return this.isInitialFreeSpin;
     }
 
-    // =========================
-    // RESET
-    // =========================
     public reset() {
         this.wildReels = gridZeroReset();
         this.match3.board.setWildReels(this.wildReels);
@@ -290,7 +270,8 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.remainingSpins = 0;
         this.accumulatedWin = 0;
 
-        // 🔹 RESET FLAG SAFETY
         this.isInitialFreeSpin = false;
+
+        super.reset();
     }
 }

@@ -25,24 +25,22 @@ export class Match3AutoSpinProcess extends Match3Process {
     public async autoSpinStart() {
         this.autoSpinProcessing = true;
 
+        await this.waitIfPaused();
+
         if (!this.processCheckpoint()) {
             this.autoSpinProcessing = false;
 
-            // use a bound callback here for the autoSpinComplete
-            this.match3.onAutoSpinComplete?.(
-                this.currentSpin,
-                this.remainingSpins
-            );
+            this.match3.onAutoSpinComplete?.(this.currentSpin, this.remainingSpins);
 
             this.reset();
-            return; // free spin end session
+            return;
         }
-
 
         await this.start();
 
         await this.delayBetweenSpins();
 
+        await this.waitIfPaused();
         await this.autoSpinStart();
     }
 
@@ -53,16 +51,11 @@ export class Match3AutoSpinProcess extends Match3Process {
         const token = { cancelled: false };
         this.cancelToken = token;
 
-        const spinMode = userSettings.getSpinMode();
         const { minSpinMs } = this.getSpinModeDelays();
 
-        this.match3.onAutoSpinRoundStart?.(
-            this.currentSpin,
-            this.remainingSpins
-        )
+        this.match3.onAutoSpinRoundStart?.(this.currentSpin, this.remainingSpins);
 
-
-
+        await this.waitIfPaused();
         await this.match3.board.startSpin();
 
         const backendPromise = this.fetchBackendSpin();
@@ -75,38 +68,47 @@ export class Match3AutoSpinProcess extends Match3Process {
             await delayPromise;
         }
 
+        await this.waitIfPaused();
 
         if (!this.processing || token.cancelled) {
             this.processing = false;
             return;
         }
 
+        this.reels = result.reels;
+        this.multiplierReels = result.multiplierReels;
+        this.bonusReels = result.bonusReels;
+
         this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
 
         await this.runProcessRound();
+
+        await this.waitIfPaused();
         await this.match3.board.finishSpin();
 
         this.processing = false;
 
-
         await this.match3.onAutoSpinRoundComplete?.();
     }
 
-    public runProcessRound(): void {
+    // ✅ override: queue-based, awaited, pause-aware
+    public async runProcessRound(): Promise<void> {
         this.round++;
 
-        this.queue.add(async () => this.setRoundResult());
-        this.queue.add(async () => this.setRoundWin());
-        this.queue.add(async () => this.addRoundWin());
-        this.queue.add(async () => this.setWinningPositions());
+        await this.waitIfPaused();
+
+        await this.queue.add(async () => this.setRoundResult(), false);
+        await this.queue.add(async () => this.setRoundWin(), false);
+        await this.queue.add(async () => this.addRoundWin(), false);
+        await this.queue.add(async () => this.setWinningPositions(), false);
+
+        await this.queue.process();
+
+        await this.waitIfPaused();
     }
 
     public addRoundWin() {
-        console.log("Remaining Spins: ", this.remainingSpins);
-        console.log(this.roundResult);
-
         const totalRoundWin = calculateTotalWin(this.roundResult, userSettings.getBet());
-
         this.accumulatedWin += totalRoundWin;
     }
 
@@ -118,17 +120,15 @@ export class Match3AutoSpinProcess extends Match3Process {
         return this.accumulatedWin;
     }
 
+    // ✅ pause-aware delay (replaces setTimeout)
     private async delayBetweenSpins() {
         const hasWin = this.roundResult.length > 0;
         const { betweenWinMs, betweenNoWinMs } = this.getSpinModeDelays();
         const ms = hasWin ? betweenWinMs : betweenNoWinMs;
 
-        if (ms <= 0) return;
-
-        await new Promise<void>((resolve) => setTimeout(resolve, ms));
+        await this.pauseAwareDelay(ms);
     }
 
-    
     public getAutoSpinProcessing() {
         return this.autoSpinProcessing;
     }
@@ -141,5 +141,7 @@ export class Match3AutoSpinProcess extends Match3Process {
         this.currentSpin = 0;
         this.remainingSpins = 0;
         this.accumulatedWin = 0;
+
+        super.reset();
     }
 }

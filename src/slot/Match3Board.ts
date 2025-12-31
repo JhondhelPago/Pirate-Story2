@@ -1334,7 +1334,7 @@ export class Match3Board {
         const isInitialSpin = isFreeSpin ? this.match3?.freeSpinProcess.getIsInitialFreeSpin() : false;
 
         if (!isFreeSpin || (isFreeSpin && isInitialSpin)) {
-            if (Array.isArray(bonusPositions) && bonusPositions.length >= 3) {
+            if (Array.isArray(bonusPositions) && bonusPositions.length >= 2) {
                 for (const p of bonusPositions) push(p);
             }
         } 

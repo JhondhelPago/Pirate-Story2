@@ -12,7 +12,7 @@ import {
     mergeReels,
     calculateTotalWin,
     gridZeroReset,
-    countScatterBonus
+    countScatterBonus,
 } from "./SlotUtility";
 
 export interface BackendSpinResult {
@@ -23,11 +23,12 @@ export interface BackendSpinResult {
 export type GridPosition = { row: number; column: number };
 
 type SpinModeDelays = {
-    minSpinMs: number;        // delay while spinning (min spin time)
-    betweenWinMs: number;     // delay BEFORE next spin if there was a win
-    betweenNoWinMs: number;   // delay BEFORE next spin if no win
+    minSpinMs: number;
+    betweenWinMs: number;
+    betweenNoWinMs: number;
 };
- export class Match3Process {
+
+export class Match3Process {
     protected match3: Match3;
     protected processing = false;
     protected round = 0;
@@ -49,6 +50,11 @@ type SpinModeDelays = {
     protected multiplierReels = gridZeroReset();
     protected bonusReels = gridZeroReset();
 
+    // ✅ Pause gate (process-level)
+    protected paused = false;
+    protected pauseResolver: (() => void) | null = null;
+    protected pausePromise: Promise<void> | null = null;
+
     constructor(match3: Match3) {
         this.match3 = match3;
         this.queue = new AsyncQueue();
@@ -62,11 +68,44 @@ type SpinModeDelays = {
         return this.processing;
     }
 
+    public isPaused() {
+        return this.paused;
+    }
+
     public reset() {
         this.processing = false;
+
+        // pause safety reset
+        this.paused = false;
+        this.pauseResolver = null;
+        this.pausePromise = null;
+
+        // cancel safety reset
+        this.cancelToken = null;
+
+        // clear any queued tasks
+        this.queue.clear();
+
+        // clear pending delay
+        if (this.delayToken) this.delayToken.cancelled = true;
+    }
+
+    protected async waitIfPaused(): Promise<void> {
+        if (!this.paused) return;
+
+        if (!this.pausePromise) {
+            this.pausePromise = new Promise<void>((resolve) => {
+                this.pauseResolver = resolve;
+            });
+        }
+
+        await this.pausePromise;
     }
 
     public update(deltaMS: number) {
+        // ✅ freeze delay countdown while paused
+        if (this.paused) return;
+
         if (this.delayResolver && this.delayToken) {
             // if cancelled, resolve immediately
             if (this.delayToken.cancelled) {
@@ -86,21 +125,34 @@ type SpinModeDelays = {
     }
 
     public interruptSpinDelay() {
-        if (this.cancelToken) {
-            this.cancelToken.cancelled = true;
-        }
-        // Also cancel any active ticker-based delay right now
-        if (this.delayToken) {
-            this.delayToken.cancelled = true;
-        }
+        if (this.cancelToken) this.cancelToken.cancelled = true;
+        if (this.delayToken) this.delayToken.cancelled = true;
     }
 
     public pause() {
+        if (this.paused) return;
+        this.paused = true;
+
+        // ✅ pause the queue too (your AsyncQueue supports this)
         this.queue.pause();
+
+        if (!this.pausePromise) {
+            this.pausePromise = new Promise<void>((resolve) => {
+                this.pauseResolver = resolve;
+            });
+        }
     }
 
     public resume() {
+        if (!this.paused) return;
+        this.paused = false;
+
         this.queue.resume();
+
+        const r = this.pauseResolver;
+        this.pauseResolver = null;
+        this.pausePromise = null;
+        r?.();
     }
 
     public stop() {
@@ -110,25 +162,17 @@ type SpinModeDelays = {
         this.queue.clear();
 
         // ensure any pending delay resolves so start() can unwind safely
-        if (this.delayToken) {
-            this.delayToken.cancelled = true;
-        }
+        if (this.delayToken) this.delayToken.cancelled = true;
+
+        // unblock waiters if stop happens while paused
+        if (this.paused) this.resume();
 
         this.match3.onProcessComplete?.();
     }
 
-    public updateStats() {
-        // TODO
-    }
-
-    /**
-     * Centralized mapping: spinMode -> spin timing
-     * You can tweak all delays here and both normal + free spins will follow.
-     */
     protected getSpinModeDelays(): SpinModeDelays {
         const mode = userSettings.getSpinMode();
 
-        // defaults for "normal-spin"
         let delays: SpinModeDelays = {
             minSpinMs: 800,
             betweenWinMs: 4000,
@@ -152,116 +196,7 @@ type SpinModeDelays = {
         return delays;
     }
 
-    public async start() {
-        if (this.processing) return;
-
-        const t0 = performance.now();
-        console.log("SPIN STARTED");
-
-        this.processing = true;
-
-        const token = { cancelled: false };
-        this.cancelToken = token;
-
-        const mode = userSettings.getSpinMode();
-        const { minSpinMs, betweenWinMs, betweenNoWinMs } = this.getSpinModeDelays();
-
-        await this.match3.board.startSpin();
-
-        const t1 = performance.now();
-        console.log(`after startSpin(): ${(t1 - t0).toFixed(2)} ms`);
-
-        // Fetch backend + dynamic delay based on spinMode
-        const backendPromise = this.fetchBackendSpin();
-        const delayPromise =
-            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
-
-        const result = await backendPromise;
-
-        const t2 = performance.now();
-        console.log("reels received from backend:", result.reels);
-        console.log(
-            `Interval (SPIN STARTED → reels received): ${(t2 - t0).toFixed(2)} ms`
-        );
-
-        // Only wait the delay if we actually configured one
-        if (minSpinMs > 0) {
-            await delayPromise;
-        }
-
-        if (!this.processing || token.cancelled) {
-            this.processing = false;
-            return;
-        }
-
-        // setting the 3 layers reels
-        this.reels = result.reels;
-        this.multiplierReels = result.multiplierReels;
-        this.bonusReels = result.bonusReels;
-
-        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
-
-        await this.runProcessRound();
-        await this.match3.board.finishSpin();
-        this.match3.board.clearWildLayerAndMultipliers();
-
-
-        // Turbo post-spin delay
-        if (mode === "turbo-spin") {
-            const afterMs = this.roundWin > 0 ? betweenWinMs : betweenNoWinMs;
-            if (afterMs > 0) {
-                await this.createCancelableDelay(afterMs, token);
-
-                if (!this.processing || token.cancelled) {
-                    this.processing = false;
-                    return;
-                }
-            }
-        }
-
-        this.processing = false;
-        await this.match3.onProcessComplete?.();
-    }
-
-
-    public runProcessRound(): void {
-        this.round++;
-
-        this.queue.add(async () => this.checkBonus(this.reels));
-        this.queue.add(async () => this.setRoundResult());
-        this.queue.add(async () => this.setRoundWin());
-        this.queue.add(async () => this.setWinningPositions());
-
-    }
-
-    public checkBonus(reels: number[][]): void {
-        const checked_result = countScatterBonus(reels)
-        console.log("checking bonus: ", checked_result)
-        // if the  bonus condition satisfied, proceed to play the free spin won. 
-        // show the banner with the number of free spin won
-        
-        // reset the bonus reels
-        this.match3.board.setBonusPositions(checked_result.positions);
-        this.bonusReels = gridZeroReset();
-    }
-
-    protected setRoundResult() {
-        const reels = this.match3.board.getBackendReels();
-        const multipliers = this.match3.board.getBackendMultipliers();
-        // merge with the wild reels
-        this.roundResult = slotEvaluateClusterWins(reels, multipliers);
-    }
-
-    protected setWinningPositions() {
-        const winningCluster =
-            this.roundResult?.map((r) => ({ positions: r.positions })) ?? [];
-        this.winningPositions = flattenClusterPositions(winningCluster);
-    }
-
-    protected createCancelableDelay(
-        ms: number,
-        token: { cancelled: boolean }
-    ): Promise<void> {
+    protected createCancelableDelay(ms: number, token: { cancelled: boolean }): Promise<void> {
         // If there’s already a pending delay, resolve it to avoid deadlocks.
         if (this.delayResolver) {
             const prev = this.delayResolver;
@@ -283,10 +218,123 @@ type SpinModeDelays = {
         });
     }
 
+    protected async pauseAwareDelay(ms: number, token?: { cancelled: boolean }): Promise<void> {
+        if (ms <= 0) return;
+        const t = token ?? this.cancelToken ?? { cancelled: false };
+        await this.createCancelableDelay(ms, t);
+        await this.waitIfPaused();
+    }
+
     private clearDelay() {
         this.delayRemainingMs = 0;
         this.delayResolver = null;
         this.delayToken = null;
+    }
+
+    public async start() {
+        if (this.processing) return;
+
+        this.processing = true;
+
+        const token = { cancelled: false };
+        this.cancelToken = token;
+
+        const mode = userSettings.getSpinMode();
+        const { minSpinMs, betweenWinMs, betweenNoWinMs } = this.getSpinModeDelays();
+
+        await this.waitIfPaused();
+
+        await this.match3.board.startSpin();
+
+        // Fetch backend + dynamic delay based on spinMode
+        const backendPromise = this.fetchBackendSpin();
+        const delayPromise =
+            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+
+        const result = await backendPromise;
+
+        if (minSpinMs > 0) {
+            await delayPromise;
+        }
+
+        await this.waitIfPaused();
+
+        if (!this.processing || token.cancelled) {
+            this.processing = false;
+            return;
+        }
+
+        // setting the 3 layers reels
+        this.reels = result.reels;
+        this.multiplierReels = result.multiplierReels;
+        this.bonusReels = result.bonusReels;
+
+        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
+
+        await this.runProcessRound();
+
+        await this.waitIfPaused();
+
+        await this.match3.board.finishSpin();
+        this.match3.board.clearWildLayerAndMultipliers();
+
+        // Turbo post-spin delay (only turbo does this in your base)
+        if (mode === "turbo-spin") {
+            const afterMs = this.roundWin > 0 ? betweenWinMs : betweenNoWinMs;
+            if (afterMs > 0) {
+                await this.pauseAwareDelay(afterMs, token);
+                if (!this.processing || token.cancelled) {
+                    this.processing = false;
+                    return;
+                }
+            }
+        }
+
+        this.processing = false;
+        await this.match3.onProcessComplete?.();
+    }
+
+    /**
+     * ✅ IMPORTANT:
+     * Your project uses AsyncQueue heavily.
+     * So we keep the same pattern BUT make it truly awaitable by:
+     * - add steps with autoStart=false
+     * - then await queue.process()
+     */
+    public async runProcessRound(): Promise<void> {
+        this.round++;
+
+        await this.waitIfPaused();
+
+        // build steps without auto-running each add()
+        await this.queue.add(async () => this.checkBonus(this.reels), false);
+        await this.queue.add(async () => this.setRoundResult(), false);
+        await this.queue.add(async () => this.setRoundWin(), false);
+        await this.queue.add(async () => this.setWinningPositions(), false);
+
+        // ✅ this will honor AsyncQueue.pause/resume
+        await this.queue.process();
+
+        await this.waitIfPaused();
+    }
+
+    public checkBonus(reels: number[][]): void {
+        const checked_result = countScatterBonus(reels);
+        console.log("checking bonus: ", checked_result);
+
+        this.match3.board.setBonusPositions(checked_result.positions);
+        this.bonusReels = gridZeroReset();
+    }
+
+    protected setRoundResult() {
+        const reels = this.match3.board.getBackendReels();
+        const multipliers = this.match3.board.getBackendMultipliers();
+        this.roundResult = slotEvaluateClusterWins(reels, multipliers);
+    }
+
+    protected setWinningPositions() {
+        const winningCluster = this.roundResult?.map((r) => ({ positions: r.positions })) ?? [];
+        this.winningPositions = flattenClusterPositions(winningCluster);
     }
 
     public getWinningPositions() {
@@ -322,8 +370,4 @@ type SpinModeDelays = {
     public getRoundWin() {
         return this.roundWin;
     }
-
-    // function here to set clear the wild reels and the multiplier reels from the match3 board
-    // this function will be called after every spin
-    // for the extended free spin process it will be called at the end of the recursion
 }
