@@ -358,8 +358,6 @@ export class GameScreen extends Container {
     private async onAutoSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Auto Spin: `, this.match3.autoSpinProcess.getAccumulatedWin());
 
-        this.drawTotalWinBanner(this.match3.autoSpinProcess.getAccumulatedWin(), 7);
-
         // ✅ Unlock only when auto spin session is finished
         this.controlPanel.enableBetting();
         this.finished = false;
@@ -385,7 +383,7 @@ export class GameScreen extends Container {
 
         if (!this.match3.autoSpinProcess.isProcessing()) {
             await this.finish();
-            await this.drawWinBannerAsync(this.match3.autoSpinProcess.getRoundWin());
+            // await this.drawWinBannerAsync(this.match3.autoSpinProcess.getRoundWin());
         }
 
         if (this.match3.autoSpinProcess.getAutoSpinProcessing()) {
