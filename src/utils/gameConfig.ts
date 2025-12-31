@@ -137,22 +137,6 @@ const defaultPaytable: Paytable[] = [
             { min: 20, max: 25, multiplier: 50 },
         ],
     },
-    // {
-    //     type: 11,
-    //     patterns: [
-    //         { min: 0, max: 0, multiplier: 0 },
-    //         { min: 0, max: 0, multiplier: 0 },
-    //         { min: 0, max: 0, multiplier: 0 },
-    //     ],
-    // },
-    // {
-    //     type: 12,
-    //     patterns: [
-    //         { min: 0, max: 0, multiplier: 0 },
-    //         { min: 0, max: 0, multiplier: 0 },
-    //         { min: 0, max: 0, multiplier: 0 },
-    //     ],
-    // },
 ];
 
 class GameConfig {

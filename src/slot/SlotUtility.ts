@@ -231,14 +231,20 @@ export function getRandomMultiplier(): MultipliersValues {
 //  PIRATE STORY PATTERN RECOGNITION + MULTIPLIER SYSTEM
 // ======================================================
 
+// ======================================================
+//  PIRATE STORY PATTERN RECOGNITION + MULTIPLIER SYSTEM
+// ======================================================
+
 export const WILD = 12;
 export const SCATTERBONUS = 11;
+
 type ClusterWinResult = {
     type: number;
     count: number;
     multiplier: number;  
     positions: Match3Position[];
 };
+
 /**
  * Flood-fill physically connected cluster:
  * - Same type connects
@@ -281,6 +287,9 @@ function floodFillCluster(
 
             const nt = grid[nr][nc];
 
+            // ❌ prevent SCATTERBONUS from joining clusters
+            if (nt === SCATTERBONUS) continue;
+
             if (nt === WILD) stack.push({ row: nr, column: nc });
             else if (nt === baseType) stack.push({ row: nr, column: nc });
         }
@@ -303,7 +312,8 @@ export function slotGetClusters(grid: Match3Grid) {
 
             const baseType = grid[r][c];
 
-            if (baseType === WILD) {
+            // ❌ exclude WILD and SCATTERBONUS as cluster bases
+            if (baseType === WILD || baseType === SCATTERBONUS) {
                 processed[r][c] = true;
                 continue;
             }
@@ -344,17 +354,6 @@ export function slotGetClusters(grid: Match3Grid) {
 
 /**
  * Evaluate wins INCLUDING wild multipliers.
- *
- * RULE:
- * - totalMultiplier = sum of all wild multipliers inside cluster
- * - If sum = 0 → totalMultiplier = 1 (neutral)
- * - No extra +1 added
- */
-/**
- * Evaluate clusters returning:
- * - count
- * - final multiplier (paytable * bonusGrid wild multipliers)
- * - positions
  */
 export function slotEvaluateClusterWins(
     grid: Match3Grid,
@@ -371,14 +370,11 @@ export function slotEvaluateClusterWins(
 
         const count = cluster.positions.length;
 
-        // ------ PAYTABLE MULTIPLIER ------
         const pattern = entry.patterns.find(
             p => count >= p.min && count <= p.max
         );
         if (!pattern) continue;
 
-
-        // ------ BONUS WILD MULTIPLIERS ------
         let wildBonus = 0;
 
         for (const pos of cluster.positions) {
@@ -389,7 +385,7 @@ export function slotEvaluateClusterWins(
             }
         }
 
-        const FinalMultiplier = wildBonus > 0 ? wildBonus : 1
+        const FinalMultiplier = wildBonus > 0 ? wildBonus : 1;
 
         results.push({
             type: cluster.type,
@@ -401,6 +397,7 @@ export function slotEvaluateClusterWins(
 
     return results;
 }
+
 
 export type ScatterResult = {
     count: number;
