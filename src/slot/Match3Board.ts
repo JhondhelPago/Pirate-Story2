@@ -3,7 +3,7 @@ import gsap from "gsap";
 import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import { SlotSymbol } from "./SlotSymbol";
-import { gridRandomTypeReset, initGrid, forEachCell } from "./SlotUtility";
+import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from "./SlotUtility";
 import { userSettings, SpinModeEnum } from "../utils/userSettings";
 
 interface ReelColumn {
@@ -1307,90 +1307,92 @@ export class Match3Board {
     }
 
     public animateWinsWithWildPriority(
-    wins: { row: number; column: number }[],
-    extraPositions?: { row: number; column: number }[]
-) {
-    const rows = this.rows > 0 ? this.rows : 5;
-    const cols = this.columns > 0 ? this.columns : 5;
+        wins: { row: number; column: number }[],
+        bonusPositions?: { row: number; column: number }[]
+    ) {
+        const rows = this.rows > 0 ? this.rows : 5;
+        const cols = this.columns > 0 ? this.columns : 5;
 
-    const uniq: { row: number; column: number }[] = [];
-    const seen = new Set<string>();
+        const uniq: { row: number; column: number }[] = [];
+        const seen = new Set<string>();
 
-    const push = (p: { row: number; column: number } | null | undefined) => {
-        if (!p) return;
-        const row = Math.max(0, Math.min(rows - 1, p.row));
-        const column = Math.max(0, Math.min(cols - 1, p.column));
-        const k = `${row}:${column}`;
-        if (seen.has(k)) return;
-        seen.add(k);
-        uniq.push({ row, column });
-    };
+        const push = (p: { row: number; column: number } | null | undefined) => {
+            if (!p) return;
+            const row = Math.max(0, Math.min(rows - 1, p.row));
+            const column = Math.max(0, Math.min(cols - 1, p.column));
+            const k = `${row}:${column}`;
+            if (seen.has(k)) return;
+            seen.add(k);
+            uniq.push({ row, column });
+        };
 
-    // always include wins
-    for (const p of wins ?? []) push(p);
+        // always include wins
+        for (const p of wins ?? []) push(p);
 
-    // ✅ only include extraPositions if NOT currently using FreeSpinProcess
-    const isFreeSpin =
-        this.match3?.process === this.match3?.freeSpinProcess;
+        // ✅ only include bonusPositions if currently using FreeSpinProcess with ,isIntialFreeSpin == true, and none free spin feature
+        const isFreeSpin = this.match3?.process === this.match3?.freeSpinProcess;
+        const isInitialSpin = isFreeSpin ? this.match3?.freeSpinProcess.getIsInitialFreeSpin() : false;
 
-    if (!isFreeSpin) {
-        if (Array.isArray(extraPositions) && extraPositions.length >= 3) {
-            for (const p of extraPositions) push(p);
-        }
-    } else {
-        if (Array.isArray(extraPositions)) {
-            for (const { row, column } of extraPositions) {
-                const r = Math.max(0, Math.min(rows - 1, row));
-                const c = Math.max(0, Math.min(cols - 1, column));
-
-                // priority: wild layer first
-                const wild = this.getDisplayedWildSymbol(r, c);
-                if (wild) {
-                    wild.setBonusFlag(true);
-                }
-
-                const real = this.getDisplayedRealSymbol(r, c);
-                if (real) {
-                    real.setBonusFlag(true);
-                }
+        if (!isFreeSpin || (isFreeSpin && isInitialSpin)) {
+            if (Array.isArray(bonusPositions) && bonusPositions.length >= 3) {
+                for (const p of bonusPositions) push(p);
             }
-            // set to emtpy after using the position to the UI
-            this.backendBonusPositions = [];
+        } 
+        
+        else { // free spin feature bonus reels aas symbol badge
+            if (Array.isArray(bonusPositions)) {
+                for (const { row, column } of bonusPositions) {
+                    const r = Math.max(0, Math.min(rows - 1, row));
+                    const c = Math.max(0, Math.min(cols - 1, column));
+
+                    // priority: wild layer first
+                    const wild = this.getDisplayedWildSymbol(r, c);
+                    if (wild) {
+                        wild.setBonusFlag(true);
+                    }
+
+                    const sym = this.getDisplayedRealSymbol(r, c);
+                    if (sym && sym.type !== SCATTERBONUS) {
+                        sym.setBonusFlag(true);
+                    }
+                }
+                // set to emtpy after using the position to the UI
+                this.backendBonusPositions = [];
+            }
         }
-    }
 
-    if (!uniq.length) {
-        this.killLoops();
-        return;
-    }
-
-    const wildPositions: { row: number; column: number }[] = [];
-    const realPositions: { row: number; column: number }[] = [];
-
-    for (const { row, column } of uniq) {
-        const wild = this.getDisplayedWildSymbol(row, column);
-        if (wild) wildPositions.push({ row, column });
-        else realPositions.push({ row, column });
-    }
-
-    this.startReplayLoop(() => {
-        const list: SlotSymbol[] = [];
-        for (const { row, column } of wildPositions) {
-            const s = this.getDisplayedWildSymbol(row, column);
-            if (s) list.push(s);
+        if (!uniq.length) {
+            this.killLoops();
+            return;
         }
-        return list;
-    }, "wild");
 
-    this.startReplayLoop(() => {
-        const list: SlotSymbol[] = [];
-        for (const { row, column } of realPositions) {
-            const s = this.getDisplayedRealSymbol(row, column);
-            if (s) list.push(s);
+        const wildPositions: { row: number; column: number }[] = [];
+        const realPositions: { row: number; column: number }[] = [];
+
+        for (const { row, column } of uniq) {
+            const wild = this.getDisplayedWildSymbol(row, column);
+            if (wild) wildPositions.push({ row, column });
+            else realPositions.push({ row, column });
         }
-        return list;
-    }, "win");
-}
+
+        this.startReplayLoop(() => {
+            const list: SlotSymbol[] = [];
+            for (const { row, column } of wildPositions) {
+                const s = this.getDisplayedWildSymbol(row, column);
+                if (s) list.push(s);
+            }
+            return list;
+        }, "wild");
+
+        this.startReplayLoop(() => {
+            const list: SlotSymbol[] = [];
+            for (const { row, column } of realPositions) {
+                const s = this.getDisplayedRealSymbol(row, column);
+                if (s) list.push(s);
+            }
+            return list;
+        }, "win");
+    }
 
 
     public initialPieceMutliplier(symbolType: number) {

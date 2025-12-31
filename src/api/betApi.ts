@@ -1,5 +1,5 @@
 // Define the URL of your Express server endpoint
-const url = 'http://192.168.68.114:3000/spin';
+const url = 'http://192.168.68.127:3000/spin';
 export class BetAPI {
     /**
      * Calls the backend API to perform a spin operation.

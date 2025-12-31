@@ -236,7 +236,7 @@ type SpinModeDelays = {
 
     public checkBonus(reels: number[][]): void {
         const checked_result = countScatterBonus(reels)
-        console.log("checking bonus: ", countScatterBonus(reels))
+        console.log("checking bonus: ", checked_result)
         // if the  bonus condition satisfied, proceed to play the free spin won. 
         // show the banner with the number of free spin won
         
