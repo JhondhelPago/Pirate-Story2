@@ -437,15 +437,15 @@ export class GameScreen extends Container {
         this.lockInteraction();
 
         // ✅ pause processes so nothing can continue while popup is open
-        this.match3.process.pause?.();          // current active process (should be freeSpinProcess here)
-        this.match3.autoSpinProcess.pause?.();  // safety: if it was interrupted from auto spin
+        // this.match3.process.pause?.();          // current active process (should be freeSpinProcess here)
+        // this.match3.autoSpinProcess.pause?.();  // safety: if it was interrupted from auto spin
 
         // ✅ show banner and wait close
         await this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
 
-        // ✅ resume after popup closes
-        this.match3.autoSpinProcess.resume?.();
-        this.match3.process.resume?.();
+        // // ✅ resume after popup closes
+        // this.match3.autoSpinProcess.resume?.();
+        // this.match3.process.resume?.();
 
         this.syncFeatureAvailability();
     }

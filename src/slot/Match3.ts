@@ -71,19 +71,25 @@ export class Match3 extends Container {
     public onFreeSpinTrigger?: () => void;
 
     public onFreeSpinStart?: (spins: number) => void;
-    public onFreeSpinComplete?: (current: number, remaining: number) => void;
+
+    // ✅ IMPORTANT: make this awaitable so controller interrupt doesn't end early
+    public onFreeSpinComplete?: (current: number, remaining: number) => Promise<void> | void;
+
     public onFreeSpinRoundStart?: (current: number, remaining: number) => void;
     public onFreeSpinRoundComplete?: () => void;
-    public onFreeSpinInitialBonusScatterComplete?: (spins: number) => void;
+
+    public onFreeSpinInitialBonusScatterComplete?: (spins: number) => Promise<void> | void;
 
     public onAutoSpinStart?: (count: number) => void;
     public onAutoSpinComplete?: (current: number, remaining: number) => void;
     public onAutoSpinRoundStart?: (current: number, remaining: number) => void;
     public onAutoSpinRoundComplete?: () => void;
-    public onAutoSpinWonToFreeSpin?: (spins: number) => void;
+
+    // ✅ already used as awaited in switchToFreeSpin
+    public onAutoSpinWonToFreeSpin?: (spins: number) => Promise<void> | void;
 
     public onProcessStart?: () => void;
-    public onProcessComplete?: () => void | void;
+    public onProcessComplete?: () => Promise<void> | void;
 
     // ---------------------------------------------------------------------
     // ✅ Central process orchestration (interrupt + resume)
@@ -184,8 +190,6 @@ export class Match3 extends Container {
         }
 
         // Pause current process safely
-        // - interrupt delays so it can reach a safe point sooner
-        // - pause stops its internal queue + delay countdown
         try {
             current.interruptSpinDelay?.();
         } catch {}
@@ -277,7 +281,6 @@ export class Match3 extends Container {
             }
         });
     }
-
 
     /**
      * Interrupt whatever is running and execute AutoSpin flow, then resume previous.

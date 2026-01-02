@@ -49,19 +49,18 @@ export class TotalWinBanner extends Container {
     private readonly AMOUNT_OFFSET_Y = 40;
     private readonly HEADER_LINE_GAP = 10;
 
-    // ✅ UPDATED:
-    // spinsText will take the old "PRESS ANYWHERE TO CONTINUE" position
     private readonly SPINS_OFFSET_Y = 150;
-
-    // ✅ NEW:
-    // move "PRESS ANYWHERE TO CONTINUE" down since spinsText takes its original spot
     private readonly CONTINUE_OFFSET_Y = 220;
+
+    // ✅ NEW: store onClosed passed from navigation.presentPopup(...)
+    private onClosed?: () => void | Promise<void>;
+    private closedOnce = false;
 
     // ✅ Keyboard handling
     private keyListenerAdded = false;
     private readonly keyDownHandler = (e: KeyboardEvent) => {
         if (!this.canClickAnywhere) return;
-        this.hide();
+        void this.hide();
     };
 
     constructor() {
@@ -81,7 +80,7 @@ export class TotalWinBanner extends Container {
         // 🔹 Close when clicking anywhere (background or panel/children)
         this.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
-            this.hide();
+            void this.hide();
         });
 
         this.panel = new Container();
@@ -93,13 +92,19 @@ export class TotalWinBanner extends Container {
 
     public static forceDismiss() {
         if (TotalWinBanner.currentInstance) {
-            TotalWinBanner.currentInstance.hide(true);
+            // ensure close callback fires
+            void TotalWinBanner.currentInstance.hide(true);
             TotalWinBanner.currentInstance = null;
         }
     }
 
     public async prepare<T>(data?: T) {
         const anyData = data as any;
+
+        // ✅ capture close callback (THIS WAS MISSING)
+        this.onClosed = typeof anyData?.onClosed === "function" ? anyData.onClosed : undefined;
+        this.closedOnce = false;
+
         const win = typeof anyData?.win === "number" ? anyData.win : 0;
 
         // ✅ accept spins
@@ -112,7 +117,7 @@ export class TotalWinBanner extends Container {
         await this.waitForFonts(["Bangers", "Pirata One"]);
 
         this.createBanner();
-        this.createGlow(); // ✅ added
+        this.createGlow();
         this.createHeaderText();
         this.createAmountText();
         this.createSpinsText();
@@ -152,7 +157,7 @@ export class TotalWinBanner extends Container {
     }
 
     // ==================================================
-    // GLOW (same position + animation behavior as reference)
+    // GLOW
     // ==================================================
     private getGlows(): Sprite[] {
         const arr: Sprite[] = [];
@@ -265,7 +270,6 @@ export class TotalWinBanner extends Container {
         const gB = this.glowB;
         if (!gA || !gB) return;
 
-        // keep in same place always
         this.syncGlowToBanner();
 
         gsap.killTweensOf([gA, gB, gA.scale, gB.scale]);
@@ -273,7 +277,6 @@ export class TotalWinBanner extends Container {
         gA.scale.set(this.glowBaseScale);
         gB.scale.set(this.glowBaseScale * 0.97);
 
-        // playful rotation in eased chunks
         const makePlayfulSpin = (
             target: Sprite,
             direction: 1 | -1,
@@ -281,7 +284,7 @@ export class TotalWinBanner extends Container {
         ) => {
             gsap.killTweensOf(target);
 
-            const step = (Math.PI * 2) / 3; // 120deg steps
+            const step = (Math.PI * 2) / 3;
             const d1 = totalDuration * 0.34;
             const d2 = totalDuration * 0.33;
             const d3 = totalDuration * 0.33;
@@ -305,10 +308,9 @@ export class TotalWinBanner extends Container {
             return tl;
         };
 
-        makePlayfulSpin(gA, 1, 18); // CW
-        makePlayfulSpin(gB, -1, 26); // CCW (different speed)
+        makePlayfulSpin(gA, 1, 18);
+        makePlayfulSpin(gB, -1, 26);
 
-        // alternating opacity (never 0)
         const A_MAX = 0.95;
         const A_MIN = 0.4;
         const B_MAX = 0.85;
@@ -333,7 +335,6 @@ export class TotalWinBanner extends Container {
             }
         );
 
-        // subtle breathing scale
         gsap.to(gA.scale, {
             x: this.glowBaseScale * 1.04,
             y: this.glowBaseScale * 1.04,
@@ -376,7 +377,6 @@ export class TotalWinBanner extends Container {
         if (this.headerLine1) this.headerLine1.destroy();
         if (this.headerLine2) this.headerLine2.destroy();
 
-        // Line 1
         this.headerLine1 = new Text("CONGRATULATIONS!", {
             ...this.createHeaderGradientStyle(110),
             fontFamily: "Bangers",
@@ -384,7 +384,6 @@ export class TotalWinBanner extends Container {
         });
         this.headerLine1.anchor.set(0.5);
 
-        // Line 2
         this.headerLine2 = new Text("YOU HAVE WON", {
             ...this.createSubHeaderGradientStyle(64),
             fontFamily: "Bangers",
@@ -434,7 +433,7 @@ export class TotalWinBanner extends Container {
     }
 
     // ==================================================
-    // ✅ "IN X FREE SPINS" (now takes old continue position)
+    // "IN X FREE SPINS"
     // ==================================================
     private createSpinsText() {
         if (this.spinsText) this.spinsText.destroy();
@@ -448,15 +447,13 @@ export class TotalWinBanner extends Container {
         });
         this.spinsText.anchor.set(0.5);
         this.spinsText.x = 0;
-
-        // ✅ spins takes the previous continue position
         this.spinsText.y = this.AMOUNT_OFFSET_Y + this.SPINS_OFFSET_Y;
 
         this.panel.addChild(this.spinsText);
     }
 
     // ==================================================
-    // "PRESS ANYWHERE TO CONTINUE" (moved down)
+    // "PRESS ANYWHERE TO CONTINUE"
     // ==================================================
     private createContinueText() {
         if (this.continueText) this.continueText.destroy();
@@ -468,8 +465,6 @@ export class TotalWinBanner extends Container {
         });
         this.continueText.anchor.set(0.5);
         this.continueText.x = 0;
-
-        // ✅ moved down because spinsText now uses the old spot
         this.continueText.y = this.AMOUNT_OFFSET_Y + this.CONTINUE_OFFSET_Y;
 
         this.panel.addChild(this.continueText);
@@ -592,7 +587,6 @@ export class TotalWinBanner extends Container {
             ease: "sine.inOut",
         });
 
-        // ✅ same effect as "YOU HAVE WON"
         if (this.spinsText) {
             gsap.to(this.spinsText.scale, {
                 x: 1.08,
@@ -667,7 +661,6 @@ export class TotalWinBanner extends Container {
             ...this.getGlows(),
         ]);
 
-        // reset glow tweens
         if (this.glowEntranceTween) {
             this.glowEntranceTween.kill();
             this.glowEntranceTween = undefined;
@@ -689,10 +682,8 @@ export class TotalWinBanner extends Container {
         const spinsY = this.spinsText?.y ?? 0;
         const continueY = this.continueText.y;
 
-        // keep glow locked to banner center before animations
         this.syncGlowToBanner();
 
-        // Start hidden; reveal after banner lands
         for (const g of this.getGlows()) {
             g.alpha = 0;
             g.rotation = 0;
@@ -717,11 +708,9 @@ export class TotalWinBanner extends Container {
             duration: 0.7,
             ease: "bounce.out",
             onUpdate: () => {
-                // if banner moves, glows stay centered with it
                 this.syncGlowToBanner();
             },
             onComplete: () => {
-                // once banner is in final position, glow appears + starts effects
                 this.syncGlowToBanner();
                 this.showGlowEffects();
             },
@@ -777,7 +766,6 @@ export class TotalWinBanner extends Container {
         this.headerGroup?.scale.set(0.9);
         this.amountText?.scale.set(1);
 
-        // ✅ resize glow based on banner + lock to banner center
         const gA = this.glowA;
         const gB = this.glowB;
         if (gA && gB && this.banner) {
@@ -802,10 +790,23 @@ export class TotalWinBanner extends Container {
         this.layoutHeaderLines();
     }
 
+    private async fireClosedOnce() {
+        if (this.closedOnce) return;
+        this.closedOnce = true;
+
+        const cb = this.onClosed;
+        this.onClosed = undefined;
+
+        try {
+            await cb?.();
+        } catch (e) {
+            console.warn("[TotalWinBanner] onClosed error:", e);
+        }
+    }
+
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
-        // 🔻 remove keyboard listener
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
@@ -818,7 +819,6 @@ export class TotalWinBanner extends Container {
 
         gsap.killTweensOf(this);
 
-        // kill glow tweens
         if (this.glowEntranceTween) {
             this.glowEntranceTween.kill();
             this.glowEntranceTween = undefined;
@@ -835,6 +835,10 @@ export class TotalWinBanner extends Container {
         if (forceInstant) {
             this.alpha = 0;
             TotalWinBanner.currentInstance = null;
+
+            // ✅ IMPORTANT: resolve GameScreen promise even on force dismiss
+            await this.fireClosedOnce();
+
             await navigation.dismissPopup();
             return;
         }
@@ -856,6 +860,10 @@ export class TotalWinBanner extends Container {
         );
 
         TotalWinBanner.currentInstance = null;
+
+        // ✅ IMPORTANT: resolve GameScreen promise when user closes banner
+        await this.fireClosedOnce();
+
         await navigation.dismissPopup();
     }
 
@@ -878,6 +886,9 @@ export class TotalWinBanner extends Container {
             gsap.killTweensOf(g);
             gsap.killTweensOf(g.scale);
         }
+
+        // ✅ safety: if destroyed without hide(), still resolve once
+        void this.fireClosedOnce();
 
         super.destroy(options);
 

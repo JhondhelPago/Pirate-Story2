@@ -115,8 +115,11 @@ export class Match3FreeSpinProcess extends Match3Process {
         if (!this.processCheckpoint()) {
             this.freeSpinProcessing = false;
 
-            this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
+            // ✅ CRITICAL FIX:
+            // Await the callback (TotalWinBanner must finish/close)
+            await this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
 
+            // Only reset AFTER the UI flow has finished
             this.reset();
             return;
         }
