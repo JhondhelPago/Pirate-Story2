@@ -5,10 +5,9 @@ import { Match3Config, slotGetConfig } from './Match3Config';
 import { Match3Process } from './Match3Process';
 import { Match3Stats } from './Match3Stats';
 import { Match3FreeSpinProcess } from './Match3FreeSpinProcess';
-import { Match3AutoSpinProcess } from './Match3AutoSpinProcess'; // ✅ NEW
+import { Match3AutoSpinProcess } from './Match3AutoSpinProcess';
 import { SlotSymbol } from './SlotSymbol';
 import { Match3RoundResults } from './Match3RounResults';
-import { Match3Jackpot } from './Match3Jackpot';
 import { gameConfig } from '../utils/gameConfig';
 
 // Match3.ts - Holds the state
@@ -80,9 +79,36 @@ export class Match3 extends Container {
     public onAutoSpinComplete?: (current: number, remaining: number) => void;
     public onAutoSpinRoundStart?: (current: number, remaining: number) => void;
     public onAutoSpinRoundComplete?: () => void;
+    public onAutoSpinWonToFreeSpin?: (spins: number) => void;
 
     public onProcessStart?: () => void;
     public onProcessComplete?: () => void | void;
+
+    // ---------------------------------------------------------------------
+    // ✅ Central process orchestration (interrupt + resume)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Stack of paused processes (supports nested interrupts).
+     * Example: AutoSpin -> FreeSpin -> Jackpot -> back to FreeSpin -> back to AutoSpin
+     */
+    private processStack: Match3Process[] = [];
+
+    /**
+     * Serialize controller operations so process switches can't race each other.
+     * (e.g., two interrupts triggered close together)
+     */
+    private controllerChain: Promise<void> = Promise.resolve();
+
+    /** Guard to prevent re-entrant begin/end interrupt misuse */
+    private switching = false;
+
+    /**
+     * ✅ NEW: controller-level guard (separate from this.spinning)
+     * - this.spinning is for user/public entry points (spin/freeSpin/autoSpin)
+     * - controllerBusy is for internal interrupt orchestration
+     */
+    private controllerBusy = false;
 
     constructor() {
         super();
@@ -100,7 +126,6 @@ export class Match3 extends Container {
         this._currentProcess = this.baseProcess; // start with normal process
         this.freeSpinProcess = new Match3FreeSpinProcess(this);
         this.autoSpinProcess = new Match3AutoSpinProcess(this);
-        
     }
 
     /** Switch back to normal/base process */
@@ -117,6 +142,179 @@ export class Match3 extends Container {
     public useAutoSpinProcess() {
         this._currentProcess = this.autoSpinProcess;
     }
+
+    // ---------------------------------------------------------------------
+    // ✅ Controller queue helper
+    // ---------------------------------------------------------------------
+
+    /**
+     * Enqueue an operation to run exclusively (one-at-a-time).
+     * Prevents switch races from multiple interrupts.
+     */
+    private runControllerTask(task: () => Promise<void>): Promise<void> {
+        this.controllerChain = this.controllerChain
+            .then(task)
+            .catch((err) => {
+                // Don't break the chain permanently
+                console.error('[Match3 Controller Task Error]', err);
+            });
+
+        return this.controllerChain;
+    }
+
+    // ---------------------------------------------------------------------
+    // ✅ Interrupt primitives (stack-based)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Pause current process and push it to stack, then switch to target.
+     * NOTE: This does NOT start the target process; it only switches control.
+     */
+    private async beginInterrupt(target: Match3Process) {
+        if (this.switching) return;
+        this.switching = true;
+
+        const current = this._currentProcess;
+
+        // If target is already current, nothing to do.
+        if (current === target) {
+            this.switching = false;
+            return;
+        }
+
+        // Pause current process safely
+        // - interrupt delays so it can reach a safe point sooner
+        // - pause stops its internal queue + delay countdown
+        try {
+            current.interruptSpinDelay?.();
+        } catch {}
+        try {
+            current.pause?.();
+        } catch {}
+
+        // Push paused process for later resume
+        this.processStack.push(current);
+
+        // Switch active process reference
+        if (target === this.baseProcess) this.useBaseProcess();
+        else if (target === this.freeSpinProcess) this.useFreeSpinProcess();
+        else if (target === this.autoSpinProcess) this.useAutoSpinProcess();
+        else this._currentProcess = target;
+
+        this.switching = false;
+    }
+
+    /**
+     * End an interrupt: restore previous process (if any) and resume it.
+     */
+    private async endInterrupt() {
+        if (this.switching) return;
+        this.switching = true;
+
+        const prev = this.processStack.pop();
+        if (!prev) {
+            this.switching = false;
+            return;
+        }
+
+        // Switch back
+        if (prev === this.baseProcess) this.useBaseProcess();
+        else if (prev === this.freeSpinProcess) this.useFreeSpinProcess();
+        else if (prev === this.autoSpinProcess) this.useAutoSpinProcess();
+        else this._currentProcess = prev;
+
+        // Resume the restored process
+        try {
+            prev.resume?.();
+        } catch {}
+
+        this.switching = false;
+    }
+
+    /**
+     * Utility: perform an interrupt flow:
+     * - pause/push current
+     * - switch to target
+     * - run async work
+     * - restore previous
+     */
+    private async interruptWith(target: Match3Process, work: () => Promise<void>) {
+        await this.beginInterrupt(target);
+        try {
+            await work();
+        } finally {
+            await this.endInterrupt();
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // ✅ Public interrupt helpers (call these from processes)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Interrupt whatever is running and execute FreeSpin flow, then resume previous.
+     * NOTE: This MUST be allowed even while this.spinning is true (e.g. auto spin).
+     */
+    public async switchToFreeSpin(spins: number, opts?: { initial?: boolean }) {
+        return this.runControllerTask(async () => {
+            // ✅ Use controllerBusy instead of this.spinning.
+            // this.spinning is used by public entry points (spin/freeSpin/autoSpin).
+            if (this.controllerBusy) return;
+            this.controllerBusy = true;
+
+            try {
+                await this.interruptWith(this.freeSpinProcess, async () => {
+                    if (opts?.initial) {
+                        await this.actions.actionFreeSpinInitial(spins);
+                    } else {
+                        // await this.onAutoSpinWonToFreeSpin?.(spins);
+                        await this.actions.actionFreeSpin(spins);
+                    }
+                });
+            } finally {
+                this.controllerBusy = false;
+            }
+        });
+    }
+
+    /**
+     * Interrupt whatever is running and execute AutoSpin flow, then resume previous.
+     */
+    public async swtichToAutoSpin(spins: number) {
+        return this.runControllerTask(async () => {
+            if (this.controllerBusy) return;
+            this.controllerBusy = true;
+
+            try {
+                await this.interruptWith(this.autoSpinProcess, async () => {
+                    await this.actions.actionAutoSpin(spins);
+                });
+            } finally {
+                this.controllerBusy = false;
+            }
+        });
+    }
+
+    /**
+     * Optional: interrupt and run a custom feature flow (jackpot, special bonus, etc.)
+     * using whichever process you want to "own" that flow.
+     */
+    public async swtichToProcess(process: Match3Process, work: () => Promise<void>) {
+        return this.runControllerTask(async () => {
+            if (this.controllerBusy) return;
+            this.controllerBusy = true;
+
+            try {
+                await this.interruptWith(process, work);
+            } finally {
+                this.controllerBusy = false;
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    // Existing lifecycle
+    // ---------------------------------------------------------------------
 
     /**
      * Sets up a new match3 game with pieces, rows, columns, duration, etc.
@@ -136,16 +334,22 @@ export class Match3 extends Container {
         // Reset all processes safely
         this.baseProcess.reset();
         this.freeSpinProcess.reset();
-
-        /** ✅ NEW */
         this.autoSpinProcess.reset();
 
+        // Clear orchestration state
+        this.processStack = [];
+        this.switching = false;
+        this.controllerBusy = false;
+        this.controllerChain = Promise.resolve();
+
         this.useBaseProcess(); // ensure we go back to normal process after reset
+        this.spinning = false;
     }
 
     /** Start normal spin */
     public async spin() {
-        if (this.spinning) return;
+        // ✅ Block public actions during controller interrupts too
+        if (this.spinning || this.controllerBusy) return;
         this.spinning = true;
 
         await this.actions.actionSpin();
@@ -154,7 +358,7 @@ export class Match3 extends Container {
     }
 
     public async freeSpinInitial(spins: number) {
-        if (this.spinning) return;
+        if (this.spinning || this.controllerBusy) return;
         this.spinning = true;
 
         await this.actions.actionFreeSpinInitial(spins);
@@ -164,7 +368,7 @@ export class Match3 extends Container {
 
     /** Start free spin sequence */
     public async freeSpin(spins: number) {
-        if (this.spinning) return;
+        if (this.spinning || this.controllerBusy) return;
         this.spinning = true;
 
         await this.actions.actionFreeSpin(spins);
@@ -173,7 +377,7 @@ export class Match3 extends Container {
     }
 
     public async autoSpin(spins: number) {
-        if (this.spinning) return;
+        if (this.spinning || this.controllerBusy) return;
         this.spinning = true;
 
         await this.actions.actionAutoSpin(spins);
@@ -193,19 +397,16 @@ export class Match3 extends Container {
 
     /** Pause the game */
     public pause() {
-        // this.board.pause();
-        // this.process.pause();
+        this.process.pause?.();
     }
 
     /** Resume the game */
     public resume() {
-        // this.board.resume();
-        // this.process.resume();
+        this.process.resume?.();
     }
 
     /** Update the timer */
     public update(_delta: number) {
-        // this.timer.update(delta);
-        this.process.update(_delta); // <- will call base/free/auto depending on current process
+        this.process.update(_delta);
     }
 }

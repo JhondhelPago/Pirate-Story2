@@ -88,6 +88,7 @@ export class GameScreen extends Container {
         this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
         this.match3.onAutoSpinRoundStart = this.onAutoSpinRoundStart.bind(this);
         this.match3.onAutoSpinRoundComplete = this.onAutoSpinRoundComplete.bind(this);
+        this.match3.onAutoSpinWonToFreeSpin = this.onAutoSpinWonToFreeSpin.bind(this);
 
         this.match3.onProcessStart = this.onProcessStart.bind(this);
         this.match3.onProcessComplete = this.onProcessComplete.bind(this);
@@ -372,7 +373,6 @@ export class GameScreen extends Container {
     }
 
     private async onAutoSpinRoundComplete() {
-        console.log("onAutoSpinRoundComplete trigger using the autospinprocess");
 
         const totalWon = this.match3.autoSpinProcess.getAccumulatedWin();
 
@@ -383,14 +383,32 @@ export class GameScreen extends Container {
 
         if (!this.match3.autoSpinProcess.isProcessing()) {
             await this.finish();
-            // await this.drawWinBannerAsync(this.match3.autoSpinProcess.getRoundWin());
+            // await this.drawWinBannerAsync(this.match3.autoSpinProcess.getRoundWin());            
         }
+
+        const spinWon = this.match3.autoSpinProcess.getFreeSpinWon();
+        if (spinWon > 0) {
+            this.match3.autoSpinProcess.pause();
+            
+            console.log("To proceed FreeSpinProcess,  Free Spin Won: ", spinWon);
+            // trigger here the switching process
+            await this.match3.switchToFreeSpin(spinWon, {initial: false});
+
+            //
+            this.match3.autoSpinProcess.resume();
+        }
+
+
 
         if (this.match3.autoSpinProcess.getAutoSpinProcessing()) {
             this.lockInteraction();
         }
 
         this.syncFeatureAvailability();
+    }
+
+    public async onAutoSpinWonToFreeSpin(spins: number){
+        await this.drawFreeSpinWonBanner(spins);
     }
 
     public async onFreeSpinInitialStart(spins: number) {
@@ -447,7 +465,7 @@ export class GameScreen extends Container {
     private async onFreeSpinInitialBonusScatterComplete(currentSpin: number) {
         this.finished = false;
         await waitFor(3);
-        this.drawFreeSpinWonBanner(currentSpin);
+        await this.drawFreeSpinWonBanner(currentSpin);
         this.syncFeatureAvailability();
     }
 
@@ -493,13 +511,26 @@ export class GameScreen extends Container {
         });
     }
 
-    private drawTotalWinBanner(winAmount: number, freeSpins: number) {
-        navigation.presentPopup(TotalWinBanner, { win: winAmount, spins: freeSpins });
+    private drawTotalWinBanner(winAmount: number, freeSpins: number): Promise<void> {
+        return new Promise((resolve) => {
+            navigation.presentPopup(TotalWinBanner, {
+                win: winAmount,
+                spins: freeSpins,
+                onClosed: () => resolve(), // ✅ resolves when banner closes
+            });
+        });
     }
 
-    private drawFreeSpinWonBanner(spins: number) {
-        navigation.presentPopup(FreeSpinWinBanner, { spins: spins });
+
+    private drawFreeSpinWonBanner(spins: number): Promise<void> {
+        return new Promise((resolve) => {
+            navigation.presentPopup(FreeSpinWinBanner, {
+                spins,
+                onClosed: () => resolve(),
+            });
+        });
     }
+
 
     private messageMatchQueuing(roundResult: RoundResult) {
         roundResult.map(r => {

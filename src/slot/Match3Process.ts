@@ -41,6 +41,7 @@ export class Match3Process {
     protected roundResult: RoundResult = [];
     protected winningPositions: GridPosition[] | null = null;
     protected wildReels: number[][] = [];
+    protected bonus = 0; //number of detected bonus symbol or badge in the reels
 
     protected delayRemainingMs = 0;
     protected delayResolver: (() => void) | null = null;
@@ -90,7 +91,7 @@ export class Match3Process {
         if (this.delayToken) this.delayToken.cancelled = true;
     }
 
-    protected async waitIfPaused(): Promise<void> {
+    public async waitIfPaused(): Promise<void> {
         if (!this.paused) return;
 
         if (!this.pausePromise) {
@@ -321,6 +322,8 @@ export class Match3Process {
     public checkBonus(reels: number[][]): void {
         const checked_result = countScatterBonus(reels);
         console.log("checking bonus: ", checked_result);
+
+        this.bonus = checked_result.count;
 
         this.match3.board.setBonusPositions(checked_result.positions);
         this.bonusReels = gridZeroReset();
