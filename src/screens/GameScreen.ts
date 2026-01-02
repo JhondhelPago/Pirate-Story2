@@ -88,7 +88,14 @@ export class GameScreen extends Container {
         this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
         this.match3.onAutoSpinRoundStart = this.onAutoSpinRoundStart.bind(this);
         this.match3.onAutoSpinRoundComplete = this.onAutoSpinRoundComplete.bind(this);
-        this.match3.onAutoSpinWonToFreeSpin = this.onAutoSpinWonToFreeSpin.bind(this);
+
+        // ✅ IMPORTANT CHANGE:
+        // Use an async callback that returns Promise<void>, so Match3 can await it
+        // (Match3.switchToFreeSpin will do: await this.onAutoSpinWonToFreeSpin?.(spins);)
+        this.match3.onAutoSpinWonToFreeSpin = async (spins: number) => {
+            await waitFor(3);
+            await this.drawFreeSpinWonBanner(spins);
+        };
 
         this.match3.onProcessStart = this.onProcessStart.bind(this);
         this.match3.onProcessComplete = this.onProcessComplete.bind(this);
@@ -398,17 +405,11 @@ export class GameScreen extends Container {
             this.match3.autoSpinProcess.resume();
         }
 
-
-
         if (this.match3.autoSpinProcess.getAutoSpinProcessing()) {
             this.lockInteraction();
         }
 
         this.syncFeatureAvailability();
-    }
-
-    public async onAutoSpinWonToFreeSpin(spins: number){
-        await this.drawFreeSpinWonBanner(spins);
     }
 
     public async onFreeSpinInitialStart(spins: number) {
@@ -432,7 +433,7 @@ export class GameScreen extends Container {
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
 
-        this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
+        await this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
         this.syncFeatureAvailability();
     }
 
@@ -512,6 +513,7 @@ export class GameScreen extends Container {
     }
 
     private drawTotalWinBanner(winAmount: number, freeSpins: number): Promise<void> {
+        
         return new Promise((resolve) => {
             navigation.presentPopup(TotalWinBanner, {
                 win: winAmount,
@@ -521,7 +523,6 @@ export class GameScreen extends Container {
         });
     }
 
-
     private drawFreeSpinWonBanner(spins: number): Promise<void> {
         return new Promise((resolve) => {
             navigation.presentPopup(FreeSpinWinBanner, {
@@ -530,7 +531,6 @@ export class GameScreen extends Container {
             });
         });
     }
-
 
     private messageMatchQueuing(roundResult: RoundResult) {
         roundResult.map(r => {

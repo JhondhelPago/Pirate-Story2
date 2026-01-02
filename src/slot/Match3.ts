@@ -9,6 +9,7 @@ import { Match3AutoSpinProcess } from './Match3AutoSpinProcess';
 import { SlotSymbol } from './SlotSymbol';
 import { Match3RoundResults } from './Match3RounResults';
 import { gameConfig } from '../utils/gameConfig';
+import { waitFor } from '../utils/asyncUtils';
 
 // Match3.ts - Holds the state
 export enum SpinState {
@@ -257,8 +258,6 @@ export class Match3 extends Container {
      */
     public async switchToFreeSpin(spins: number, opts?: { initial?: boolean }) {
         return this.runControllerTask(async () => {
-            // ✅ Use controllerBusy instead of this.spinning.
-            // this.spinning is used by public entry points (spin/freeSpin/autoSpin).
             if (this.controllerBusy) return;
             this.controllerBusy = true;
 
@@ -267,7 +266,9 @@ export class Match3 extends Container {
                     if (opts?.initial) {
                         await this.actions.actionFreeSpinInitial(spins);
                     } else {
-                        // await this.onAutoSpinWonToFreeSpin?.(spins);
+                        // ✅ trigger GameScreen hook (draw banner and wait close)
+                        await this.onAutoSpinWonToFreeSpin?.(spins);
+
                         await this.actions.actionFreeSpin(spins);
                     }
                 });
@@ -276,6 +277,7 @@ export class Match3 extends Container {
             }
         });
     }
+
 
     /**
      * Interrupt whatever is running and execute AutoSpin flow, then resume previous.
