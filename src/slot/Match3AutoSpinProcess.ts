@@ -97,6 +97,8 @@ export class Match3AutoSpinProcess extends Match3Process {
 
         await this.waitIfPaused();
 
+        // checkBonushere
+        await this.queue.add(async () => this.checkBonus(this.reels), false);
         await this.queue.add(async () => this.setRoundResult(), false);
         await this.queue.add(async () => this.setRoundWin(), false);
         await this.queue.add(async () => this.addRoundWin(), false);

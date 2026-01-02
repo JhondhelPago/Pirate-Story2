@@ -1175,9 +1175,7 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
 
         const wins = this.match3.process.getWinningPositions() ?? [];
-        
-        // add the position argument of the bonusPositions
-        this.animateWinsWithWildPriority(wins);
+        this.animateWinsWithWildPriority(wins, this.getBonusPositions());
     }
 
     public async finishSpinTurbo(): Promise<void> {
@@ -1206,8 +1204,7 @@ export class Match3Board {
         this.setWildReels(this.match3.process.getWildReels());
 
         const wins = this.match3.process.getWinningPositions() ?? [];
-        // add the position argument of the bonusPositions
-        this.animateWinsWithWildPriority(wins);
+        this.animateWinsWithWildPriority(wins, this.getBonusPositions());
     }
 
     // =========================================================================
