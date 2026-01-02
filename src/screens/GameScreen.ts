@@ -433,9 +433,23 @@ export class GameScreen extends Container {
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
 
+        // ✅ hard lock while banner is open
+        this.lockInteraction();
+
+        // ✅ pause processes so nothing can continue while popup is open
+        this.match3.process.pause?.();          // current active process (should be freeSpinProcess here)
+        this.match3.autoSpinProcess.pause?.();  // safety: if it was interrupted from auto spin
+
+        // ✅ show banner and wait close
         await this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
+
+        // ✅ resume after popup closes
+        this.match3.autoSpinProcess.resume?.();
+        this.match3.process.resume?.();
+
         this.syncFeatureAvailability();
     }
+
 
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
