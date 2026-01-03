@@ -224,6 +224,19 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.accumulatedWin += totalRoundWin;
     }
 
+    public async getSpinWon() {
+        const config = await this.getConfig();
+        let spins = 0;
+
+        if (this.bonus >= config.bonusFreeSpins.freeSpin.bonus2.count) spins = config.bonusFreeSpins.freeSpin.bonus3.spins;
+        else if (this.bonus === config.bonusFreeSpins.freeSpin.bonus3.count) spins = config.bonusFreeSpins.freeSpin.bonus3.spins;
+        else if (this.bonus === config.bonusFreeSpins.freeSpin.bonus4.count) spins = config.bonusFreeSpins.freeSpin.bonus4.spins;
+        else if (this.bonus === config.bonusFreeSpins.freeSpin.bonus5.count) spins = config.bonusFreeSpins.freeSpin.bonus5.spins;
+
+        this.bonus = 0;
+        return spins;
+    }    
+
     public setSpinRounds(spins: number) {
         this.spins = spins;
     }

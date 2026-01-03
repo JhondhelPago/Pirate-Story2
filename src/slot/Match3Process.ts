@@ -2,7 +2,7 @@ import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
 import { userSettings } from "../utils/userSettings";
-
+import { ConfigAPI } from "../api/configApi";
 import {
     RoundResult,
     slotEvaluateClusterWins,
@@ -373,10 +373,19 @@ export class Match3Process {
         return this.roundWin;
     }
 
-    public getSpinWon() {
+    protected async getConfig() {
+        return ConfigAPI.config();
+    }
+
+    public async getSpinWon() {
+        const config = await this.getConfig();
         let spins = 0;
 
-        if (this.bonus >= 3) spins = 5;
+        if (this.bonus >= config.bonusFreeSpins.nonFreeSpin.bonus3.count) spins = config.bonusFreeSpins.nonFreeSpin.bonus3.spins;
+        else if (this.bonus === config.bonusFreeSpins.nonFreeSpin.bonus4.count) spins = config.bonusFreeSpins.nonFreeSpin.bonus4.spins;
+        else if (this.bonus === config.bonusFreeSpins.nonFreeSpin.bonus5.count) spins = config.bonusFreeSpins.nonFreeSpin.bonus5.spins;
+
+        //if (this.bonus >= 2) spins = 5;
         // else if (this.bonus === 4) spins = 10;
         // else if (this.bonus === 5) spins = 15;
 

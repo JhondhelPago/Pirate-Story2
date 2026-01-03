@@ -557,19 +557,19 @@ export class GameScreen extends Container {
         let spinWon = 0;
         switch(feature){
             case "normalspin":
-                spinWon = this.match3.process.getSpinWon();
+                spinWon = await this.match3.process.getSpinWon();
                 if (spinWon > 0) {
                     console.log("testing the flow of the checkBonus on the autospin");
                     await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
                 }
 
             case "autospin": 
-                spinWon = this.match3.autoSpinProcess.getSpinWon();
+                spinWon = await this.match3.autoSpinProcess.getSpinWon();
                 if (spinWon > 0) {
                     await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
                 }
             case "freespin":
-                spinWon = this.match3.freeSpinProcess.getSpinWon();
+                spinWon = await this.match3.freeSpinProcess.getSpinWon();
                 if (spinWon > 0) {
                     console.log("free spin process won extra free spins: ", spinWon);
                     // dont switch, instead add spins session to the current free spin process

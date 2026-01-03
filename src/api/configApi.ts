@@ -3,8 +3,6 @@ import { waitFor } from '../utils/asyncUtils';
 export class ConfigAPI {
     static async config() {
         try {
-            await waitFor(0.7);
-
             return {
                 rules: 'Symbols pay anywhere on the screen. The total number of the same symbol on the screen at the end of a spin determines the value of the win.',
                 feature: {
@@ -13,6 +11,19 @@ export class ConfigAPI {
                     C: {spins: 20, scatters: 5, buyFeatureBetMultiplier: 1000},
                 },
                 buyFeatureBetMultiplier: 100,
+                bonusFreeSpins: {
+                    freeSpin: {
+                        bonus2: {count: 2, spins: 5},
+                        bonus3: {count: 3, spins: 10},
+                        bonus4: {count: 4, spins: 20},
+                        bonus5: {count: 5, spins: 30}
+                    },
+                    nonFreeSpin: {
+                        bonus3: {count: 3, spins: 10},
+                        bonus4: {count: 4, spins: 15},
+                        bonus5: {count: 5, spins: 20}
+                    }
+                },
 
 
                 // ------------------------------
