@@ -31,6 +31,14 @@ export class FreeSpinWinBanner extends Container {
     private spinsText!: Text;
     private continueText!: Text;
 
+    // 🔥 same glow system as SpinRoundBanner (behind the board)
+    private glowA?: Sprite;
+    private glowB?: Sprite;
+    private glowBaseScale = 1;
+
+    private glowEntranceTween?: gsap.core.Tween;
+    private glowOpacityTween?: gsap.core.Tween;
+
     private currentDisplayValue = 0;
     private spins = 0;
 
@@ -45,7 +53,7 @@ export class FreeSpinWinBanner extends Container {
     private keyListenerAdded = false;
     private readonly keyDownHandler = (e: KeyboardEvent) => {
         if (!this.canClickAnywhere) return;
-        if (e.code !== "Space" && e.code !== "Enter") return;       
+        if (e.code !== "Space" && e.code !== "Enter") return;
         this.requestClose();
     };
 
@@ -98,6 +106,7 @@ export class FreeSpinWinBanner extends Container {
         await this.waitForFonts(["Bangers", "Pirata One"]);
 
         this.createBanner();
+        this.createGlow(); // ✅ NEW: glow behind board (same behavior as SpinRoundBanner)
         this.createWoodTexts(topLabel, bottomLabel);
         this.createCenterNumber();
         this.createContinueText();
@@ -131,6 +140,184 @@ export class FreeSpinWinBanner extends Container {
             await Promise.all(families.map((f) => fonts.load(`64px "${f}"`)));
             if (fonts.ready) await fonts.ready;
         } catch {}
+    }
+
+    // ==================================================
+    // GLOW HELPERS (same pattern as SpinRoundBanner)
+    // ==================================================
+    private syncGlowToBanner() {
+        if (!this.banner) return;
+        const bx = this.banner.x;
+        const by = this.banner.y;
+
+        if (this.glowA) {
+            this.glowA.x = bx;
+            this.glowA.y = by;
+        }
+        if (this.glowB) {
+            this.glowB.x = bx;
+            this.glowB.y = by;
+        }
+    }
+
+    private getGlows(): Sprite[] {
+        const arr: Sprite[] = [];
+        if (this.glowA) arr.push(this.glowA);
+        if (this.glowB) arr.push(this.glowB);
+        return arr;
+    }
+
+    private createGlow() {
+        // cleanup existing
+        for (const g of this.getGlows()) {
+            g.removeFromParent();
+            g.destroy();
+        }
+        this.glowA = undefined;
+        this.glowB = undefined;
+
+        const glowTexture = Texture.from("glow");
+
+        const makeGlow = () => {
+            const s = new Sprite(glowTexture);
+            s.anchor.set(0.5);
+            return s;
+        };
+
+        this.glowA = makeGlow();
+        this.glowB = makeGlow();
+
+        // ✅ behind the board & texts
+        this.panel.addChildAt(this.glowA, 0);
+        this.panel.addChildAt(this.glowB, 1);
+
+        // ensure banner/texts stay above glow
+        if (this.banner) {
+            this.panel.setChildIndex(this.banner, this.panel.children.length - 1);
+        }
+
+        this.syncGlowToBanner();
+
+        const bannerWidth = this.banner.width;
+        const bannerHeight = this.banner.height;
+
+        const targetWidth = bannerWidth * 1.7;
+        const targetHeight = bannerHeight * 1.7;
+
+        const scaleX = targetWidth / glowTexture.width;
+        const scaleY = targetHeight / glowTexture.height;
+        const finalScale = Math.max(scaleX, scaleY);
+
+        this.glowBaseScale = finalScale;
+
+        this.glowA.scale.set(finalScale);
+        this.glowB.scale.set(finalScale * 0.97);
+
+        this.glowA.alpha = 0;
+        this.glowB.alpha = 0;
+
+        this.glowA.rotation = 0;
+        this.glowB.rotation = 0;
+    }
+
+    private showGlowEffects() {
+        const gA = this.glowA;
+        const gB = this.glowB;
+        if (!gA || !gB) return;
+
+        this.syncGlowToBanner();
+
+        gsap.killTweensOf([gA, gB, gA.scale, gB.scale]);
+        if (this.glowOpacityTween) {
+            this.glowOpacityTween.kill();
+            this.glowOpacityTween = undefined;
+        }
+
+        gA.alpha = 0;
+        gB.alpha = 0;
+
+        this.glowEntranceTween = gsap.to([gA, gB], {
+            alpha: 0.85,
+            duration: 0.25,
+            ease: "power2.out",
+            onComplete: () => {
+                this.glowEntranceTween = undefined;
+                this.animateGlowIdle();
+            },
+        });
+    }
+
+    private animateGlowIdle() {
+        const gA = this.glowA;
+        const gB = this.glowB;
+        if (!gA || !gB) return;
+
+        this.syncGlowToBanner();
+
+        gsap.killTweensOf([gA, gB, gA.scale, gB.scale]);
+
+        gA.scale.set(this.glowBaseScale);
+        gB.scale.set(this.glowBaseScale * 0.97);
+
+        const makePlayfulSpin = (target: Sprite, direction: 1 | -1, totalDuration: number) => {
+            gsap.killTweensOf(target);
+
+            const step = (Math.PI * 2) / 3;
+            const d1 = totalDuration * 0.34;
+            const d2 = totalDuration * 0.33;
+            const d3 = totalDuration * 0.33;
+
+            const tl = gsap.timeline({ repeat: -1 });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: "sine.inOut" });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: "sine.inOut" });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: "sine.inOut" });
+            return tl;
+        };
+
+        makePlayfulSpin(gA, 1, 18);
+        makePlayfulSpin(gB, -1, 26);
+
+        const A_MAX = 0.95;
+        const A_MIN = 0.4;
+        const B_MAX = 0.85;
+        const B_MIN = 0.3;
+
+        gA.alpha = A_MAX;
+        gB.alpha = B_MIN;
+
+        this.glowOpacityTween = gsap.to(
+            { t: 0 },
+            {
+                t: 1,
+                duration: 1.8,
+                repeat: -1,
+                yoyo: true,
+                ease: "sine.inOut",
+                onUpdate: function () {
+                    const t = (this.targets()[0] as any).t as number;
+                    gA.alpha = A_MAX + (A_MIN - A_MAX) * t;
+                    gB.alpha = B_MIN + (B_MAX - B_MIN) * t;
+                },
+            },
+        );
+
+        gsap.to(gA.scale, {
+            x: this.glowBaseScale * 1.04,
+            y: this.glowBaseScale * 1.04,
+            duration: 2.2,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
+        });
+
+        gsap.to(gB.scale, {
+            x: this.glowBaseScale * 1.01,
+            y: this.glowBaseScale * 1.01,
+            duration: 2.6,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
+        });
     }
 
     // ==================================================
@@ -260,13 +447,48 @@ export class FreeSpinWinBanner extends Container {
     // ==================================================
     private animateEntrance() {
         const startOffset = -900;
-        const items = [
+
+        // kill any previous tweens
+        gsap.killTweensOf([
             this.banner,
             this.topText,
             this.spinsText,
             this.bottomText,
             this.continueText,
-        ];
+            ...this.getGlows(),
+        ].filter(Boolean));
+        gsap.killTweensOf([this.topText?.scale, this.bottomText?.scale, this.continueText?.scale].filter(Boolean));
+        gsap.killTweensOf(this);
+
+        if (this.glowEntranceTween) {
+            this.glowEntranceTween.kill();
+            this.glowEntranceTween = undefined;
+        }
+        if (this.glowOpacityTween) {
+            this.glowOpacityTween.kill();
+            this.glowOpacityTween = undefined;
+        }
+        for (const g of this.getGlows()) {
+            gsap.killTweensOf(g);
+            gsap.killTweensOf(g.scale);
+        }
+
+        // prepare glow state
+        this.syncGlowToBanner();
+        for (const g of this.getGlows()) {
+            g.alpha = 0;
+            g.rotation = 0;
+            g.scale.set(g === this.glowB ? this.glowBaseScale * 0.97 : this.glowBaseScale);
+        }
+
+        const items = [
+            ...this.getGlows(), // ✅ glow comes in with the popup too
+            this.banner,
+            this.topText,
+            this.spinsText,
+            this.bottomText,
+            this.continueText,
+        ].filter(Boolean) as any[];
 
         items.forEach((i) => {
             i.alpha = 0;
@@ -280,6 +502,19 @@ export class FreeSpinWinBanner extends Container {
                 duration: 0.7,
                 delay: idx * 0.05,
                 ease: "bounce.out",
+                onUpdate: () => {
+                    // keep glow locked to banner during entrance
+                    if (i === this.banner || i === this.topText || i === this.spinsText) {
+                        this.syncGlowToBanner();
+                    }
+                },
+                onComplete: () => {
+                    this.syncGlowToBanner();
+                    // once the board has landed, start the glow idle
+                    if (i === this.banner) {
+                        this.showGlowEffects();
+                    }
+                },
             });
         });
     }
@@ -329,6 +564,28 @@ export class FreeSpinWinBanner extends Container {
         this.panel.y = height * 0.5;
 
         this.banner?.scale.set(1.3);
+
+        const gA = this.glowA;
+        const gB = this.glowB;
+
+        if (gA && gB && this.banner) {
+            const bannerWidth = this.banner.width;
+            const bannerHeight = this.banner.height;
+
+            const targetWidth = bannerWidth * 1.7;
+            const targetHeight = bannerHeight * 1.7;
+
+            const scaleX = targetWidth / gA.texture.width;
+            const scaleY = targetHeight / gA.texture.height;
+            const finalScale = Math.max(scaleX, scaleY);
+
+            this.glowBaseScale = finalScale;
+
+            gA.scale.set(finalScale);
+            gB.scale.set(finalScale * 0.97);
+
+            this.syncGlowToBanner();
+        }
     }
 
     public async hide(forceInstant = false) {
@@ -338,6 +595,20 @@ export class FreeSpinWinBanner extends Container {
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
+        }
+
+        // kill glow tweens
+        if (this.glowEntranceTween) {
+            this.glowEntranceTween.kill();
+            this.glowEntranceTween = undefined;
+        }
+        if (this.glowOpacityTween) {
+            this.glowOpacityTween.kill();
+            this.glowOpacityTween = undefined;
+        }
+        for (const g of this.getGlows()) {
+            gsap.killTweensOf(g);
+            gsap.killTweensOf(g.scale);
         }
 
         if (forceInstant) {
@@ -351,13 +622,14 @@ export class FreeSpinWinBanner extends Container {
 
         await gsap.to(
             [
+                ...this.getGlows(),
                 this.banner,
                 this.topText,
                 this.spinsText,
                 this.bottomText,
                 this.continueText,
                 this.bg,
-            ],
+            ].filter(Boolean),
             { alpha: 0, duration: 0.25 }
         );
 
@@ -373,10 +645,25 @@ export class FreeSpinWinBanner extends Container {
             this.keyListenerAdded = false;
         }
 
+        // kill text tweens
         gsap.killTweensOf(this.topText?.scale);
         gsap.killTweensOf(this.bottomText?.scale);
         gsap.killTweensOf(this.continueText?.scale);
         gsap.killTweensOf(this);
+
+        // kill glow tweens
+        if (this.glowEntranceTween) {
+            this.glowEntranceTween.kill();
+            this.glowEntranceTween = undefined;
+        }
+        if (this.glowOpacityTween) {
+            this.glowOpacityTween.kill();
+            this.glowOpacityTween = undefined;
+        }
+        for (const g of this.getGlows()) {
+            gsap.killTweensOf(g);
+            gsap.killTweensOf(g.scale);
+        }
 
         super.destroy(options);
 

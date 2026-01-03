@@ -1,5 +1,3 @@
-import { waitFor } from '../utils/asyncUtils';
-
 export class ConfigAPI {
     static async config() {
         try {
@@ -13,15 +11,27 @@ export class ConfigAPI {
                 buyFeatureBetMultiplier: 100,
                 bonusFreeSpins: {
                     freeSpin: {
-                        bonus2: {count: 2, spins: 5},
-                        bonus3: {count: 3, spins: 10},
-                        bonus4: {count: 4, spins: 20},
-                        bonus5: {count: 5, spins: 30}
+                        // bonus2: {count: 2, spins: 5},
+                        // bonus3: {count: 3, spins: 10},
+                        // bonus4: {count: 4, spins: 20},
+                        // bonus5: {count: 5, spins: 30}
+                        
+                        bonus2: {count: 4, spins: 5},
+                        bonus3: {count: 5, spins: 10},
+                        bonus4: {count: 6, spins: 20},
+                        bonus5: {count: 7, spins: 30}
+
+
+
                     },
                     nonFreeSpin: {
-                        bonus3: {count: 3, spins: 10},
-                        bonus4: {count: 4, spins: 15},
-                        bonus5: {count: 5, spins: 20}
+                        // bonus3: {count: 3, spins: 10},
+                        // bonus4: {count: 4, spins: 15},
+                        // bonus5: {count: 5, spins: 20}
+
+                        bonus3: {count: 4, spins: 10},
+                        bonus4: {count: 5, spins: 15},
+                        bonus5: {count: 6, spins: 20}
                     }
                 },
 
