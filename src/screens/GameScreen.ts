@@ -375,6 +375,7 @@ export class GameScreen extends Container {
 
     private async onAutoSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
+        console.log("remaining spins left failed to display if there is no winning round");
         this.controlPanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
         this.lockInteraction();
     }
@@ -383,27 +384,17 @@ export class GameScreen extends Container {
 
         const totalWon = this.match3.autoSpinProcess.getAccumulatedWin();
 
-        if (totalWon > 0) this.controlPanel.setTitle(`Win ${totalWon}`);
-        else this.controlPanel.setTitle(`GOOD LUCK`);
-
-        this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
-
-        if (!this.match3.autoSpinProcess.isProcessing()) {
-            await this.finish();
-            // await this.drawWinBannerAsync(this.match3.autoSpinProcess.getRoundWin());            
+        if (totalWon > 0){
+            this.controlPanel.setTitle(`Win ${totalWon}`);
+            this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
+        } else {
+            this.controlPanel.setTitle(`GOOD LUCK`);
         }
 
-        const spinWon = this.match3.autoSpinProcess.getFreeSpinWon();
-        if (spinWon > 0) {
-            this.match3.autoSpinProcess.pause();
-            
-            console.log("To proceed FreeSpinProcess,  Free Spin Won: ", spinWon);
-            // trigger here the switching process
-            await this.match3.switchToFreeSpin(spinWon, {initial: false});
+        await this.finish();
 
-            //
-            this.match3.autoSpinProcess.resume();
-        }
+        // check for bonus and process switching if there is passed bonus condition
+        await this.checkBonus("autospin");
 
         if (this.match3.autoSpinProcess.getAutoSpinProcessing()) {
             this.lockInteraction();
@@ -436,16 +427,8 @@ export class GameScreen extends Container {
         // ✅ hard lock while banner is open
         this.lockInteraction();
 
-        // ✅ pause processes so nothing can continue while popup is open
-        // this.match3.process.pause?.();          // current active process (should be freeSpinProcess here)
-        // this.match3.autoSpinProcess.pause?.();  // safety: if it was interrupted from auto spin
-
         // ✅ show banner and wait close
         await this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
-
-        // // ✅ resume after popup closes
-        // this.match3.autoSpinProcess.resume?.();
-        // this.match3.process.resume?.();
 
         this.syncFeatureAvailability();
     }
@@ -547,7 +530,9 @@ export class GameScreen extends Container {
     }
 
     private messageMatchQueuing(roundResult: RoundResult) {
-        roundResult.map(r => {
+        if (!roundResult || roundResult.length === 0) return;
+
+        roundResult.forEach(r => {
             this.controlPanel.addMatchMessage(
                 r.multiplier,
                 r.type,
@@ -557,5 +542,23 @@ export class GameScreen extends Container {
         });
 
         this.controlPanel.playMatchMessages();
+    }
+
+    private async checkBonus(feature: string){
+        
+        let spinWon = 0;
+        switch(feature){
+            case "normalspin":
+                spinWon = this.match3.process.getSpinWon();
+                if (spinWon > 0) {
+                    await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
+                }
+
+            case "autospin": 
+                spinWon = this.match3.autoSpinProcess.getSpinWon();
+                if (spinWon > 0) {
+                    await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
+                }                
+        }
     }
 }

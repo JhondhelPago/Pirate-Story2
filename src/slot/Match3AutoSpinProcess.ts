@@ -135,18 +135,6 @@ export class Match3AutoSpinProcess extends Match3Process {
         return this.autoSpinProcessing;
     }
 
-    public getFreeSpinWon() {
-        let spins = 0;
-
-        if (this.bonus >= 4) spins = 5;
-        // else if (this.bonus === 4) spins = 10;
-        // else if (this.bonus === 5) spins = 15;
-
-        this.bonus = 0;
-        return spins;
-    }
-
-
     public reset() {
         this.wildReels = gridZeroReset();
         this.match3.board.setWildReels(this.wildReels);

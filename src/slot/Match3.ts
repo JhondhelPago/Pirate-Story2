@@ -251,15 +251,7 @@ export class Match3 extends Container {
             await this.endInterrupt();
         }
     }
-
-    // ---------------------------------------------------------------------
-    // ✅ Public interrupt helpers (call these from processes)
-    // ---------------------------------------------------------------------
-
-    /**
-     * Interrupt whatever is running and execute FreeSpin flow, then resume previous.
-     * NOTE: This MUST be allowed even while this.spinning is true (e.g. auto spin).
-     */
+    
     public async switchToFreeSpin(spins: number, opts?: { initial?: boolean }) {
         return this.runControllerTask(async () => {
             if (this.controllerBusy) return;
@@ -268,6 +260,7 @@ export class Match3 extends Container {
             try {
                 await this.interruptWith(this.freeSpinProcess, async () => {
                     if (opts?.initial) {
+                        // trigger the free spin with the initial spin with bonus
                         await this.actions.actionFreeSpinInitial(spins);
                     } else {
                         // ✅ trigger GameScreen hook (draw banner and wait close)
@@ -282,9 +275,6 @@ export class Match3 extends Container {
         });
     }
 
-    /**
-     * Interrupt whatever is running and execute AutoSpin flow, then resume previous.
-     */
     public async swtichToAutoSpin(spins: number) {
         return this.runControllerTask(async () => {
             if (this.controllerBusy) return;
@@ -300,10 +290,7 @@ export class Match3 extends Container {
         });
     }
 
-    /**
-     * Optional: interrupt and run a custom feature flow (jackpot, special bonus, etc.)
-     * using whichever process you want to "own" that flow.
-     */
+    
     public async swtichToProcess(process: Match3Process, work: () => Promise<void>) {
         return this.runControllerTask(async () => {
             if (this.controllerBusy) return;

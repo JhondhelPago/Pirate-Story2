@@ -324,7 +324,6 @@ export class Match3Process {
         console.log("checking bonus: ", checked_result);
 
         this.bonus = checked_result.count;
-
         this.match3.board.setBonusPositions(checked_result.positions);
         this.bonusReels = gridZeroReset();
     }
@@ -372,5 +371,16 @@ export class Match3Process {
 
     public getRoundWin() {
         return this.roundWin;
+    }
+
+    public getSpinWon() {
+        let spins = 0;
+
+        if (this.bonus >= 14) spins = 5;
+        // else if (this.bonus === 4) spins = 10;
+        // else if (this.bonus === 5) spins = 15;
+
+        this.bonus = 0;
+        return spins;
     }
 }
