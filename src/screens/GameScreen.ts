@@ -486,6 +486,9 @@ export class GameScreen extends Container {
             await this.drawWinBannerAsync(roundWin);
         }
 
+        // check for bonus and process switching if there is passed bonus condition
+        await this.checkBonus("normalspin");
+
         this.controlPanel.enableBetting();
         this.finished = false;
 
@@ -551,6 +554,7 @@ export class GameScreen extends Container {
             case "normalspin":
                 spinWon = this.match3.process.getSpinWon();
                 if (spinWon > 0) {
+                    console.log("testing the flow of the checkBonus on the autospin");
                     await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
                 }
 

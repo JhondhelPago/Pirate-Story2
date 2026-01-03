@@ -376,7 +376,7 @@ export class Match3Process {
     public getSpinWon() {
         let spins = 0;
 
-        if (this.bonus >= 14) spins = 5;
+        if (this.bonus >= 3) spins = 5;
         // else if (this.bonus === 4) spins = 10;
         // else if (this.bonus === 5) spins = 15;
 
