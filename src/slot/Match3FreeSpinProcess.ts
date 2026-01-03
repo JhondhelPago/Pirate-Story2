@@ -232,6 +232,10 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.remainingSpins = spins;
     }
 
+    public addSpins(spins: number) {
+        this.remainingSpins += spins;
+    }
+
     public getAccumulatedWin() {
         return this.accumulatedWin;
     }

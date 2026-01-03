@@ -56,22 +56,7 @@ export class FreeSpinWinBanner extends Container {
         this.isClosing = true;
         this.canClickAnywhere = false;
 
-        // ✅ TRIGGER YOUR PROCESS HERE (start freespin process, etc.)
-        // Example options:
-        // 1) call a callback you passed in
-        // 2) emit an event
-        // 3) call match3 process starter directly (not recommended if you want UI decoupled)
-
-        // If you want it via callback, add it to data:
-        // d?.onContinue?.();
-
-        const gamescreen = navigation.currentScreen as GameScreen;
-
-        // trigger the free spin with the number of spins pass to this banner
-        gamescreen.onFreeSpinStart(this.spins);
-
         await this.hide(); // then dismiss popup
-
     }
 
     constructor() {

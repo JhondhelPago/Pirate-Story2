@@ -441,7 +441,6 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinRoundComplete() {
-        console.log("onFreeSpinRoundComplete trigger using the freespinprocess");
         const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
 
         if (totalWon > 0) this.controlPanel.setTitle(`Win ${totalWon}`);
@@ -453,6 +452,9 @@ export class GameScreen extends Container {
             await this.finish();
             await this.drawWinBannerAsync(this.match3.freeSpinProcess.getRoundWin());
         }
+
+        // do not switch process, instead check bonus for extra free spins, then add spin sessions
+        await this.checkBonus("freespin");
 
         this.controlPanel.enableBetting();
         this.finished = false;
@@ -523,11 +525,14 @@ export class GameScreen extends Container {
         });
     }
 
-    private drawFreeSpinWonBanner(spins: number): Promise<void> {
+    private drawFreeSpinWonBanner(spins: number, initiateSpin: boolean = true): Promise<void> {
         return new Promise((resolve) => {
             navigation.presentPopup(FreeSpinWinBanner, {
                 spins,
-                onClosed: () => resolve(),
+                onClosed: () => {
+                    if (initiateSpin) this.onFreeSpinStart(spins); // start the free spin session after closing the banner
+                    resolve();
+                },
             });
         });
     }
@@ -562,7 +567,17 @@ export class GameScreen extends Container {
                 spinWon = this.match3.autoSpinProcess.getSpinWon();
                 if (spinWon > 0) {
                     await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
-                }                
+                }
+            case "freespin":
+                spinWon = this.match3.freeSpinProcess.getSpinWon();
+                if (spinWon > 0) {
+                    console.log("free spin process won extra free spins: ", spinWon);
+                    // dont switch, instead add spins session to the current free spin process
+                    // draw the free spin won banner here
+                    this.drawFreeSpinWonBanner(spinWon, false);
+                    this.match3.freeSpinProcess.addSpins(spinWon);
+                }
+                
         }
     }
 }
