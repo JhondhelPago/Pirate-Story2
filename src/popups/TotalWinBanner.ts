@@ -63,6 +63,13 @@ export class TotalWinBanner extends Container {
         void this.hide();
     };
 
+    // ==================================================
+    // ✅ NEW: Auto-close settings
+    // ==================================================
+    private autoClose = false; // default false
+    private autoCloseDuration = 0; // default 0 (ms)
+    private autoCloseTimer?: number;
+
     constructor() {
         super();
 
@@ -98,6 +105,45 @@ export class TotalWinBanner extends Container {
         }
     }
 
+    // ✅ NEW: Programmatic close (triggered close)
+    public static triggerClose(forceInstant = false) {
+        if (TotalWinBanner.currentInstance) {
+            void TotalWinBanner.currentInstance.hide(forceInstant);
+        }
+    }
+
+    // ✅ NEW: instance-level triggered close if you prefer calling on the instance
+    public requestClose(forceInstant = false) {
+        void this.hide(forceInstant);
+    }
+
+    private clearAutoCloseTimer() {
+        if (this.autoCloseTimer != null) {
+            clearTimeout(this.autoCloseTimer);
+            this.autoCloseTimer = undefined;
+        }
+    }
+
+    private scheduleAutoCloseIfNeeded() {
+        this.clearAutoCloseTimer();
+
+        // Only auto-close when explicitly enabled AND duration is non-zero
+        if (!this.autoClose) return;
+        if (!Number.isFinite(this.autoCloseDuration) || this.autoCloseDuration <= 0) return;
+
+        this.autoCloseTimer = window.setTimeout(() => {
+            // avoid closing before interaction is enabled
+            if (!this.canClickAnywhere) {
+                // reschedule a tiny bit until ready
+                this.autoCloseTimer = window.setTimeout(() => {
+                    if (this.canClickAnywhere) void this.hide();
+                }, 100);
+                return;
+            }
+            void this.hide();
+        }, this.autoCloseDuration);
+    }
+
     public async prepare<T>(data?: T) {
         const anyData = data as any;
 
@@ -112,6 +158,22 @@ export class TotalWinBanner extends Container {
         this.freeSpins = spins;
 
         this.targetDisplayValue = win;
+
+        // ==================================================
+        // ✅ NEW: read auto-close options w/ defaults
+        // defaults: autoClose=false, duration=0
+        // - duration is only used when autoClose=true
+        // - duration=0 means "do not use duration; close is triggered"
+        // ==================================================
+        this.autoClose = typeof anyData?.autoClose === "boolean" ? anyData.autoClose : false;
+
+        // accept seconds or ms? We'll treat it as milliseconds (consistent with setTimeout)
+        // If you want seconds instead, pass durationMs = duration * 1000 from caller.
+        const duration = typeof anyData?.duration === "number" ? anyData.duration : 0;
+        this.autoCloseDuration = duration;
+
+        // reset timers
+        this.clearAutoCloseTimer();
 
         // ✅ Ensure fonts are loaded before measuring Text heights
         await this.waitForFonts(["Bangers", "Pirata One"]);
@@ -137,6 +199,9 @@ export class TotalWinBanner extends Container {
         // ✅ Only allow dismiss after animations settle
         setTimeout(() => {
             this.canClickAnywhere = true;
+
+            // ✅ NEW: schedule auto-close AFTER it becomes dismissable
+            this.scheduleAutoCloseIfNeeded();
         }, 1200);
     }
 
@@ -807,6 +872,9 @@ export class TotalWinBanner extends Container {
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
+        // ✅ NEW: always clear auto-close timer on hide
+        this.clearAutoCloseTimer();
+
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
@@ -861,13 +929,14 @@ export class TotalWinBanner extends Container {
 
         TotalWinBanner.currentInstance = null;
 
-        // ✅ IMPORTANT: resolve GameScreen promise when user closes banner
         await this.fireClosedOnce();
 
         await navigation.dismissPopup();
     }
 
     public override destroy(options?: any) {
+        this.clearAutoCloseTimer();
+
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
@@ -887,7 +956,6 @@ export class TotalWinBanner extends Container {
             gsap.killTweensOf(g.scale);
         }
 
-        // ✅ safety: if destroyed without hide(), still resolve once
         void this.fireClosedOnce();
 
         super.destroy(options);

@@ -9,7 +9,7 @@ import { slotGetConfig } from '../slot/Match3Config';
 import { GameLogo } from '../ui/GameLogo';
 import { BuyFreeSpin } from '../ui/BuyFreeSpin';
 import { ControlPanel } from '../ui/ControlPanel';
-import { BetAction, userSettings } from '../utils/userSettings';
+import { BetAction, SpinModeEnum, userSettings } from '../utils/userSettings';
 import { GoldRoger } from '../ui/GoldRoger';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
@@ -515,14 +515,44 @@ export class GameScreen extends Container {
     }
 
     private drawTotalWinBanner(winAmount: number, freeSpins: number): Promise<void> {
-        
-        return new Promise((resolve) => {
-            navigation.presentPopup(TotalWinBanner, {
-                win: winAmount,
-                spins: freeSpins,
-                onClosed: () => resolve(), // ✅ resolves when banner closes
+
+        const hasPrevProcess = this.match3.getStackSize() > 0 ;
+        const spinMode = userSettings.getSpinMode();
+        let duration = 0;
+
+        switch(spinMode){
+            case SpinModeEnum.Normal:
+                duration = 6000;
+                break;
+            case SpinModeEnum.Quick:
+                duration = 4500;
+                break;
+            case SpinModeEnum.Turbo:
+                duration = 3000;
+                break;
+        }
+
+        if (hasPrevProcess){
+            return new Promise((resolve) => {
+                navigation.presentPopup(TotalWinBanner, {
+                    win: winAmount,
+                    spins: freeSpins,
+                    autoClose: true,
+                    duration: duration,
+                    onClosed: () => resolve(), // resolves when banner closes
+                });
             });
-        });
+        } else {
+            return new Promise((resolve) => {
+                navigation.presentPopup(TotalWinBanner, {
+                    win: winAmount,
+                    spins: freeSpins,
+                    onClosed: () => resolve(), // resolves when banner closes
+                });
+            });
+        }
+
+
     }
 
     private drawFreeSpinWonBanner(spins: number, initiateSpin: boolean = true): Promise<void> {

@@ -401,4 +401,8 @@ export class Match3 extends Container {
     public update(_delta: number) {
         this.process.update(_delta);
     }
+
+    public getStackSize(){
+        return this.processStack.length;
+    }
 }
