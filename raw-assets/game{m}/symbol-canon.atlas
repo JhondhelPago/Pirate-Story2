@@ -1,32 +1,30 @@
 symbol-canon.png
-	size: 680, 282
+	size: 214, 516
 	filter: Linear, Linear
 0000
-	bounds: 468, 176, 104, 104
+	bounds: 2, 236, 104, 104
 	offsets: 1, 1, 106, 106
 0001
-	bounds: 468, 70, 104, 104
+	bounds: 108, 236, 104, 104
 	offsets: 1, 1, 106, 106
 0002
-	bounds: 269, 2, 104, 104
+	bounds: 2, 130, 104, 104
 	offsets: 1, 1, 106, 106
 0003
-	bounds: 574, 176, 104, 104
+	bounds: 108, 130, 104, 104
 	offsets: 1, 1, 106, 106
 0004
-	bounds: 574, 70, 104, 104
+	bounds: 2, 24, 104, 104
 	offsets: 1, 1, 106, 106
-bg
-	bounds: 2, 15, 265, 265
-	offsets: 1, 1, 267, 267
 canon
-	bounds: 269, 108, 172, 197
+	bounds: 2, 342, 172, 197
 	offsets: 1, 1, 174, 199
 	rotate: 90
 canon back
-	bounds: 456, 23, 45, 68
+	bounds: 108, 2, 45, 68
 	offsets: 1, 1, 47, 70
 	rotate: 90
 canon front
-	bounds: 375, 7, 79, 99
+	bounds: 108, 49, 79, 99
 	offsets: 1, 1, 81, 101
+	rotate: 90

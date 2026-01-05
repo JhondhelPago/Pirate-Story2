@@ -1,8 +1,8 @@
 {
 "skeleton": {
-	"hash": "hjQFk4eledU",
+	"hash": "ee3XuJwI2y0",
 	"spine": "4.2.43",
-	"x": -208.06,
+	"x": -209.98,
 	"y": -208.06,
 	"width": 416.12,
 	"height": 416.12,
@@ -11,7 +11,7 @@
 },
 "bones": [
 	{ "name": "root", "x": -1.92 },
-	{ "name": "Hat", "parent": "root", "x": -19.87, "y": -27.29 },
+	{ "name": "Hat", "parent": "root", "x": -19.87, "y": -27.29, "scaleX": 1.4158, "scaleY": 1.4158 },
 	{ "name": "Hat2", "parent": "Hat", "x": 101.49, "y": -0.38, "color": "abe323ff" },
 	{ "name": "Hat3", "parent": "Hat2", "x": -179.5, "y": 0.86, "color": "abe323ff" },
 	{ "name": "skull", "parent": "Hat", "x": -1.13, "y": 10.29 },
@@ -37,7 +37,6 @@
 	{ "name": "VFX", "parent": "root", "scaleX": 2.299, "scaleY": -2.299, "color": "ff0000ff" }
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "Hat", "bone": "Hat3", "attachment": "Hat" },
 	{ "name": "Hat2", "bone": "Hat3", "color": "ffffff00", "attachment": "Hat", "blend": "additive" },
 	{ "name": "Hat3", "bone": "Hat3", "color": "ffffff00", "attachment": "Hat", "blend": "additive" },
@@ -56,9 +55,6 @@
 	{
 		"name": "default",
 		"attachments": {
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
-			},
 			"bounding": {
 				"bounding": {
 					"type": "boundingbox",

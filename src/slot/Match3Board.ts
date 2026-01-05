@@ -459,17 +459,16 @@ export class Match3Board {
 
             if (reel.symbols.length !== this.rows) continue;
 
-            // ✅ FLICK FIX:
-            // Do NOT call setup/showSpine on the visible 5x5 here.
-            // Rebuilding the strip should only add blur symbols above.
-            // (The visible grid is already correct; touching it can cause 1-frame pop.)
-
             const blurSyms: SlotSymbol[] = [];
             for (let j = 0; j < this.blurCount; j++) {
                 const type = this.randomType();
                 const sym = this.makeSlotSymbol(type, 0);
                 sym.y = yTop + j * this.tile;
                 this.showBlur(sym);
+
+                // ✅ IMPORTANT: keep hidden until we are in blur-view
+                sym.visible = false;
+
                 blurSyms.push(sym);
             }
 
@@ -479,10 +478,12 @@ export class Match3Board {
             reel.position = 0;
         }
 
-        for (let c = 0; c < this.columns; c++) {
-            this.setBlurVisibleForColumn(c, true);
-        }
+        // ❌ REMOVE THIS (this is what causes the visible top spin during lift)
+        // for (let c = 0; c < this.columns; c++) {
+        //     this.setBlurVisibleForColumn(c, true);
+        // }
     }
+
 
     private setBlurVisibleForColumn(column: number, visible: boolean) {
         const reel = this.realReels[column];
@@ -558,8 +559,9 @@ export class Match3Board {
         this.ticker.start();
     }
 
+    
     /**
-     * NORMAL start: wave + lift + stagger (unchanged)
+     * NORMAL start: wave + lift + stagger (fixed blur timing)
      */
     private async startSpinSeamlessSequential(): Promise<void> {
         const seq = ++this._startSeqId;
@@ -574,6 +576,9 @@ export class Match3Board {
             if (!col) continue;
             gsap.killTweensOf(col);
             col.y = yLead;
+
+            // ✅ IMPORTANT: ensure blur is hidden at the very start
+            this.setBlurVisibleForColumn(c, false);
         }
 
         const WAVE_STAGGER = 0.06;
@@ -588,11 +593,11 @@ export class Match3Board {
             });
         }
 
-        const cols = this.realReels.map((r) => r.container).filter(Boolean);
+        const cols = this.realReels.map((r) => r.container).filter(Boolean) as Container[];
 
         const tl = gsap.timeline();
 
-        // ✅ Flick fix: rebuild strip DURING the lift (so user won't notice)
+        // ✅ Build strip during lift (still hidden => no peek)
         tl.call(
             () => {
                 if (seq !== this._startSeqId) return;
@@ -605,19 +610,31 @@ export class Match3Board {
             0.01
         );
 
+        // Lift (blur stays hidden)
         tl.to(cols, {
             y: yLead - LIFT_PX,
             duration: LIFT_DUR,
             ease: "power1.out",
             stagger: WAVE_STAGGER,
         });
+
+        // Drop: ✅ enable blur PER COLUMN when that column's drop starts
         tl.to(
             cols,
             {
                 y: yBlur,
                 duration: DROP_DUR,
                 ease: "none",
-                stagger: WAVE_STAGGER,
+                stagger: {
+                    each: WAVE_STAGGER,
+                    onStart: (_i: number, target: any) => {
+                        if (seq !== this._startSeqId) return;
+
+                        // map target container back to column index
+                        const idx = cols.indexOf(target as any);
+                        if (idx >= 0) this.setBlurVisibleForColumn(idx, true);
+                    },
+                },
             },
             ">-0.02"
         );
@@ -625,15 +642,16 @@ export class Match3Board {
         await tl.then();
         if (seq !== this._startSeqId) return;
 
+        // Make sure all columns are active and locked to blur-view
         for (let c = 0; c < this.columns; c++) this.colActive[c] = true;
-
-        // ✅ Flick fix: strip is already built during lift, so don't rebuild here.
 
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container;
             if (!col) continue;
             gsap.killTweensOf(col);
             col.y = yBlur;
+
+            // ✅ safety: ensure blur is visible after sequence ends
             this.setBlurVisibleForColumn(c, true);
         }
 
@@ -645,8 +663,10 @@ export class Match3Board {
         }
     }
 
-    /**
+
+        /**
      * QUICK start: NO lift, NO stagger. All columns animate at the same time.
+     * Fixed: build strip BEFORE drop, enable blur right when drop starts (no gaps).
      */
     private async startSpinSeamlessQuickAllAtOnce(): Promise<void> {
         const seq = ++this._startSeqId;
@@ -658,32 +678,35 @@ export class Match3Board {
         // make blur spin active immediately for all columns
         this.colActive = new Array(this.columns).fill(true);
 
-        // reset all columns to lead position
         const cols = this.realReels
             .map((r) => r.container)
             .filter(Boolean) as Container[];
-        for (const col of cols) {
+
+        // reset all columns to lead position and keep blur hidden
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
             gsap.killTweensOf(col);
             col.y = yLead;
+            this.setBlurVisibleForColumn(c, false);
+        }
+
+        // ✅ Build strip BEFORE drop (still hidden => no flick, and no empty gaps later)
+        if (!this.hasSpinStripBuilt()) {
+            const snap = this.getCurrentGridSnapshot();
+            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
         }
 
         // drop all at once (no lift)
         const DROP_DUR = 0.22;
-        const t = gsap.to(cols, { y: yBlur, duration: DROP_DUR, ease: "none" });
 
-        // ✅ Flick fix: rebuild strip DURING the drop (so user won't notice)
-        gsap.delayedCall(0.01, () => {
-            if (seq !== this._startSeqId) return;
-            if (!this.hasSpinStripBuilt()) {
-                const snap = this.getCurrentGridSnapshot();
-                this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-            }
-        });
+        // ✅ Enable blur at the moment the drop starts (covers the grid immediately)
+        for (let c = 0; c < this.columns; c++) this.setBlurVisibleForColumn(c, true);
+
+        const t = gsap.to(cols, { y: yBlur, duration: DROP_DUR, ease: "none" });
 
         await t.then();
         if (seq !== this._startSeqId) return;
-
-        // ✅ Flick fix: strip is already built during drop, so don't rebuild here.
 
         // lock everyone to blur-view
         for (let c = 0; c < this.columns; c++) {
@@ -703,6 +726,7 @@ export class Match3Board {
             this._spinSpeed = Math.max(this._spinSpeed, 1.8);
         }
     }
+
 
     private forceAllColumnsToBlurViewAndActive() {
         this.cancelStartSequence();
@@ -777,6 +801,10 @@ export class Match3Board {
 
         if (spinMode === SpinModeEnum.Turbo) {
             this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+
+            // ✅ show blur immediately for turbo (no lift/drop)
+            for (let c = 0; c < this.columns; c++) this.setBlurVisibleForColumn(c, true);
+
             this.forceAllColumnsToBlurViewAndActive();
             this._spinSpeed = Math.max(this._spinSpeed, 1.4);
 
@@ -786,6 +814,7 @@ export class Match3Board {
             this.ensureWildLayerOnTop();
             return;
         }
+
 
         // ✅ QUICK: no lift + all columns same time
         if (spinMode === SpinModeEnum.Quick) {

@@ -1,17 +1,17 @@
 {
 "skeleton": {
-	"hash": "yXoguZn2cIE",
+	"hash": "TWA5WF0e4mg",
 	"spine": "4.2.43",
 	"x": -133,
-	"y": -134,
+	"y": -160.11,
 	"width": 267,
-	"height": 267,
+	"height": 293.11,
 	"images": "./images/",
 	"audio": "./audio"
 },
 "bones": [
 	{ "name": "root" },
-	{ "name": "Bomb", "parent": "root", "x": 2, "scaleX": 0.8625, "scaleY": 0.8625, "color": "00b4ffff" },
+	{ "name": "Bomb", "parent": "root", "x": 2, "scaleX": 1.1792, "scaleY": 1.1792, "color": "00b4ffff" },
 	{
 		"name": "bomb rope",
 		"parent": "Bomb",
@@ -43,7 +43,6 @@
 	{ "name": "water VFX", "parent": "Bomb", "y": -60.77, "color": "00b4ffff" }
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "Bomb", "bone": "Bomb", "attachment": "bomb" },
 	{ "name": "Bomb2", "bone": "Bomb", "color": "ffffff00", "attachment": "bomb", "blend": "additive" },
 	{ "name": "Bomb3", "bone": "Bomb", "color": "ffffff00", "attachment": "bomb", "blend": "additive" },
@@ -60,9 +59,6 @@
 	{
 		"name": "default",
 		"attachments": {
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
-			},
 			"Bomb": {
 				"bomb": { "width": 192, "height": 222 }
 			},

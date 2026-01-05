@@ -1,11 +1,11 @@
 {
 "skeleton": {
-	"hash": "vpoNkKhRqAQ",
+	"hash": "D7Z2z6lYPQo",
 	"spine": "4.2.43",
-	"x": -200.17,
-	"y": -200.17,
-	"width": 400.35,
-	"height": 400.35,
+	"x": -226.28,
+	"y": -209.59,
+	"width": 445.76,
+	"height": 445.76,
 	"images": "./images/",
 	"audio": "./audio"
 },
@@ -18,8 +18,8 @@
 		"rotation": 69.66,
 		"x": 29.92,
 		"y": -117.14,
-		"scaleX": 1.3646,
-		"scaleY": 1.3646
+		"scaleX": 1.5194,
+		"scaleY": 1.5194
 	},
 	{ "name": "flag", "parent": "pole", "length": 29.24, "rotation": 63.52, "x": 89.9, "y": 8.49 },
 	{
@@ -42,7 +42,6 @@
 	}
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "pole", "bone": "pole", "attachment": "pole" },
 	{ "name": "flag", "bone": "flag3", "attachment": "flag" },
 	{ "name": "flag2", "bone": "flag3", "color": "ffffff00", "attachment": "flag", "blend": "additive" },
@@ -57,9 +56,6 @@
 	{
 		"name": "default",
 		"attachments": {
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
-			},
 			"bounding": {
 				"bounding": {
 					"type": "boundingbox",

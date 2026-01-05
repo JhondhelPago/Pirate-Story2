@@ -1,17 +1,17 @@
 {
 "skeleton": {
-	"hash": "A43K0R//EYw",
+	"hash": "J2pe/evwkmI",
 	"spine": "4.2.43",
-	"x": -137.23,
-	"y": -134,
-	"width": 274.47,
-	"height": 290.61,
+	"x": -210.63,
+	"y": -191.25,
+	"width": 421.26,
+	"height": 421.26,
 	"images": "./images/",
 	"audio": "./audio"
 },
 "bones": [
 	{ "name": "root" },
-	{ "name": "sword", "parent": "root", "scaleX": 0.8737, "scaleY": 0.8737 },
+	{ "name": "sword", "parent": "root", "scaleX": 1.341, "scaleY": 1.341 },
 	{
 		"name": "sword one",
 		"parent": "sword",
@@ -30,10 +30,9 @@
 		"y": -88.16,
 		"color": "abe323ff"
 	},
-	{ "name": "VFX", "parent": "root", "y": 19.38, "scaleX": 1.4446, "scaleY": 1.4446 }
+	{ "name": "VFX", "parent": "root", "y": 19.38, "scaleX": 2.2171, "scaleY": 2.2171 }
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "sword two", "bone": "sword two", "attachment": "sword two" },
 	{ "name": "sword two2", "bone": "sword two", "color": "ffffff00", "attachment": "sword two", "blend": "additive" },
 	{ "name": "sword one", "bone": "sword one", "attachment": "sword one" },
@@ -45,9 +44,6 @@
 	{
 		"name": "default",
 		"attachments": {
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
-			},
 			"bounding": {
 				"bounding": {
 					"type": "boundingbox",

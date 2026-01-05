@@ -1,23 +1,22 @@
 {
 "skeleton": {
-	"hash": "UT1WwUhed6o",
+	"hash": "VgOyU6aVaq4",
 	"spine": "4.2.43",
-	"x": -133,
-	"y": -134,
-	"width": 267,
-	"height": 300.02,
+	"x": -185.88,
+	"y": -125.93,
+	"width": 375.64,
+	"height": 368.74,
 	"images": "./images/",
 	"audio": "./audio"
 },
 "bones": [
 	{ "name": "root" },
-	{ "name": "Skull", "parent": "root", "x": 4.26, "y": -10.81 },
+	{ "name": "Skull", "parent": "root", "x": 4.26, "y": -10.81, "scaleX": 1.4343, "scaleY": 1.4343 },
 	{ "name": "bone", "parent": "Skull", "x": -2.26, "y": -2.69 },
 	{ "name": "VFX", "parent": "Skull", "x": 28.83, "y": 76.32 },
 	{ "name": "VFX2", "parent": "Skull", "x": -32.07, "y": 76.32 }
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "bone", "bone": "bone", "attachment": "bone" },
 	{ "name": "Skull", "bone": "Skull", "attachment": "Skull" },
 	{ "name": "eyes", "bone": "Skull", "color": "ffffff00", "attachment": "eyes", "blend": "additive" },
@@ -29,9 +28,6 @@
 	{
 		"name": "default",
 		"attachments": {
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
-			},
 			"bone": {
 				"bone": { "width": 214, "height": 133 }
 			},

@@ -1,37 +1,32 @@
 symbol-coin.png
-	size: 396, 515
+	size: 572, 211
 	filter: Linear, Linear
 B
-	bounds: 292, 155, 78, 81
+	bounds: 207, 4, 78, 81
 	offsets: 6, 1, 101, 84
 	rotate: 90
 N
-	bounds: 207, 71, 81, 80
+	bounds: 290, 2, 81, 80
 	offsets: 5, 0, 101, 83
 O
-	bounds: 292, 78, 75, 81
+	bounds: 373, 7, 75, 81
 	offsets: 9, 1, 101, 85
-	rotate: 90
 S
-	bounds: 207, 2, 67, 83
+	bounds: 487, 60, 67, 83
 	offsets: 13, 0, 101, 85
 	rotate: 90
 U
-	bounds: 207, 153, 83, 80
+	bounds: 487, 129, 83, 80
 	offsets: 5, 2, 101, 85
-bg
-	bounds: 2, 248, 265, 265
 coin
-	bounds: 2, 46, 203, 200
+	bounds: 2, 9, 203, 200
 	offsets: 1, 1, 205, 202
 eyes
-	bounds: 2, 2, 80, 42
+	bounds: 450, 16, 80, 42
 	offsets: 1, 2, 82, 46
 skull
-	bounds: 269, 235, 135, 119
+	bounds: 350, 90, 135, 119
 	offsets: 1, 1, 137, 121
-	rotate: 90
 skull shadow
-	bounds: 269, 372, 141, 125
+	bounds: 207, 84, 141, 125
 	offsets: 2, 2, 146, 129
-	rotate: 90

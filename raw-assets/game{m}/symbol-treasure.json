@@ -1,6 +1,6 @@
 {
 "skeleton": {
-	"hash": "grziTc2JETE",
+	"hash": "W2fzi+ytO6Q",
 	"spine": "4.2.43",
 	"x": -133,
 	"y": -134,
@@ -11,13 +11,12 @@
 },
 "bones": [
 	{ "name": "root" },
-	{ "name": "Treasure", "parent": "root", "x": 3, "y": -18 },
+	{ "name": "Treasure", "parent": "root", "x": 3, "y": -30.45, "scaleX": 1.2584, "scaleY": 1.2584 },
 	{ "name": "box cover-front", "parent": "Treasure", "length": 104.54, "x": -78.91, "y": 97.01 },
-	{ "name": "coin", "parent": "root", "x": 1, "y": -0.5 },
-	{ "name": "TREASURE text", "parent": "root", "x": 0.5, "y": -77.5 }
+	{ "name": "coin", "parent": "root", "x": 1, "y": -12.95, "scaleX": 1.2584, "scaleY": 1.2584 },
+	{ "name": "TREASURE text", "parent": "root", "x": 0.5, "y": -89.95, "scaleX": 1.2584, "scaleY": 1.2584 }
 ],
 "slots": [
-	{ "name": "BG", "bone": "root", "attachment": "BG" },
 	{ "name": "box cover-back", "bone": "box cover-front", "attachment": "box cover-back" },
 	{ "name": "box cover-back2", "bone": "box cover-front", "color": "ffffff00", "attachment": "box cover-back", "blend": "additive" },
 	{ "name": "Treasure", "bone": "Treasure", "attachment": "Treasure" },
@@ -33,9 +32,6 @@
 	{
 		"name": "default",
 		"attachments": {
-			"BG": {
-				"BG": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
-			},
 			"bounding box": {
 				"bounding box": {
 					"type": "boundingbox",

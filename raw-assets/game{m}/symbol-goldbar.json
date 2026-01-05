@@ -1,24 +1,23 @@
 {
 "skeleton": {
-	"hash": "kffTaeOw1zo",
+	"hash": "oadkOWZDpgI",
 	"spine": "4.2.43",
-	"x": -133,
-	"y": -134,
-	"width": 267,
-	"height": 267,
+	"x": -136.91,
+	"y": -96.39,
+	"width": 268.86,
+	"height": 187.82,
 	"images": "./images/",
 	"audio": "./audio"
 },
 "bones": [
 	{ "name": "root" },
-	{ "name": "gold bars", "parent": "root", "x": 0.49, "y": 0.31, "scaleX": 0.8177, "scaleY": 0.8177 },
-	{ "name": "bar A", "parent": "gold bars", "x": -2.99, "y": 29.19 },
-	{ "name": "bar B", "parent": "gold bars", "x": 37.01, "y": -34.81 },
-	{ "name": "bar C", "parent": "gold bars", "x": -42.99, "y": -16.81 },
+	{ "name": "gold bars", "parent": "root", "x": 0.49, "y": 0.31, "scaleX": 0.9932, "scaleY": 0.9932 },
+	{ "name": "bar A", "parent": "gold bars", "x": -2.99, "y": 29.19, "scaleX": 1.2146, "scaleY": 1.2146 },
+	{ "name": "bar B", "parent": "gold bars", "x": 37.01, "y": -34.81, "scaleX": 1.2146, "scaleY": 1.2146 },
+	{ "name": "bar C", "parent": "gold bars", "x": -42.99, "y": -16.81, "scaleX": 1.2146, "scaleY": 1.2146 },
 	{ "name": "VFX", "parent": "root" }
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "bar C", "bone": "bar C", "attachment": "bar C" },
 	{ "name": "bar C2", "bone": "bar C", "color": "ffffff00", "attachment": "bar C", "blend": "additive" },
 	{ "name": "bar B", "bone": "bar B", "attachment": "bar B" },
@@ -49,9 +48,6 @@
 			},
 			"bar C2": {
 				"bar C": { "width": 157, "height": 103 }
-			},
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
 			},
 			"bounding": {
 				"bounding": {

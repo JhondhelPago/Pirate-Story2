@@ -1,35 +1,32 @@
 symbol-sword.png
-	size: 839, 562
+	size: 599, 572
 	filter: Linear, Linear
 0000
-	bounds: 269, 372, 188, 188
+	bounds: 219, 382, 188, 188
 	offsets: 1, 1, 190, 190
 0001
-	bounds: 459, 372, 188, 188
+	bounds: 2, 202, 188, 188
 	offsets: 1, 1, 190, 190
 0002
-	bounds: 649, 372, 188, 188
+	bounds: 409, 382, 188, 188
 	offsets: 1, 1, 190, 190
 0003
-	bounds: 269, 182, 188, 188
+	bounds: 409, 192, 188, 188
 	offsets: 1, 1, 190, 190
 0004
-	bounds: 2, 105, 188, 188
+	bounds: 2, 12, 188, 188
 	offsets: 1, 1, 190, 190
 0005
-	bounds: 459, 182, 188, 188
+	bounds: 192, 12, 188, 188
 	offsets: 1, 1, 190, 190
 0006
-	bounds: 649, 182, 188, 188
+	bounds: 382, 2, 188, 188
 	offsets: 1, 1, 190, 190
-bg
-	bounds: 2, 295, 265, 265
-	offsets: 1, 1, 267, 267
 sword one
-	bounds: 192, 2, 178, 215
+	bounds: 2, 392, 178, 215
 	offsets: 1, 1, 180, 217
 	rotate: 90
 sword two
-	bounds: 409, 2, 178, 215
+	bounds: 192, 202, 178, 215
 	offsets: 1, 1, 180, 217
 	rotate: 90

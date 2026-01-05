@@ -313,10 +313,10 @@ export class GameScreen extends Container {
             this.overtime.y = this.gameContainer.y;
         } else {
             this.gameContainer.x = centerX;
-            this.gameContainer.y = this.gameContainer.height * 0.78;
+            this.gameContainer.y = this.gameContainer.height * 0.68;
 
-            this.barrelBoard?.scale.set(1.4);
-            this.match3.scale.set(1.4);
+            this.barrelBoard?.scale.set(1.45);
+            this.match3.scale.set(1.25);
 
             this.buyFreeSpin.scale.set(1);
             this.buyFreeSpin.x = 220;
@@ -327,7 +327,7 @@ export class GameScreen extends Container {
             this.gameLogo.y = 130;
 
             this.goldRoger.x = width - 160;
-            this.goldRoger.y = height - 160;
+            this.goldRoger.y = height - 130;
             this.goldRoger.scale.set(1.2);
         }
 

@@ -1,37 +1,33 @@
 symbol-hat.png
-	size: 840, 450
+	size: 768, 365
 	filter: Linear, Linear
 0000
-	bounds: 2, 2, 179, 179
+	bounds: 2, 184, 179, 179
 	offsets: 1, 1, 181, 181
 0001
-	bounds: 183, 2, 179, 179
+	bounds: 2, 3, 179, 179
 	offsets: 1, 1, 181, 181
 0002
-	bounds: 269, 269, 179, 179
+	bounds: 183, 184, 179, 179
 	offsets: 1, 1, 181, 181
 0003
-	bounds: 364, 20, 179, 179
+	bounds: 183, 3, 179, 179
 	offsets: 1, 1, 181, 181
 0004
-	bounds: 450, 269, 179, 179
+	bounds: 364, 184, 179, 179
 	offsets: 1, 1, 181, 181
 0005
-	bounds: 545, 88, 179, 179
+	bounds: 364, 3, 179, 179
 	offsets: 1, 1, 181, 181
 0006
-	bounds: 631, 269, 179, 179
+	bounds: 545, 70, 179, 179
 	offsets: 1, 1, 181, 181
 Hat
-	bounds: 726, 46, 221, 112
+	bounds: 545, 251, 221, 112
 	offsets: 0, 1, 221, 113
-	rotate: 90
-bg
-	bounds: 2, 183, 265, 265
-	offsets: 1, 1, 267, 267
 feather
-	bounds: 269, 201, 95, 66
+	bounds: 545, 2, 95, 66
 	offsets: 0, 1, 95, 68
 skull
-	bounds: 366, 203, 72, 64
+	bounds: 642, 4, 72, 64
 	offsets: 1, 1, 74, 66

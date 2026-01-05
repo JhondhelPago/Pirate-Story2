@@ -1,17 +1,25 @@
 {
 "skeleton": {
-	"hash": "hzITIfcm0KU",
+	"hash": "6keQvvSIspg",
 	"spine": "4.2.43",
-	"x": -133,
-	"y": -134,
-	"width": 267,
-	"height": 267,
+	"x": -101.9,
+	"y": -134.69,
+	"width": 202.85,
+	"height": 262.08,
 	"images": "./images/",
 	"audio": "./audio"
 },
 "bones": [
 	{ "name": "root" },
-	{ "name": "Anchor", "parent": "root", "x": 3, "y": 8.5, "color": "ff0000ff" },
+	{
+		"name": "Anchor",
+		"parent": "root",
+		"x": 3,
+		"y": 8.5,
+		"scaleX": 1.1591,
+		"scaleY": 1.1591,
+		"color": "ff0000ff"
+	},
 	{
 		"name": "weed-one",
 		"parent": "Anchor",
@@ -87,7 +95,6 @@
 	{ "name": "water VFX", "parent": "Anchor", "x": -3, "y": -40.5, "color": "ff0000ff" }
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "Anchor", "bone": "Anchor", "attachment": "Anchor" },
 	{ "name": "Anchor2", "bone": "Anchor", "color": "ffffff00", "attachment": "Anchor", "blend": "additive" },
 	{ "name": "weed-three", "bone": "weed-three3", "attachment": "weed-three" },
@@ -131,9 +138,6 @@
 					"width": 152,
 					"height": 207
 				}
-			},
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
 			},
 			"bounding": {
 				"bounding": {

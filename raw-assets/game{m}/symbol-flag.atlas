@@ -1,33 +1,30 @@
 symbol-flag.png
-	size: 953, 471
+	size: 823, 406
 	filter: Linear, Linear
 0030
-	bounds: 2, 2, 200, 200
+	bounds: 2, 204, 200, 200
 	offsets: 1, 1, 202, 202
 0031
-	bounds: 269, 269, 200, 200
+	bounds: 2, 2, 200, 200
 	offsets: 1, 1, 202, 202
 0032
-	bounds: 471, 269, 200, 200
+	bounds: 204, 204, 200, 200
 	offsets: 1, 1, 202, 202
 0033
-	bounds: 673, 269, 200, 200
-	offsets: 1, 1, 202, 202
-0034
 	bounds: 204, 2, 200, 200
 	offsets: 1, 1, 202, 202
+0034
+	bounds: 406, 204, 200, 200
+	offsets: 1, 1, 202, 202
 0035
-	bounds: 406, 67, 200, 200
+	bounds: 406, 2, 200, 200
 	offsets: 1, 1, 202, 202
 0036
-	bounds: 608, 67, 200, 200
+	bounds: 608, 204, 200, 200
 	offsets: 1, 1, 202, 202
-bg
-	bounds: 2, 204, 265, 265
-	offsets: 1, 1, 267, 267
 flag
-	bounds: 810, 109, 158, 141
+	bounds: 608, 44, 158, 141
 	rotate: 90
 pole
-	bounds: 875, 302, 70, 167
+	bounds: 751, 35, 70, 167
 	offsets: 1, 1, 72, 169

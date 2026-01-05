@@ -93,7 +93,7 @@ export class SlotSymbol extends Container {
 
         // Scale to match size
         this.spine.pivot.set(0.5);
-        this.spine.scale.set(0.45);
+        this.spine.scale.set(2);
 
         // Create explosion animated sprite
         this.createExplosionSprite();
@@ -152,7 +152,7 @@ export class SlotSymbol extends Container {
 
         this.type = opts.type;
         this.name = opts.name;
-        this.scale.set(1.2);
+        this.scale.set(1);
 
         // Remove old spine if exists
         if (this.spine) {
@@ -629,7 +629,7 @@ export class SlotSymbol extends Container {
         // Create sprite
         this.multiplierSprite = Sprite.from(assetName);
         this.multiplierSprite.anchor.set(0.5);
-        this.multiplierSprite.scale.set(0.65);
+        this.multiplierSprite.scale.set(0.75);
 
         // Position BELOW the symbol (but still top layer visually)
         this.multiplierSprite.y = 40; // adjust to your icon height
@@ -830,8 +830,8 @@ export class SlotSymbol extends Container {
 
             const spr = Sprite.from(assetName);
             spr.anchor.set(0.5);
-            spr.width = 120;
-            spr.height = 150;
+            spr.width = 150;
+            spr.height = 180;
             spr.visible = false;
             this.sprite = spr;
             this.addChildAt(spr, 0);

@@ -1,17 +1,17 @@
 {
 "skeleton": {
-	"hash": "iv20eiagYQs",
+	"hash": "RqOs8QN3Veg",
 	"spine": "4.2.43",
-	"x": -133,
-	"y": -134,
-	"width": 267,
-	"height": 267,
+	"x": -121.49,
+	"y": -125.61,
+	"width": 248.98,
+	"height": 250.21,
 	"images": "./images/",
 	"audio": "./audio"
 },
 "bones": [
 	{ "name": "root" },
-	{ "name": "mug", "parent": "root", "x": 3, "y": -0.5, "scaleX": 0.8666, "scaleY": 0.8666 },
+	{ "name": "mug", "parent": "root", "x": 3, "y": -0.5, "scaleX": 1.2326, "scaleY": 1.2326 },
 	{ "name": "skull", "parent": "mug", "x": -25, "y": -10 },
 	{ "name": "beer", "parent": "mug", "x": -3.35, "y": 89.09 },
 	{
@@ -33,13 +33,12 @@
 		"color": "abe323ff"
 	},
 	{ "name": "beer4", "parent": "beer", "x": -55.23, "y": -15.72 },
-	{ "name": "bubble", "parent": "root" },
-	{ "name": "bubble2", "parent": "root" },
-	{ "name": "bubble3", "parent": "root" },
-	{ "name": "bubble4", "parent": "root" }
+	{ "name": "bubble", "parent": "root", "scaleX": 1.4223, "scaleY": 1.4223 },
+	{ "name": "bubble2", "parent": "root", "scaleX": 1.4223, "scaleY": 1.4223 },
+	{ "name": "bubble3", "parent": "root", "scaleX": 1.4223, "scaleY": 1.4223 },
+	{ "name": "bubble4", "parent": "root", "scaleX": 1.4223, "scaleY": 1.4223 }
 ],
 "slots": [
-	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "mug", "bone": "mug", "attachment": "mug" },
 	{ "name": "beer", "bone": "beer4", "attachment": "beer" },
 	{ "name": "skull", "bone": "skull", "attachment": "skull" },
@@ -69,9 +68,6 @@
 					"width": 121,
 					"height": 65
 				}
-			},
-			"bg": {
-				"bg": { "x": 0.5, "y": -0.5, "width": 267, "height": 267 }
 			},
 			"bounding": {
 				"bounding": {

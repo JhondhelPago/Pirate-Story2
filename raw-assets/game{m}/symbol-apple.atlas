@@ -1,34 +1,33 @@
 symbol-apple.png
-	size: 814, 306
+	size: 326, 504
 	filter: Linear, Linear
 0
-	bounds: 2, 25, 23, 12
+	bounds: 294, 490, 23, 12
 	offsets: 1, 1, 25, 14
 1
-	bounds: 269, 52, 103, 73
+	bounds: 189, 429, 103, 73
 	offsets: 1, 1, 105, 75
 2
-	bounds: 618, 12, 147, 142
+	bounds: 182, 179, 147, 142
 	offsets: 1, 1, 149, 144
+	rotate: 90
 3
-	bounds: 269, 127, 178, 177
+	bounds: 2, 176, 178, 177
 	offsets: 1, 1, 180, 179
 4
-	bounds: 449, 157, 185, 147
+	bounds: 2, 355, 185, 147
 	offsets: 1, 1, 198, 149
 5
-	bounds: 636, 156, 172, 148
+	bounds: 2, 2, 172, 148
 	offsets: 1, 1, 175, 150
+	rotate: 90
 apple
-	bounds: 449, 2, 153, 167
+	bounds: 152, 21, 153, 167
 	offsets: 1, 1, 155, 169
 	rotate: 90
-bg
-	bounds: 2, 39, 265, 265
-	offsets: 1, 1, 267, 267
 bite
-	bounds: 374, 35, 52, 90
+	bounds: 189, 375, 52, 90
 	offsets: 1, 1, 54, 92
-leaf
-	bounds: 767, 80, 74, 45
 	rotate: 90
+leaf
+	bounds: 189, 328, 74, 45
