@@ -16,20 +16,18 @@ export class ConfigAPI {
                         // bonus4: {count: 4, spins: 20},
                         // bonus5: {count: 5, spins: 30}
                         
-                        bonus2: {count: 14, spins: 5},
+                        bonus2: {count: 5, spins: 5},
                         bonus3: {count: 15, spins: 10},
                         bonus4: {count: 16, spins: 20},
                         bonus5: {count: 17, spins: 30}
-
-
-
                     },
                     nonFreeSpin: {
                         // bonus3: {count: 3, spins: 10},
                         // bonus4: {count: 4, spins: 15},
                         // bonus5: {count: 5, spins: 20}
 
-                        bonus3: {count: 4, spins: 10},
+                        // bonus3: {count: 4, spins: 10},
+                        bonus3: {count: 4, spins: 5},
                         bonus4: {count: 5, spins: 15},
                         bonus5: {count: 6, spins: 20}
                     }

@@ -590,6 +590,8 @@ export class GameScreen extends Container {
             return new Promise((resolve) => {
                 navigation.presentPopup(FreeSpinWinBanner, {
                     spins,
+                    autoClose: true,
+                    duration: duration + 2000, // extra 4s for manual close
                     onClosed: () => {
                         if (initiateSpin) this.onFreeSpinStart(spins); // start the free spin session after closing the banner
                         resolve();

@@ -29,6 +29,24 @@ function pickWeightedIndex(weights) {
 }
 
 /**
+ * ✅ Weighted symbol picker for REELS base fill (excluding 11).
+ * Reduce probability of 12.
+ *
+ * Tuning:
+ * - baseWeight: weight for normal symbols
+ * - weight12: smaller = rarer 12
+ */
+function pickReelSymbolExcluding11() {
+    const symbols = [1,2,3,4,5,6,7,8,9,10,12];
+    const baseWeight = 10;
+    const weight12 = 3; // ✅ reduce 12 probability (make this smaller to be rarer)
+
+    const weights = symbols.map(s => (s === 12 ? weight12 : baseWeight));
+    const idx = pickWeightedIndex(weights);
+    return symbols[idx];
+}
+
+/**
  * Decide how many 11s to place (1-5)
  * Requirement: rarity of having exactly 2 of type 11 should be ~ 1 in 10 spins (10%).
  */
@@ -69,13 +87,9 @@ function generateBonusReels() {
  * NOTE: Applies ONLY to reels (and bonusReels). Multiplier reels are excluded.
  */
 function generateReels() {
-    // Fill with random symbols 1-12 EXCLUDING 11 first
+    // ✅ Fill with weighted symbols 1-12 EXCLUDING 11 (and reduce 12 probability)
     const grid = Array.from({ length: 5 }, () =>
-        Array.from({ length: 5 }, () => {
-            let n = getRandomInt(1, 12);
-            while (n === 11) n = getRandomInt(1, 12);
-            return n;
-        })
+        Array.from({ length: 5 }, () => pickReelSymbolExcluding11())
     );
 
     // Now place 1-5 occurrences of 11 with tuned rarity
