@@ -61,7 +61,7 @@ export class GameScreen extends Container {
         this.addChild(this.gameContainer);
 
         this.barrelBoard = new BarrelBoard('Barrel-Board');
-        this.barrelBoard.scale.set(1.2);
+        this.barrelBoard.scale.set(1.4);
         this.gameContainer.addChild(this.barrelBoard);
 
         this.gameLogo = new GameLogo();
@@ -296,7 +296,7 @@ export class GameScreen extends Container {
 
         if (width > height) {
             this.gameContainer.x = centerX;
-            this.gameContainer.y = this.gameContainer.height * 0.5;
+            this.gameContainer.y = this.gameContainer.height * 0.5 - 65;
 
             this.gameLogo.scale.set(.9);
             this.gameLogo.x = 220;

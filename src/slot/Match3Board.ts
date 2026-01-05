@@ -3,7 +3,12 @@ import gsap from "gsap";
 import { Match3 } from "./Match3";
 import { Match3Config, slotGetBlocks } from "./Match3Config";
 import { SlotSymbol } from "./SlotSymbol";
-import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from "./SlotUtility";
+import {
+    gridRandomTypeReset,
+    initGrid,
+    forEachCell,
+    SCATTERBONUS,
+} from "./SlotUtility";
 import { userSettings, SpinModeEnum } from "../utils/userSettings";
 
 interface ReelColumn {
@@ -23,7 +28,7 @@ export class Match3Board {
 
     private backendReels: number[][] = [];
     private backendMultipliers: number[][] = [];
-    private backendBonusPositions: {row: number, column: number}[] = [];
+    private backendBonusPositions: { row: number; column: number }[] = [];
 
     // WILD OVERLAY (PERSISTENT)
     private wildGrid: number[][] = [];
@@ -50,6 +55,36 @@ export class Match3Board {
 
     private readonly BLUR_EXTRA = 3;
 
+    // =========================================================================
+    // ✅ SCALE-AWARE GRID METRICS
+    // =========================================================================
+    /**
+     * We keep config.tileSize as the "logical" base size.
+     * If SlotSymbol applies a scale internally, the board must space/mask using the
+     * "cell size" (tileSize * symbolScale) so everything stays aligned.
+     *
+     * You will adjust the symbol scale inside SlotSymbol later.
+     * To make this auto-follow that change, the board reads an optional static:
+     *   SlotSymbol.VISUAL_SCALE  (or SlotSymbol.SCALE)
+     * If not present, defaults to 1.
+     */
+    private get symbolScale(): number {
+        const anySym = SlotSymbol as any;
+        const v =
+            (typeof anySym?.VISUAL_SCALE === "number" && anySym.VISUAL_SCALE) ||
+            (typeof anySym?.SCALE === "number" && anySym.SCALE) ||
+            1;
+
+        // guard against invalid values
+        if (!Number.isFinite(v) || v <= 0) return 1;
+        return v;
+    }
+
+    /** spacing/mask size per grid cell (scale-aware) */
+    private get cell(): number {
+        return this.tileSize * this.symbolScale;
+    }
+
     private get blurCount() {
         return this.rows + this.BLUR_EXTRA;
     }
@@ -64,12 +99,13 @@ export class Match3Board {
         return this.blurCount;
     }
 
+    /** ✅ ALL grid math should use cell spacing */
     private get tile() {
-        return this.tileSize;
+        return this.cell;
     }
 
     private getOffsets() {
-        const tile = this.tileSize;
+        const tile = this.tile; // ✅ scale-aware
         return {
             offsetX: ((this.columns - 1) * tile) / 2,
             offsetY: ((this.rows - 1) * tile) / 2,
@@ -102,6 +138,7 @@ export class Match3Board {
         sym.setup({
             name: this.typesMap[type],
             type,
+            // ✅ keep "size" as base logical tileSize; SlotSymbol may apply its own scaling internally
             size: this.tileSize,
             multiplier,
         });
@@ -199,7 +236,7 @@ export class Match3Board {
         return this.wildGrid;
     }
 
-    public setBonusPositions(positions: {row: number, column: number}[]) {
+    public setBonusPositions(positions: { row: number; column: number }[]) {
         this.backendBonusPositions = positions;
     }
 
@@ -233,18 +270,26 @@ export class Match3Board {
         this._spinning = false;
     }
 
-    // Mask
     private refreshMask() {
-        const w = this.columns * this.tileSize;
-        const h = this.rows * this.tileSize;
-        const offsetX = w / 2;
-        const offsetY = h / 2;
+    const w = this.columns * this.tile;
+    const h = this.rows * this.tile;
+    const offsetX = w / 2;
+    const offsetY = h / 2;
 
-        this.piecesMask.clear();
-        this.piecesMask.beginFill(0xffffff, 1);
-        this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
-        this.piecesMask.endFill();
-    }
+    this.piecesMask.clear();
+    this.piecesMask.beginFill(0xffffff, 1);
+
+    // keep the mask shape centered
+    this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
+    this.piecesMask.endFill();
+
+    // ✅ move BOTH the masked content and the mask together
+    const BOARD_Y_OFFSET = 5; // small value (try 6~20)
+    this.piecesContainer.y = BOARD_Y_OFFSET;
+    this.piecesMask.y = BOARD_Y_OFFSET;
+}
+
+
 
     public setup(config: Match3Config) {
         this.rows = config.rows;
@@ -273,7 +318,9 @@ export class Match3Board {
             this.wildGrid = initGrid(this.rows, this.columns, 0);
         }
 
+        // ✅ mask depends on tile + symbol scale, so refresh after tileSize is set
         this.refreshMask();
+
         this.buildIdleGridFromInitial();
 
         this.rebuildWildLayerStructure();
@@ -319,7 +366,7 @@ export class Match3Board {
                 const sym = this.makeSlotSymbol(type, mult);
                 sym.setBonusFlag(false); // ✅ reset bonus flag on build
 
-                sym.y = r * this.tile;
+                sym.y = r * this.tile; // ✅ scale-aware spacing
                 this.showSpine(sym);
 
                 reel.symbols.push(sym);
@@ -332,8 +379,10 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
     }
 
-
-    private getDisplayedRealSymbol(row: number, column: number): SlotSymbol | null {
+    private getDisplayedRealSymbol(
+        row: number,
+        column: number
+    ): SlotSymbol | null {
         const reel = this.realReels[column];
         if (!reel) return null;
 
@@ -348,7 +397,10 @@ export class Match3Board {
     }
 
     // fetch the currently displayed wild symbol (if any) at row/col
-    private getDisplayedWildSymbol(row: number, column: number): SlotSymbol | null {
+    private getDisplayedWildSymbol(
+        row: number,
+        column: number
+    ): SlotSymbol | null {
         const reel = this.wildReels[column] as any;
         if (!reel) return null;
 
@@ -370,10 +422,14 @@ export class Match3Board {
             for (let r = 0; r < this.rows; r++) {
                 const cell = this.getDisplayedRealSymbol(r, c);
                 if (cell) {
-                    types[r][c] = (cell as any).type ?? this.initialReels?.[r]?.[c] ?? this.randomType();
+                    types[r][c] =
+                        (cell as any).type ??
+                        this.initialReels?.[r]?.[c] ??
+                        this.randomType();
                     mults[r][c] = (cell as any).multiplier ?? 0;
                 } else {
-                    types[r][c] = this.initialReels?.[r]?.[c] ?? this.randomType();
+                    types[r][c] =
+                        this.initialReels?.[r]?.[c] ?? this.randomType();
                     mults[r][c] = 0;
                 }
             }
@@ -388,43 +444,45 @@ export class Match3Board {
         return r0.symbols.length >= this.blurCount + this.rows;
     }
 
-    private buildSpinStripIntoCurrentLayer(leadTypes: number[][], leadMults: number[][]) {
-    if (this.hasSpinStripBuilt()) return;
+    private buildSpinStripIntoCurrentLayer(
+        leadTypes: number[][],
+        leadMults: number[][]
+    ) {
+        if (this.hasSpinStripBuilt()) return;
 
-    const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
+        const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
 
-    for (let c = 0; c < this.columns; c++) {
-        const reel = this.realReels[c];
-        const col = reel?.container;
-        if (!reel || !col) continue;
+        for (let c = 0; c < this.columns; c++) {
+            const reel = this.realReels[c];
+            const col = reel?.container;
+            if (!reel || !col) continue;
 
-        if (reel.symbols.length !== this.rows) continue;
+            if (reel.symbols.length !== this.rows) continue;
 
-        // ✅ FLICK FIX:
-        // Do NOT call setup/showSpine on the visible 5x5 here.
-        // Rebuilding the strip should only add blur symbols above.
-        // (The visible grid is already correct; touching it can cause 1-frame pop.)
+            // ✅ FLICK FIX:
+            // Do NOT call setup/showSpine on the visible 5x5 here.
+            // Rebuilding the strip should only add blur symbols above.
+            // (The visible grid is already correct; touching it can cause 1-frame pop.)
 
-        const blurSyms: SlotSymbol[] = [];
-        for (let j = 0; j < this.blurCount; j++) {
-            const type = this.randomType();
-            const sym = this.makeSlotSymbol(type, 0);
-            sym.y = yTop + j * this.tile;
-            this.showBlur(sym);
-            blurSyms.push(sym);
+            const blurSyms: SlotSymbol[] = [];
+            for (let j = 0; j < this.blurCount; j++) {
+                const type = this.randomType();
+                const sym = this.makeSlotSymbol(type, 0);
+                sym.y = yTop + j * this.tile;
+                this.showBlur(sym);
+                blurSyms.push(sym);
+            }
+
+            for (const b of blurSyms) col.addChildAt(b, 0);
+
+            reel.symbols = [...blurSyms, ...reel.symbols];
+            reel.position = 0;
         }
 
-        for (const b of blurSyms) col.addChildAt(b, 0);
-
-        reel.symbols = [...blurSyms, ...reel.symbols];
-        reel.position = 0;
+        for (let c = 0; c < this.columns; c++) {
+            this.setBlurVisibleForColumn(c, true);
+        }
     }
-
-    for (let c = 0; c < this.columns; c++) {
-        this.setBlurVisibleForColumn(c, true);
-    }
-}
-
 
     private setBlurVisibleForColumn(column: number, visible: boolean) {
         const reel = this.realReels[column];
@@ -469,6 +527,7 @@ export class Match3Board {
                     sym.setup({
                         name: this.typesMap[nextType],
                         type: nextType,
+                        // ✅ keep base size; spacing is handled by board via tile
                         size: this.tileSize,
                         multiplier: 0,
                     });
@@ -490,7 +549,10 @@ export class Match3Board {
 
         this.ticker = new Ticker();
         this.ticker.add((arg: any) => {
-            const delta = typeof arg === "number" ? arg : (arg?.deltaTime ?? arg?.deltaMS ?? 1);
+            const delta =
+                typeof arg === "number"
+                    ? arg
+                    : arg?.deltaTime ?? arg?.deltaMS ?? 1;
             this.updateSpin(delta);
         });
         this.ticker.start();
@@ -531,13 +593,17 @@ export class Match3Board {
         const tl = gsap.timeline();
 
         // ✅ Flick fix: rebuild strip DURING the lift (so user won't notice)
-        tl.call(() => {
-            if (seq !== this._startSeqId) return;
-            if (!this.hasSpinStripBuilt()) {
-                const snap = this.getCurrentGridSnapshot();
-                this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-            }
-        }, [], 0.01);
+        tl.call(
+            () => {
+                if (seq !== this._startSeqId) return;
+                if (!this.hasSpinStripBuilt()) {
+                    const snap = this.getCurrentGridSnapshot();
+                    this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+                }
+            },
+            [],
+            0.01
+        );
 
         tl.to(cols, {
             y: yLead - LIFT_PX,
@@ -581,7 +647,6 @@ export class Match3Board {
 
     /**
      * QUICK start: NO lift, NO stagger. All columns animate at the same time.
-     * (This is what you requested.)
      */
     private async startSpinSeamlessQuickAllAtOnce(): Promise<void> {
         const seq = ++this._startSeqId;
@@ -594,14 +659,16 @@ export class Match3Board {
         this.colActive = new Array(this.columns).fill(true);
 
         // reset all columns to lead position
-        const cols = this.realReels.map((r) => r.container).filter(Boolean) as Container[];
+        const cols = this.realReels
+            .map((r) => r.container)
+            .filter(Boolean) as Container[];
         for (const col of cols) {
             gsap.killTweensOf(col);
             col.y = yLead;
         }
 
         // drop all at once (no lift)
-        const DROP_DUR = 0.22; // tweakable: "slower turbo-ish" but still quick
+        const DROP_DUR = 0.22;
         const t = gsap.to(cols, { y: yBlur, duration: DROP_DUR, ease: "none" });
 
         // ✅ Flick fix: rebuild strip DURING the drop (so user won't notice)
@@ -660,7 +727,11 @@ export class Match3Board {
         this.backendMultipliers = multipliers;
         this._hasBackendResult = Array.isArray(reels) && reels.length > 0;
 
-        if (this._spinInProgress && this._interruptRequested && this._allColumnsSpinning) {
+        if (
+            this._spinInProgress &&
+            this._interruptRequested &&
+            this._allColumnsSpinning
+        ) {
             this._spinSpeed = Math.max(this._spinSpeed, 1.8);
         }
     }
@@ -718,14 +789,12 @@ export class Match3Board {
 
         // ✅ QUICK: no lift + all columns same time
         if (spinMode === SpinModeEnum.Quick) {
-            // ✅ Flick fix: rebuild is handled INSIDE startSpinSeamlessQuickAllAtOnce during drop
             this._startSequencePromise = this.startSpinSeamlessQuickAllAtOnce();
             this.ensureWildLayerOnTop();
             return;
         }
 
-        // NORMAL (unchanged): wave + lift + stagger
-        // ✅ Flick fix: rebuild is handled INSIDE startSpinSeamlessSequential during lift
+        // NORMAL
         this._startSequencePromise = this.startSpinSeamlessSequential();
         this.ensureWildLayerOnTop();
     }
@@ -779,6 +848,7 @@ export class Match3Board {
             sym.setup({
                 name: this.typesMap[type],
                 type,
+                // ✅ base size only
                 size: this.tileSize,
                 multiplier: mult,
             });
@@ -786,10 +856,9 @@ export class Match3Board {
             sym.setBonusFlag(false); // ✅ reset bonus flag whenever we rebuild lead
 
             this.showSpine(sym);
-            sym.y = r * this.tile;
+            sym.y = r * this.tile; // ✅ scale-aware spacing
         }
     }
-
 
     private compactToFinalStaticGridInPlace() {
         const { offsetY } = this.getOffsets();
@@ -805,7 +874,7 @@ export class Match3Board {
                 for (let r = 0; r < this.rows; r++) {
                     const sym = reel.symbols[r];
                     if (!sym) continue;
-                    sym.y = r * this.tile;
+                    sym.y = r * this.tile; // ✅ scale-aware
                     if (sym.parent !== col) col.addChild(sym);
                     this.showSpine(sym);
                 }
@@ -832,7 +901,7 @@ export class Match3Board {
             for (let r = 0; r < lead.length; r++) {
                 const sym = lead[r];
                 if (!sym) continue;
-                sym.y = r * this.tile;
+                sym.y = r * this.tile; // ✅ scale-aware
                 if (sym.parent !== col) col.addChild(sym);
                 this.showSpine(sym);
             }
@@ -860,7 +929,10 @@ export class Match3Board {
 
         const dropLayer = new Container();
         this.realLayer.addChild(dropLayer);
-        this.realLayer.setChildIndex(dropLayer, this.realLayer.children.length - 1);
+        this.realLayer.setChildIndex(
+            dropLayer,
+            this.realLayer.children.length - 1
+        );
 
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container as any;
@@ -878,7 +950,9 @@ export class Match3Board {
             const col = reel?.container as any;
             if (!reel || !col || col?.destroyed) continue;
 
-            const localSlide = this._accelerateLandingRequested ? 0.05 : SLIDE_DUR;
+            const localSlide = this._accelerateLandingRequested
+                ? 0.05
+                : SLIDE_DUR;
 
             this.colActive[c] = true;
             col.y = yBlur;
@@ -897,13 +971,17 @@ export class Match3Board {
                 if (!sym) continue;
 
                 if (sym.parent === col) col.removeChild(sym);
-                sym.y = r * this.tile;
+                sym.y = r * this.tile; // ✅ scale-aware
                 dropCol.addChild(sym);
                 leadSyms.push(sym);
             }
 
             await new Promise<void>((resolve) => {
-                const t = gsap.to(dropCol, { y: yLead, duration: localSlide, ease: "none" });
+                const t = gsap.to(dropCol, {
+                    y: yLead,
+                    duration: localSlide,
+                    ease: "none",
+                });
                 this._landingTween = t;
                 if (this._accelerateLandingRequested) t.timeScale(30);
                 t.eventCallback("onComplete", () => resolve());
@@ -919,7 +997,7 @@ export class Match3Board {
 
             for (let r = 0; r < leadSyms.length; r++) {
                 const sym = leadSyms[r];
-                sym.y = r * this.tile;
+                sym.y = r * this.tile; // ✅ scale-aware
                 col.addChild(sym);
             }
 
@@ -943,7 +1021,11 @@ export class Match3Board {
                         },
                     });
 
-                    tl.to(col, { y: yLead + BOUNCE_PX, duration: BOUNCE_DOWN_DUR, ease: "power1.out" }).to(col, {
+                    tl.to(col, {
+                        y: yLead + BOUNCE_PX,
+                        duration: BOUNCE_DOWN_DUR,
+                        ease: "power1.out",
+                    }).to(col, {
                         y: yLead,
                         duration: BOUNCE_UP_DUR,
                         ease: "power1.in",
@@ -954,7 +1036,9 @@ export class Match3Board {
             }
 
             if (c < this.columns - 1 && BETWEEN > 0) {
-                await new Promise<void>((resolve) => gsap.delayedCall(BETWEEN, () => resolve()));
+                await new Promise<void>((resolve) =>
+                    gsap.delayedCall(BETWEEN, () => resolve())
+                );
             }
         }
 
@@ -973,11 +1057,19 @@ export class Match3Board {
     }): Promise<void> {
         const baseSlide = opts?.slideDur ?? 0.26;
 
-        const SLIDE_DUR = this._accelerateLandingRequested ? Math.min(0.08, baseSlide) : baseSlide;
+        const SLIDE_DUR = this._accelerateLandingRequested
+            ? Math.min(0.08, baseSlide)
+            : baseSlide;
 
-        const BOUNCE_PX = this._accelerateLandingRequested ? 0 : opts?.bouncePx ?? 12;
-        const BOUNCE_DOWN_DUR = this._accelerateLandingRequested ? 0 : opts?.bounceDownDur ?? 0.06;
-        const BOUNCE_UP_DUR = this._accelerateLandingRequested ? 0 : opts?.bounceUpDur ?? 0.08;
+        const BOUNCE_PX = this._accelerateLandingRequested
+            ? 0
+            : opts?.bouncePx ?? 12;
+        const BOUNCE_DOWN_DUR = this._accelerateLandingRequested
+            ? 0
+            : opts?.bounceDownDur ?? 0.06;
+        const BOUNCE_UP_DUR = this._accelerateLandingRequested
+            ? 0
+            : opts?.bounceUpDur ?? 0.08;
 
         const { offsetY } = this.getOffsets();
         const yLead = -offsetY;
@@ -986,7 +1078,10 @@ export class Match3Board {
 
         const dropLayer = new Container();
         this.realLayer.addChild(dropLayer);
-        this.realLayer.setChildIndex(dropLayer, this.realLayer.children.length - 1);
+        this.realLayer.setChildIndex(
+            dropLayer,
+            this.realLayer.children.length - 1
+        );
 
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container as any;
@@ -1021,7 +1116,7 @@ export class Match3Board {
                 if (!sym) continue;
 
                 if (sym.parent === col) col.removeChild(sym);
-                sym.y = r * this.tile;
+                sym.y = r * this.tile; // ✅ scale-aware
                 dropCol.addChild(sym);
                 leadSyms.push(sym);
             }
@@ -1031,7 +1126,11 @@ export class Match3Board {
         }
 
         await new Promise<void>((resolve) => {
-            const t = gsap.to(dropCols, { y: yLead, duration: SLIDE_DUR, ease: "none" });
+            const t = gsap.to(dropCols, {
+                y: yLead,
+                duration: SLIDE_DUR,
+                ease: "none",
+            });
             this._landingTween = t;
             if (this._accelerateLandingRequested) t.timeScale(30);
             t.eventCallback("onComplete", () => resolve());
@@ -1047,7 +1146,7 @@ export class Match3Board {
             const leadSyms = leadSymsByCol[c] ?? [];
             for (let r = 0; r < leadSyms.length; r++) {
                 const sym = leadSyms[r];
-                sym.y = r * this.tile;
+                sym.y = r * this.tile; // ✅ scale-aware
                 col.addChild(sym);
             }
 
@@ -1065,7 +1164,9 @@ export class Match3Board {
         this._landingTween = undefined;
 
         if (BOUNCE_PX > 0 && (BOUNCE_DOWN_DUR > 0 || BOUNCE_UP_DUR > 0)) {
-            const cols = this.realReels.map((r) => r.container).filter(Boolean) as any[];
+            const cols = this.realReels
+                .map((r) => r.container)
+                .filter(Boolean) as any[];
 
             await new Promise<void>((resolve) => {
                 const tl = gsap.timeline({
@@ -1077,7 +1178,11 @@ export class Match3Board {
                     },
                 });
 
-                tl.to(cols, { y: yLead + BOUNCE_PX, duration: BOUNCE_DOWN_DUR, ease: "power1.out" }).to(cols, {
+                tl.to(cols, {
+                    y: yLead + BOUNCE_PX,
+                    duration: BOUNCE_DOWN_DUR,
+                    ease: "power1.out",
+                }).to(cols, {
                     y: yLead,
                     duration: BOUNCE_UP_DUR,
                     ease: "power1.in",
@@ -1145,7 +1250,6 @@ export class Match3Board {
 
         const wins = this.match3.process.getWinningPositions() ?? [];
         this.animateWinsWithWildPriority(wins, this.getBonusPositions());
-        
     }
 
     public async finishSpinQuick(): Promise<void> {
@@ -1185,7 +1289,7 @@ export class Match3Board {
         this._landingInProgress = true;
         try {
             await this.landColumnsAllAtOnce({
-                slideDur: 0.10,
+                slideDur: 0.1,
                 bouncePx: 0,
                 bounceDownDur: 0,
                 bounceUpDur: 0,
@@ -1239,7 +1343,10 @@ export class Match3Board {
         } catch {}
 
         try {
-            const spine: any = (sym as any).spine ?? (sym as any)._spine ?? (sym as any).skeletonAnimation;
+            const spine: any =
+                (sym as any).spine ??
+                (sym as any)._spine ??
+                (sym as any).skeletonAnimation;
             spine?.state?.clearTracks?.();
         } catch {}
 
@@ -1247,7 +1354,10 @@ export class Match3Board {
     }
 
     // ✅ FIXED: infinite loop until next spin (token changes)
-    private startReplayLoop(getSymbols: () => SlotSymbol[], which: "win" | "wild") {
+    private startReplayLoop(
+        getSymbols: () => SlotSymbol[],
+        which: "win" | "wild"
+    ) {
         if (which === "win") this.winLoopTween?.kill();
         else this.wildLoopTween?.kill();
 
@@ -1328,15 +1438,16 @@ export class Match3Board {
 
         // ✅ only include bonusPositions if currently using FreeSpinProcess with ,isIntialFreeSpin == true, and none free spin feature
         const isFreeSpin = this.match3?.process === this.match3?.freeSpinProcess;
-        const isInitialSpin = isFreeSpin ? this.match3?.freeSpinProcess.getIsInitialFreeSpin() : false;
+        const isInitialSpin = isFreeSpin
+            ? this.match3?.freeSpinProcess.getIsInitialFreeSpin()
+            : false;
 
         if (!isFreeSpin || (isFreeSpin && isInitialSpin)) {
             if (Array.isArray(bonusPositions) && bonusPositions.length >= 2) {
                 for (const p of bonusPositions) push(p);
             }
-        } 
-        
-        else { // free spin feature bonus reels aas symbol badge
+        } else {
+            // free spin feature bonus reels aas symbol badge
             if (Array.isArray(bonusPositions)) {
                 for (const { row, column } of bonusPositions) {
                     const r = Math.max(0, Math.min(rows - 1, row));
@@ -1391,10 +1502,10 @@ export class Match3Board {
         }, "win");
     }
 
-
     public initialPieceMutliplier(symbolType: number) {
         const multiplierOptions = [2, 3, 5];
-        const randomMultiplier = multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
+        const randomMultiplier =
+            multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
         return [11, 12].includes(symbolType) ? randomMultiplier : 0;
     }
 
@@ -1404,15 +1515,20 @@ export class Match3Board {
 
     private ensureWildLayerOnTop() {
         if (!this.wildLayer.parent) this.piecesContainer.addChild(this.wildLayer);
-        this.piecesContainer.setChildIndex(this.wildLayer, this.piecesContainer.children.length - 1);
+        this.piecesContainer.setChildIndex(
+            this.wildLayer,
+            this.piecesContainer.children.length - 1
+        );
     }
 
     private rebuildWildLayerStructureIfNeeded() {
-        if (this.wildReels.length !== this.columns) return this.rebuildWildLayerStructure();
+        if (this.wildReels.length !== this.columns)
+            return this.rebuildWildLayerStructure();
 
         for (let c = 0; c < this.columns; c++) {
             const reel = this.wildReels[c];
-            if (!reel || reel.symbols.length !== this.rows) return this.rebuildWildLayerStructure();
+            if (!reel || reel.symbols.length !== this.rows)
+                return this.rebuildWildLayerStructure();
         }
     }
 
@@ -1432,7 +1548,7 @@ export class Match3Board {
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             for (let r = 0; r < this.rows; r++) {
-                const dummy = this.makeDummyCell(r * this.tile);
+                const dummy = this.makeDummyCell(r * this.tile); // ✅ scale-aware
                 col.addChild(dummy);
                 reel.symbols.push(dummy as any);
             }
@@ -1446,7 +1562,7 @@ export class Match3Board {
     private applyWildGridToWildLayer() {
         if (!this.wildReels.length) return;
 
-        const tile = this.tileSize;
+        const tile = this.tile; // ✅ scale-aware
 
         forEachCell(this.rows, this.columns, (r, c) => {
             const reel = this.wildReels[c];
@@ -1511,7 +1627,6 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
     }
-
 
     private resetWildSymbolsToIdle() {
         for (let c = 0; c < this.wildReels.length; c++) {
@@ -1601,14 +1716,14 @@ export class Match3Board {
                 sym.setup({
                     name: this.typesMap[type],
                     type,
+                    // ✅ base size only
                     size: this.tileSize,
                     multiplier: mult,
                 });
 
-
                 this.showSpine(sym);
                 sym.visible = true;
-                sym.y = r * this.tile;
+                sym.y = r * this.tile; // ✅ scale-aware
                 if (sym.parent !== col) col.addChild(sym);
             }
 
@@ -1625,7 +1740,7 @@ export class Match3Board {
         // ✅ rebuild WILD layer and also ensure flags are reset inside applyWildGridToWildLayer()
         if (this.rows > 0 && this.columns > 0) {
             this.rebuildWildLayerStructureIfNeeded();
-            this.applyWildGridToWildLayer(); // (make sure this function resets bonus flags too)
+            this.applyWildGridToWildLayer(); // (resets bonus flags too)
             this.ensureWildLayerOnTop();
         }
 
@@ -1646,5 +1761,4 @@ export class Match3Board {
             this.killLoops();
         }
     }
-
 }

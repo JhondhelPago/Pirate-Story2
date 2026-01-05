@@ -76,6 +76,9 @@ export class SlotSymbol extends Container {
     /** Bonus animation tween */
     private bonusTween?: gsap.core.Tween | gsap.core.Timeline;
 
+    public static readonly VISUAL_SCALE = 1.18; // or 1.1 etc
+
+
     constructor() {
         super();
 
@@ -149,7 +152,7 @@ export class SlotSymbol extends Container {
 
         this.type = opts.type;
         this.name = opts.name;
-        this.scale.set(1);
+        this.scale.set(1.2);
 
         // Remove old spine if exists
         if (this.spine) {
