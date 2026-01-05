@@ -556,15 +556,48 @@ export class GameScreen extends Container {
     }
 
     private drawFreeSpinWonBanner(spins: number, initiateSpin: boolean = true): Promise<void> {
-        return new Promise((resolve) => {
-            navigation.presentPopup(FreeSpinWinBanner, {
-                spins,
-                onClosed: () => {
-                    if (initiateSpin) this.onFreeSpinStart(spins); // start the free spin session after closing the banner
-                    resolve();
-                },
+
+        const hasPrevProcess = this.match3.getStackSize() > 0 ;
+        const spinMode = userSettings.getSpinMode();
+        let duration = 0;
+
+        switch(spinMode){
+            case SpinModeEnum.Normal:
+                duration = 6000;
+                break;
+            case SpinModeEnum.Quick:
+                duration = 4500;
+                break;
+            case SpinModeEnum.Turbo:
+                duration = 3000;
+                break;
+        }
+
+        if (hasPrevProcess){
+            return new Promise((resolve) => {
+                navigation.presentPopup(FreeSpinWinBanner, {
+                    spins,
+                    autoClose: true,
+                    duration: duration,
+                    onClosed: () => {
+                        if (initiateSpin) this.onFreeSpinStart(spins); // start the free spin session after closing the banner
+                        resolve();
+                    },
+                });
             });
-        });
+        } else {
+
+            return new Promise((resolve) => {
+                navigation.presentPopup(FreeSpinWinBanner, {
+                    spins,
+                    onClosed: () => {
+                        if (initiateSpin) this.onFreeSpinStart(spins); // start the free spin session after closing the banner
+                        resolve();
+                    },
+                });
+            });
+        }
+
     }
 
     private messageMatchQueuing(roundResult: RoundResult) {

@@ -14,6 +14,11 @@ export type FreeSpinWinBannerData = {
     spins: number;
     topText?: string;
     bottomText?: string;
+
+    // ✅ NEW: optional auto close
+    autoClose?: boolean;   // default false
+    duration?: number;     // default 0 (ms). Used only when autoClose=true and duration>0
+
     onClosed?: () => void;
 };
 
@@ -45,6 +50,14 @@ export class FreeSpinWinBanner extends Container {
     private canClickAnywhere = false;
     private onClosed?: () => void;
 
+    // ✅ NEW: prevent double-callback (same pattern as TotalWinBanner)
+    private closedOnce = false;
+
+    // ✅ NEW: auto-close settings
+    private autoClose = false;         // default false
+    private autoCloseDuration = 0;     // default 0 (ms)
+    private autoCloseTimer?: number;
+
     private readonly TOP_TEXT_Y = -160;
     private readonly CENTER_NUMBER_Y = -5;
     private readonly BOTTOM_TEXT_Y = 155;
@@ -58,6 +71,14 @@ export class FreeSpinWinBanner extends Container {
     };
 
     private isClosing = false;
+
+    // ✅ NEW: static triggered close (like TotalWinBanner)
+    public static triggerClose(forceInstant = false) {
+        if (FreeSpinWinBanner.currentInstance) {
+            void FreeSpinWinBanner.currentInstance.hide(forceInstant);
+        }
+    }
+
     private async requestClose() {
         if (!this.canClickAnywhere) return;
         if (this.isClosing) return; // prevent double trigger
@@ -92,6 +113,48 @@ export class FreeSpinWinBanner extends Container {
     }
 
     // ==================================================
+    // ✅ NEW: auto-close helpers
+    // ==================================================
+    private clearAutoCloseTimer() {
+        if (this.autoCloseTimer != null) {
+            clearTimeout(this.autoCloseTimer);
+            this.autoCloseTimer = undefined;
+        }
+    }
+
+    private scheduleAutoCloseIfNeeded() {
+        this.clearAutoCloseTimer();
+
+        if (!this.autoClose) return;
+        if (!Number.isFinite(this.autoCloseDuration) || this.autoCloseDuration <= 0) return;
+
+        this.autoCloseTimer = window.setTimeout(() => {
+            // avoid closing before "press anywhere" is enabled
+            if (!this.canClickAnywhere) {
+                this.autoCloseTimer = window.setTimeout(() => {
+                    if (this.canClickAnywhere) void this.hide();
+                }, 100);
+                return;
+            }
+            void this.hide();
+        }, this.autoCloseDuration);
+    }
+
+    private async fireClosedOnce() {
+        if (this.closedOnce) return;
+        this.closedOnce = true;
+
+        const cb = this.onClosed;
+        this.onClosed = undefined;
+
+        try {
+            cb?.();
+        } catch (e) {
+            console.warn("[FreeSpinWinBanner] onClosed error:", e);
+        }
+    }
+
+    // ==================================================
     // PREPARE
     // ==================================================
     public async prepare<T>(data?: T) {
@@ -99,6 +162,17 @@ export class FreeSpinWinBanner extends Container {
 
         this.spins = Math.max(0, Math.floor(d?.spins ?? 0));
         this.onClosed = d?.onClosed;
+
+        // ✅ NEW: reset close guards/timers
+        this.closedOnce = false;
+        this.isClosing = false;
+        this.canClickAnywhere = false;
+        this.clearAutoCloseTimer();
+
+        // ✅ NEW: auto-close config with defaults
+        this.autoClose = typeof d?.autoClose === "boolean" ? d.autoClose : false;
+        const duration = typeof d?.duration === "number" ? d.duration : 0;
+        this.autoCloseDuration = duration;
 
         const topLabel = d?.topText ?? "YOU HAVE WON";
         const bottomLabel = d?.bottomText ?? "FREE SPINS";
@@ -125,6 +199,9 @@ export class FreeSpinWinBanner extends Container {
         // enable "press anywhere"
         setTimeout(() => {
             this.canClickAnywhere = true;
+
+            // ✅ NEW: schedule auto-close once it becomes dismissable
+            this.scheduleAutoCloseIfNeeded();
         }, 900);
     }
 
@@ -591,11 +668,18 @@ export class FreeSpinWinBanner extends Container {
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
+        // ✅ NEW: clear auto-close timer on hide
+        this.clearAutoCloseTimer();
+
         // 🔻 remove keyboard listener
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
         }
+
+        // kill wood pulse tweens + number tween
+        gsap.killTweensOf([this.topText?.scale, this.bottomText?.scale, this.continueText?.scale].filter(Boolean));
+        gsap.killTweensOf(this);
 
         // kill glow tweens
         if (this.glowEntranceTween) {
@@ -613,10 +697,10 @@ export class FreeSpinWinBanner extends Container {
 
         if (forceInstant) {
             this.alpha = 0;
-            const cb = this.onClosed;
             FreeSpinWinBanner.currentInstance = null;
+
+            await this.fireClosedOnce();
             await navigation.dismissPopup();
-            cb?.();
             return;
         }
 
@@ -633,13 +717,16 @@ export class FreeSpinWinBanner extends Container {
             { alpha: 0, duration: 0.25 }
         );
 
-        const cb = this.onClosed;
         FreeSpinWinBanner.currentInstance = null;
+
+        await this.fireClosedOnce();
         await navigation.dismissPopup();
-        cb?.();
     }
 
     public override destroy(options?: any) {
+        
+        this.clearAutoCloseTimer();
+
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
@@ -664,6 +751,8 @@ export class FreeSpinWinBanner extends Container {
             gsap.killTweensOf(g);
             gsap.killTweensOf(g.scale);
         }
+
+        void this.fireClosedOnce();
 
         super.destroy(options);
 

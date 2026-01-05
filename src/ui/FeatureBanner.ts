@@ -4,6 +4,33 @@ import { ConfigAPI } from "../api/configApi";
 
 const config = await ConfigAPI.config();
 
+// ✅ PRELOAD FONTS ASAP (before any banner Text is created)
+async function preloadBannerFonts() {
+    try {
+        // guard for non-browser env
+        const fonts: any = (globalThis as any)?.document?.fonts;
+        if (!fonts?.load) return;
+
+        await Promise.all([
+            // Pirata One
+            fonts.load(`76px "Pirata One"`),
+            fonts.load(`140px "Pirata One"`),
+
+            // Bangers
+            fonts.load(`54px "Bangers"`),
+            fonts.load(`68px "Bangers"`),
+        ]);
+
+        // wait until fonts are actually ready
+        await fonts.ready;
+    } catch {
+        // ignore
+    }
+}
+
+// ✅ This runs once when this module is imported
+await preloadBannerFonts();
+
 export type BuyFreeTypeLetter = "A" | "B" | "C";
 
 export type BuyFreeTypeDefinition = {
@@ -34,8 +61,6 @@ export class BuyFreeSpinOptionBanner extends Container {
     private spinsText: Text;
 
     // ✅ two-line label:
-    // line 1: FREE SPINS (gradient)
-    // line 2: X (white) + SCATTERS (gradient)
     private freeSpinsText: Text;
     private scattersLine: Container;
     private scattersNumberText: Text;
@@ -45,9 +70,6 @@ export class BuyFreeSpinOptionBanner extends Container {
     private amount: number;
     private currencySymbol: string;
     private decimals: number;
-
-    private fontReady = false;
-    private fontLoadPromise: Promise<void> | null = null;
 
     // cache gradient for all instances
     private static amountGradientTexture?: Texture;
@@ -65,11 +87,10 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.currencySymbol = cfg.currencySymbol ?? "$";
         this.decimals = cfg.decimals ?? 0;
 
-        // ✅ default mapping (edit if your scatters differ)
         this.typeMap = {
             A: { bannerTextureKey: "green-spin-banner", spins: config.feature.A.spins, scatters: config.feature.A.scatters },
             B: { bannerTextureKey: "red-spin-banner", spins: config.feature.B.spins, scatters: config.feature.B.scatters },
-            C: { bannerTextureKey: "blue-spin-banner", spins: config.feature.C.spins , scatters: config.feature.C.scatters },
+            C: { bannerTextureKey: "blue-spin-banner", spins: config.feature.C.spins, scatters: config.feature.C.scatters },
             ...(cfg.typeMap as any),
         };
 
@@ -87,14 +108,14 @@ export class BuyFreeSpinOptionBanner extends Container {
         // LINE 1
         this.freeSpinsText = this.createStyledText("FREE SPINS", labelSize, "Bangers");
 
-        // LINE 2 (container to center nicely)
+        // LINE 2
         this.scattersLine = new Container();
         this.scattersLine.eventMode = "none";
 
         this.scattersNumberText = this.createStyledText(`${def.scatters}`, labelSize, "Bangers");
         this.scattersWordText = this.createStyledText(" SCATTERS", labelSize, "Bangers");
 
-        // ✅ number only = white (no gradient)
+        // ✅ number only = white
         (this.scattersNumberText.style as any).fill = 0xffffff;
 
         this.scattersLine.addChild(this.scattersNumberText, this.scattersWordText);
@@ -128,22 +149,16 @@ export class BuyFreeSpinOptionBanner extends Container {
             gsap.to(this.scale, { x: 1.2, y: 1.2, duration: 0.1, yoyo: true, repeat: 1 });
             this.onTap?.();
         });
-
-        // load fonts used by this banner
-        this.ensureFontsLoaded();
     }
 
-    /** external: set tap handler */
     public setOnTap(fn?: () => void) {
         this.onTap = fn;
     }
 
-    /** external: returns the spins for this letter */
     public getSpins(): number {
         return this.typeMap[this.typeLetter].spins;
     }
 
-    /** external: update amount */
     public setAmount(amount: number, currencySymbol = this.currencySymbol, decimals = this.decimals) {
         this.amount = amount;
         this.currencySymbol = currencySymbol;
@@ -153,7 +168,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.attachAmountTextToBanner(this.sprite, this.amountText);
     }
 
-    /** external: update type letter (changes sprite + center texts) */
     public setTypeLetter(typeLetter: BuyFreeTypeLetter) {
         this.typeLetter = typeLetter;
 
@@ -166,48 +180,41 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.relayout();
     }
 
-    /** external: adjust bottom amount font size */
     public setAmountFontSize(fontSize: number) {
         (this.amountText.style as any).fontSize = fontSize;
         this.attachAmountTextToBanner(this.sprite, this.amountText);
-        this.ensureFontsLoaded();
     }
 
-    /** external: adjust center spins font size */
     public setSpinsFontSize(fontSize: number) {
         (this.spinsText.style as any).fontSize = fontSize;
         this.attachCenterTextsToBanner(this.sprite);
-        this.ensureFontsLoaded();
     }
 
-    /** optional: adjust label size (both lines) */
     public setCenterLabelFontSize(labelFontSize: number) {
         (this.freeSpinsText.style as any).fontSize = labelFontSize;
         (this.scattersNumberText.style as any).fontSize = labelFontSize;
         (this.scattersWordText.style as any).fontSize = labelFontSize;
 
-        // keep number white
         (this.scattersNumberText.style as any).fill = 0xffffff;
 
         this.attachCenterTextsToBanner(this.sprite);
-        this.ensureFontsLoaded();
     }
 
-    /** external: call after scale changes / resize */
     public relayout() {
         this.attachCenterTextsToBanner(this.sprite);
         this.attachAmountTextToBanner(this.sprite, this.amountText);
     }
 
     // -----------------------
-    // Text helpers (same gradient system)
+    // Text helpers
     // -----------------------
 
     private createStyledText(value: string, fontSize: number, fontFamily: "Pirata One" | "Bangers") {
         this.ensureAmountGradient();
 
         const style: any = {
-            fontFamily: this.fontReady ? fontFamily : "Arial",
+            // ✅ font is used immediately (fonts preloaded above)
+            fontFamily,
             fontSize,
             align: "center",
             fill: {
@@ -274,13 +281,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         text.y = texH * 0.3 - bottomPadding;
     }
 
-    /**
-     * ✅ Places:
-     *  - big spins number
-     *  - line1: FREE SPINS
-     *  - line2: X SCATTERS
-     * inside a middle safe band
-     */
     private attachCenterTextsToBanner(optionSprite: Sprite) {
         const texH =
             optionSprite.texture?.orig?.height ??
@@ -295,7 +295,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         const safeBottom = texH * 0.18;
         const safeHeight = safeBottom - safeTop;
 
-        // ✅ slightly adjusted spacing (cleaner line gap)
         const ySpins = safeTop + safeHeight * 0.08;
         const yFree = safeTop + safeHeight * 0.62;
         const yScat = safeTop + safeHeight * 0.90;
@@ -306,7 +305,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.freeSpinsText.x = 0;
         this.freeSpinsText.y = yFree;
 
-        // center "X SCATTERS" as a group
         this.scattersNumberText.anchor.set(0, 0.5);
         this.scattersWordText.anchor.set(0, 0.5);
 
@@ -323,66 +321,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.scattersLine.x = 0;
         this.scattersLine.y = yScat;
 
-        // keep number white
         (this.scattersNumberText.style as any).fill = 0xffffff;
-    }
-
-    // -----------------------
-    // Font loading
-    // -----------------------
-
-    private ensureFontsLoaded() {
-        if (this.fontLoadPromise) return this.fontLoadPromise;
-
-        this.fontLoadPromise = (async () => {
-            try {
-                const fonts: any = (document as any).fonts;
-                if (!fonts?.load) {
-                    this.fontReady = true;
-                    this.applyFontsToTexts();
-                    return;
-                }
-
-                await Promise.all([
-                    // Pirata One (spins + amount)
-                    fonts.load(`76px "Pirata One"`),
-                    fonts.load(`140px "Pirata One"`),
-
-                    // Bangers (labels)
-                    fonts.load(`54px "Bangers"`),
-                    fonts.load(`68px "Bangers"`),
-                ]);
-                await fonts.ready;
-
-                this.fontReady = true;
-                this.applyFontsToTexts();
-            } catch {
-                // ignore
-            }
-        })();
-
-        return this.fontLoadPromise;
-    }
-
-    private applyFontsToTexts() {
-        if (this.amountText) (this.amountText.style as any).fontFamily = "Pirata One";
-        if (this.spinsText) (this.spinsText.style as any).fontFamily = "Pirata One";
-
-        if (this.freeSpinsText) (this.freeSpinsText.style as any).fontFamily = "Bangers";
-        if (this.scattersNumberText) (this.scattersNumberText.style as any).fontFamily = "Bangers";
-        if (this.scattersWordText) (this.scattersWordText.style as any).fontFamily = "Bangers";
-
-        // keep number white after font change too
-        if (this.scattersNumberText) (this.scattersNumberText.style as any).fill = 0xffffff;
-
-        // force rebuild (same trick you used)
-        const texts = [this.amountText, this.spinsText, this.freeSpinsText, this.scattersNumberText, this.scattersWordText];
-        for (const t of texts) {
-            if (!t) continue;
-            t.text = `${t.text} `;
-            t.text = t.text.trimEnd();
-        }
-
-        this.relayout();
     }
 }
