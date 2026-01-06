@@ -1228,9 +1228,32 @@ private async startSpinSeamlessSequential(): Promise<void> {
         this._accelerateLandingRequested = false;
     }
 
-    // =========================================================================
-    // FINISH WRAPPER (Match3Process expects this!)
-    // =========================================================================
+    private enterBlurViewForColumn(column: number, yBlur: number) {
+        const reel = this.realReels[column];
+        const col = reel?.container;
+        if (!reel || !col) return;       
+        reel.position = 0;
+
+        this.colActive[column] = true;
+        col.y = yBlur;
+        this.setBlurVisibleForColumn(column, true);
+    }
+
+    private enterBlurViewAllColumns(yBlur: number) {
+        for (let c = 0; c < this.columns; c++) {
+            this.enterBlurViewForColumn(c, yBlur);
+        }
+
+        this.updateSpin(0);
+
+        this._allColumnsSpinning = true;
+
+        if (this._interruptPending && this._hasBackendResult) {
+            this._interruptPending = false;
+            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
+        }
+    }
+   
     public async finishSpin(): Promise<void> {
         if (this._startSequencePromise) {
             await this._startSequencePromise;
@@ -1794,40 +1817,5 @@ private async startSpinSeamlessSequential(): Promise<void> {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // ✅ BLUR VIEW ENTER HELPERS (prevents blur-peek and first-frame gap)
-    // -------------------------------------------------------------------------
-    private enterBlurViewForColumn(column: number, yBlur: number) {
-        const reel = this.realReels[column];
-        const col = reel?.container;
-        if (!reel || !col) return;
-
-        // reset position so first visible layout is stable
-        reel.position = 0;
-
-        // make column active for blur ticker updates
-        this.colActive[column] = true;
-
-        // IMPORTANT: do this in the same tick before render
-        col.y = yBlur;
-        this.setBlurVisibleForColumn(column, true);
-    }
-
-    private enterBlurViewAllColumns(yBlur: number) {
-        for (let c = 0; c < this.columns; c++) {
-            this.enterBlurViewForColumn(c, yBlur);
-        }
-
-        // Force a layout pass immediately so no "empty row" is visible on frame 1
-        this.updateSpin(0);
-
-        this._allColumnsSpinning = true;
-
-        // handle pending interrupt once blur-view is actually active
-        if (this._interruptPending && this._hasBackendResult) {
-            this._interruptPending = false;
-            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
-        }
-    }
 
 }
