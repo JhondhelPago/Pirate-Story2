@@ -379,17 +379,17 @@ export class Match3Process {
 
     public async getSpinWon() {
         const config = await this.getConfig();
-        let spins = 0;
 
-        if (this.bonus >= config.bonusFreeSpins.nonFreeSpin.bonus3.count) spins = config.bonusFreeSpins.nonFreeSpin.bonus3.spins;
-        else if (this.bonus === config.bonusFreeSpins.nonFreeSpin.bonus4.count) spins = config.bonusFreeSpins.nonFreeSpin.bonus4.spins;
-        else if (this.bonus === config.bonusFreeSpins.nonFreeSpin.bonus5.count) spins = config.bonusFreeSpins.nonFreeSpin.bonus5.spins;
+        const freeSpinsArray = config.settings.freeSpins;
 
-        //if (this.bonus >= 2) spins = 5;
-        // else if (this.bonus === 4) spins = 10;
-        // else if (this.bonus === 5) spins = 15;
+        const freeSpinSettings = freeSpinsArray
+            .filter(item => item.count <= this.bonus)
+            .sort((a, b) => b.count - a.count)[0];
+
+        const spins = freeSpinSettings?.spins ?? 0;
 
         this.bonus = 0;
         return spins;
     }
+
 }

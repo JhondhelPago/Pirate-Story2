@@ -43,7 +43,7 @@ export class PayTableSection extends Container {
 
         this.paytableCardsContainer = new Container();
 
-        for (const paytable of this.paytables.slice(0, 10)) {
+        for (const paytable of this.paytables.slice(0, 10).reverse()) {
             const card = new PaytableCard({
                 image: `symbol-${paytable.type}`,
                 betAmount: this.betAmount,

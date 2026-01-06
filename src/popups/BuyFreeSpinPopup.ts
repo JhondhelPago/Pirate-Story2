@@ -14,13 +14,30 @@ import {
     type BuyFreeTypeLetter,
 } from "../ui/FeatureBanner";
 
+/* ===============================
+   Currency helpers
+================================ */
+export type CurrencyType = "US" | "KRW" | "PHP";
+
+function getCurrencySymbol(type: CurrencyType): string {
+    switch (type) {
+        case "US":
+            return "$";
+        case "KRW":
+            return "₩";
+        case "PHP":
+            return "₱";
+        default:
+            return "$";
+    }
+}
+
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
     private panel: Container;
 
     private buyLabel: Sprite;
 
-    // (names kept for minimal refactor)
     private featureA: BuyFreeSpinOptionBanner;
     private featureB: BuyFreeSpinOptionBanner;
     private featureC: BuyFreeSpinOptionBanner;
@@ -28,9 +45,13 @@ export class BuyFreeSpinPopup extends Container {
     private exitButton: Sprite;
 
     private canClickAnywhere = false;
-    private onSelect?: (value: string) => void; // ✅ now letter
+    private onSelect?: (value: BuyFreeTypeLetter) => void;
 
     private pulseTween?: gsap.core.Tween;
+
+    // ✅ resolved once, reused everywhere
+    private readonly currencyType = config.currency as CurrencyType;
+    private readonly currencySymbol = getCurrencySymbol(this.currencyType);
 
     constructor() {
         super();
@@ -50,11 +71,11 @@ export class BuyFreeSpinPopup extends Container {
         this.buyLabel.anchor.set(0.5);
         this.panel.addChild(this.buyLabel);
 
-        // ✅ reusable options now use typeLetter A/B/C
+        // ✅ feature banners now use currency TYPE → symbol
         this.featureA = new BuyFreeSpinOptionBanner({
             typeLetter: "A",
             amount: config.feature.A.buyFeatureBetMultiplier * userSettings.getBet(),
-            currencySymbol: "$",
+            currencySymbol: this.currencySymbol,
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
@@ -63,7 +84,7 @@ export class BuyFreeSpinPopup extends Container {
         this.featureB = new BuyFreeSpinOptionBanner({
             typeLetter: "B",
             amount: config.feature.B.buyFeatureBetMultiplier * userSettings.getBet(),
-            currencySymbol: "$",
+            currencySymbol: this.currencySymbol,
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
@@ -72,7 +93,7 @@ export class BuyFreeSpinPopup extends Container {
         this.featureC = new BuyFreeSpinOptionBanner({
             typeLetter: "C",
             amount: config.feature.C.buyFeatureBetMultiplier * userSettings.getBet(),
-            currencySymbol: "$",
+            currencySymbol: this.currencySymbol,
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
@@ -83,19 +104,24 @@ export class BuyFreeSpinPopup extends Container {
             this.panel.addChild(opt);
         }
 
-        // ✅ tap handlers now derive spins from the banner itself
         this.featureA.setOnTap(() => {
-            const amount = 100 * userSettings.getBet();
+            const amount =
+                config.settings.features[0].buyFeatureBetMultiplier *
+                userSettings.getBet();
             this.openConfirm("A", amount, this.featureA.getSpins());
         });
 
         this.featureB.setOnTap(() => {
-            const amount = 500 * userSettings.getBet();
+            const amount =
+                config.settings.features[1].buyFeatureBetMultiplier *
+                userSettings.getBet();
             this.openConfirm("B", amount, this.featureB.getSpins());
         });
 
         this.featureC.setOnTap(() => {
-            const amount = 1000 * userSettings.getBet();
+            const amount =
+                config.settings.features[2].buyFeatureBetMultiplier *
+                userSettings.getBet();
             this.openConfirm("C", amount, this.featureC.getSpins());
         });
 
@@ -129,42 +155,40 @@ export class BuyFreeSpinPopup extends Container {
         });
     }
 
-    private openConfirm(typeLetter: BuyFreeTypeLetter, amount: number, spinCount: number) {
+    private openConfirm(
+        typeLetter: BuyFreeTypeLetter,
+        amount: number,
+        spinCount: number
+    ) {
         this.onSelect?.(typeLetter);
 
         navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
             confirmationBoard: "buy-spin-confirm-board",
-
-            // ✅ NEW
             spins: spinCount,
-
             amount,
-            currencySymbol: "$",
+            currencySymbol: this.currencySymbol,
             decimals: 0,
             confirmButton: "confirm-button",
             cancelButton: "cancel-button",
             onConfirm: () => {
-                const game = navigation.currentScreen as GameScreen;   
-                
-                // trigger for the free spin session
-                // game.onFreeSpinStart(spinCount);
-
+                const game = navigation.currentScreen as GameScreen;
                 game.onFreeSpinInitialStart(spinCount);
             },
         });
     }
 
-
     public setOptionAmounts(
         vA: number,
         vB: number,
         vC: number,
-        currencySymbol = "$",
+        currencyType: CurrencyType,
         decimals = 0
     ) {
-        this.featureA.setAmount(vA, currencySymbol, decimals);
-        this.featureB.setAmount(vB, currencySymbol, decimals);
-        this.featureC.setAmount(vC, currencySymbol, decimals);
+        const symbol = getCurrencySymbol(currencyType);
+
+        this.featureA.setAmount(vA, symbol, decimals);
+        this.featureB.setAmount(vB, symbol, decimals);
+        this.featureC.setAmount(vC, symbol, decimals);
 
         this.featureA.relayout();
         this.featureB.relayout();
@@ -197,7 +221,6 @@ export class BuyFreeSpinPopup extends Container {
 
             const finalY = opt.y;
             opt.alpha = 0;
-
             opt.y = finalY - 900;
 
             gsap.to(opt, {
@@ -235,7 +258,8 @@ export class BuyFreeSpinPopup extends Container {
             this.exitButton.x = width * 0.88;
 
             const panelGlobalY = this.panel.y;
-            const labelScreenY = panelGlobalY + this.buyLabel.y * this.panel.scale.y;
+            const labelScreenY =
+                panelGlobalY + this.buyLabel.y * this.panel.scale.y;
 
             this.exitButton.y = labelScreenY - 320;
             this.exitButton.scale.set(1.5);
@@ -275,7 +299,6 @@ export class BuyFreeSpinPopup extends Container {
             this.featureB.setAmountFontSize(68);
             this.featureC.setAmountFontSize(68);
 
-            // ✅ center spins can shrink too on mobile
             this.featureA.setSpinsFontSize(120);
             this.featureB.setSpinsFontSize(120);
             this.featureC.setSpinsFontSize(120);

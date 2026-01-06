@@ -226,12 +226,14 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     public async getSpinWon() {
         const config = await this.getConfig();
-        let spins = 0;
+        
+        const freeSpinsArray = config.settings.extraFreeSpins;
 
-        if (this.bonus >= config.bonusFreeSpins.freeSpin.bonus2.count) spins = config.bonusFreeSpins.freeSpin.bonus3.spins;
-        else if (this.bonus === config.bonusFreeSpins.freeSpin.bonus3.count) spins = config.bonusFreeSpins.freeSpin.bonus3.spins;
-        else if (this.bonus === config.bonusFreeSpins.freeSpin.bonus4.count) spins = config.bonusFreeSpins.freeSpin.bonus4.spins;
-        else if (this.bonus === config.bonusFreeSpins.freeSpin.bonus5.count) spins = config.bonusFreeSpins.freeSpin.bonus5.spins;
+        const freeSpinSettings = freeSpinsArray
+            .filter(item => item.count <= this.bonus)
+            .sort((a, b) => b.count - a.count)[0];
+
+        const spins = freeSpinSettings?.spins ?? 0;
 
         this.bonus = 0;
         return spins;

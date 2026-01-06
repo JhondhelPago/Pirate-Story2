@@ -1,5 +1,9 @@
+import { ConfigAPI } from '../api/configApi';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
+
+
+const config = await ConfigAPI.config();
 
 // Keys for saved items in storage
 const KEY_VOLUME_MASTER = 'volume-master';
@@ -32,11 +36,11 @@ class UserSettings {
 
     constructor() {
         this.spinMode = SpinModeEnum.Normal;
-        this.currency = 'usd';
+        this.currency = config.currency;
         this.balance = 0;
         this.freeSpins = 0;
 
-        this.betOptions = [0.5, 1, 5, 10, 15, 20, 50, 100, 1000];
+        this.betOptions = config.bettingLimit.MONEY_OPTION;
         this.betIndex = 0;
 
         setMasterVolume(this.getMasterVolume());
