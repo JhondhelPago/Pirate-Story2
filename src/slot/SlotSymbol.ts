@@ -161,9 +161,10 @@ export class SlotSymbol extends Container {
         }
 
         this.spine = Spine.from({
-            skeleton: `game/${opts.name}.json`,
-            atlas: `game/${opts.name}.atlas`,
+            skeleton: `game/symbol-${opts.type}.json`,
+            atlas: `game/symbol-${opts.type}.atlas`,
         });
+
 
         this.spine.x = 0;
         this.spine.y = 0;
