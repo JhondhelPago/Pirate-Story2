@@ -1,11 +1,11 @@
 {
 "skeleton": {
-	"hash": "oadkOWZDpgI",
+	"hash": "gQHh0aU/VgI",
 	"spine": "4.2.43",
 	"x": -136.91,
-	"y": -96.39,
-	"width": 268.86,
-	"height": 187.82,
+	"y": -133.5,
+	"width": 270.41,
+	"height": 267,
 	"images": "./images/",
 	"audio": "./audio"
 },
@@ -18,6 +18,7 @@
 	{ "name": "VFX", "parent": "root" }
 ],
 "slots": [
+	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "bar C", "bone": "bar C", "attachment": "bar C" },
 	{ "name": "bar C2", "bone": "bar C", "color": "ffffff00", "attachment": "bar C", "blend": "additive" },
 	{ "name": "bar B", "bone": "bar B", "attachment": "bar B" },
@@ -48,6 +49,9 @@
 			},
 			"bar C2": {
 				"bar C": { "width": 157, "height": 103 }
+			},
+			"bg": {
+				"bg": { "width": 267, "height": 267 }
 			},
 			"bounding": {
 				"bounding": {

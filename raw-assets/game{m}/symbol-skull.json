@@ -1,11 +1,11 @@
 {
 "skeleton": {
-	"hash": "VgOyU6aVaq4",
+	"hash": "vvBSI7lKQCM",
 	"spine": "4.2.43",
 	"x": -185.88,
-	"y": -125.93,
+	"y": -133.5,
 	"width": 375.64,
-	"height": 368.74,
+	"height": 376.31,
 	"images": "./images/",
 	"audio": "./audio"
 },
@@ -17,6 +17,7 @@
 	{ "name": "VFX2", "parent": "Skull", "x": -32.07, "y": 76.32 }
 ],
 "slots": [
+	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "bone", "bone": "bone", "attachment": "bone" },
 	{ "name": "Skull", "bone": "Skull", "attachment": "Skull" },
 	{ "name": "eyes", "bone": "Skull", "color": "ffffff00", "attachment": "eyes", "blend": "additive" },
@@ -28,6 +29,9 @@
 	{
 		"name": "default",
 		"attachments": {
+			"bg": {
+				"bg": { "width": 267, "height": 267 }
+			},
 			"bone": {
 				"bone": { "width": 214, "height": 133 }
 			},

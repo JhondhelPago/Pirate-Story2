@@ -1,10 +1,10 @@
 {
 "skeleton": {
-	"hash": "Fkmcyq0PnkM",
+	"hash": "ECfI3bafSAg",
 	"spine": "4.2.43",
 	"x": -189.05,
 	"y": -137.7,
-	"width": 312.51,
+	"width": 322.55,
 	"height": 313.89,
 	"images": "./images/",
 	"audio": "./audio"
@@ -17,6 +17,7 @@
 	{ "name": "smoke VFX", "parent": "canon", "x": -64.98, "y": 53.51, "scaleX": 1.5371, "scaleY": 1.5371 }
 ],
 "slots": [
+	{ "name": "bg", "bone": "root", "attachment": "bg" },
 	{ "name": "canon back", "bone": "canon back", "attachment": "canon back" },
 	{ "name": "canon", "bone": "canon", "attachment": "canon" },
 	{ "name": "canon2", "bone": "canon", "attachment": "canon", "blend": "additive" },
@@ -30,6 +31,9 @@
 	{
 		"name": "default",
 		"attachments": {
+			"bg": {
+				"bg": { "width": 267, "height": 267 }
+			},
 			"bounding": {
 				"bounding": {
 					"type": "boundingbox",

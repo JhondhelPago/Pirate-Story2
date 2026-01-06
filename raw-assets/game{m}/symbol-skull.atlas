@@ -1,34 +1,36 @@
 symbol-skull.png
-	size: 939, 407
+	size: 809, 605
 	filter: Linear, Linear
 0030
-	bounds: 2, 206, 199, 199
+	bounds: 193, 135, 199, 199
 	offsets: 1, 1, 201, 201
 0031
-	bounds: 203, 206, 199, 199
+	bounds: 271, 404, 199, 199
 	offsets: 1, 1, 201, 201
 0032
-	bounds: 404, 206, 199, 199
+	bounds: 394, 203, 199, 199
 	offsets: 1, 1, 201, 201
 0033
-	bounds: 605, 206, 199, 199
+	bounds: 472, 404, 199, 199
 	offsets: 1, 1, 201, 201
 0034
-	bounds: 2, 5, 199, 199
+	bounds: 407, 2, 199, 199
 	offsets: 1, 1, 201, 201
 0035
-	bounds: 203, 5, 199, 199
+	bounds: 595, 203, 199, 199
 	offsets: 1, 1, 201, 201
 0036
-	bounds: 404, 5, 199, 199
+	bounds: 608, 2, 199, 199
 	offsets: 1, 1, 201, 201
 Skull
-	bounds: 605, 2, 217, 189
-bone
-	bounds: 806, 193, 212, 131
-	offsets: 1, 1, 214, 133
+	bounds: 2, 117, 217, 189
 	rotate: 90
+bg
+	bounds: 2, 336, 267, 267
+bone
+	bounds: 193, 2, 212, 131
+	offsets: 1, 1, 214, 133
 eyes
-	bounds: 824, 84, 107, 42
+	bounds: 2, 8, 107, 42
 	offsets: 2, 2, 110, 45
 	rotate: 90

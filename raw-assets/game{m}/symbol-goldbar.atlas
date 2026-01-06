@@ -1,33 +1,38 @@
 symbol-goldbar.png
-	size: 726, 364
+	size: 648, 545
 	filter: Linear, Linear
 0000
-	bounds: 2, 183, 179, 179
+	bounds: 271, 364, 179, 179
 	offsets: 1, 1, 181, 181
 0001
-	bounds: 2, 2, 179, 179
+	bounds: 271, 183, 179, 179
 	offsets: 1, 1, 181, 181
 0002
-	bounds: 183, 183, 179, 179
+	bounds: 2, 95, 179, 179
 	offsets: 1, 1, 181, 181
 0003
 	bounds: 183, 2, 179, 179
 	offsets: 1, 1, 181, 181
 0004
-	bounds: 364, 183, 179, 179
-	offsets: 1, 1, 181, 181
-0005
 	bounds: 364, 2, 179, 179
 	offsets: 1, 1, 181, 181
+0005
+	bounds: 452, 364, 179, 179
+	offsets: 1, 1, 181, 181
 0006
-	bounds: 545, 183, 179, 179
+	bounds: 452, 183, 179, 179
 	offsets: 1, 1, 181, 181
 bar A
-	bounds: 545, 80, 155, 101
+	bounds: 545, 26, 155, 101
 	offsets: 1, 1, 157, 103
+	rotate: 90
 bar B
-	bounds: 545, 80, 155, 101
+	bounds: 545, 26, 155, 101
 	offsets: 1, 1, 157, 103
+	rotate: 90
 bar C
-	bounds: 545, 80, 155, 101
+	bounds: 545, 26, 155, 101
 	offsets: 1, 1, 157, 103
+	rotate: 90
+bg
+	bounds: 2, 276, 267, 267
