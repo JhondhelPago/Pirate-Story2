@@ -560,113 +560,137 @@ export class Match3Board {
     }
 
     
-    /**
-     * NORMAL start: wave + lift + stagger (fixed blur timing)
-     */
-    private async startSpinSeamlessSequential(): Promise<void> {
-        const seq = ++this._startSeqId;
+/**
+ * NORMAL start: wave + lift + HOLD at peak + drop-back-to-lead
+ * ✅ Blur stays hidden during lift (no peek)
+ * ✅ Blur starts immediately per-column right after that column finishes drop (less delay)
+ */
+private async startSpinSeamlessSequential(): Promise<void> {
+    const seq = ++this._startSeqId;
 
-        const { offsetY } = this.getOffsets();
-        const yLead = -offsetY;
-        const yBlur = -offsetY + this.rows * this.tile;
+    const { offsetY } = this.getOffsets();
+    const yLead = -offsetY;
+    const yBlur = -offsetY + this.rows * this.tile;
 
-        this.colActive = new Array(this.columns).fill(false);
-        for (let c = 0; c < this.columns; c++) {
-            const col = this.realReels[c]?.container;
-            if (!col) continue;
-            gsap.killTweensOf(col);
-            col.y = yLead;
+    this.colActive = new Array(this.columns).fill(false);
+    this._allColumnsSpinning = false;
 
-            // ✅ IMPORTANT: ensure blur is hidden at the very start
-            this.setBlurVisibleForColumn(c, false);
-        }
+    // reset columns to lead and keep blur hidden
+    for (let c = 0; c < this.columns; c++) {
+        const col = this.realReels[c]?.container;
+        if (!col) continue;
 
-        const WAVE_STAGGER = 0.06;
-        const LIFT_PX = 25;
-        const LIFT_DUR = 0.15;
-        const DROP_DUR = 0.2;
+        gsap.killTweensOf(col);
+        col.y = yLead;
 
-        for (let c = 0; c < this.columns; c++) {
-            gsap.delayedCall(c * WAVE_STAGGER, () => {
-                if (seq !== this._startSeqId) return;
-                this.colActive[c] = true;
-            });
-        }
+        this.setBlurVisibleForColumn(c, false);
+        this.colActive[c] = false;
 
-        const cols = this.realReels.map((r) => r.container).filter(Boolean) as Container[];
+        const reel = this.realReels[c];
+        if (reel) reel.position = 0;
+    }
 
-        const tl = gsap.timeline();
+    const WAVE_STAGGER = 0.06;
+    const LIFT_PX = 25;
+    const LIFT_DUR = 0.15;
 
-        // ✅ Build strip during lift (still hidden => no peek)
-        tl.call(
-            () => {
-                if (seq !== this._startSeqId) return;
-                if (!this.hasSpinStripBuilt()) {
-                    const snap = this.getCurrentGridSnapshot();
-                    this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-                }
-            },
-            [],
-            0.01
-        );
+    const HOLD_DUR = 0.05; 
+    const DROP_DUR = 0.1;
 
-        // Lift (blur stays hidden)
-        tl.to(cols, {
-            y: yLead - LIFT_PX,
-            duration: LIFT_DUR,
-            ease: "power1.out",
-            stagger: WAVE_STAGGER,
-        });
+    // Build blur strip early (still hidden)
+    if (!this.hasSpinStripBuilt()) {
+        const snap = this.getCurrentGridSnapshot();
+        this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+    }
 
-        // Drop: ✅ enable blur PER COLUMN when that column's drop starts
+    const tl = gsap.timeline();
+
+    // --- LIFT wave (blur remains hidden) ---
+    for (let c = 0; c < this.columns; c++) {
+        const col = this.realReels[c]?.container;
+        if (!col) continue;
+
         tl.to(
-            cols,
+            col,
             {
-                y: yBlur,
+                y: yLead - LIFT_PX,
+                duration: LIFT_DUR,
+                ease: "power1.out",
+            },
+            c * WAVE_STAGGER
+        );
+    }
+
+    // --- DROP wave back to yLead ---
+    // ✅ when each column finishes dropping, immediately enter blur-view for THAT column
+    for (let c = 0; c < this.columns; c++) {
+        const col = this.realReels[c]?.container;
+        if (!col) continue;
+
+        tl.to(
+            col,
+            {
+                y: yLead,
                 duration: DROP_DUR,
                 ease: "none",
-                stagger: {
-                    each: WAVE_STAGGER,
-                    onStart: (_i: number, target: any) => {
-                        if (seq !== this._startSeqId) return;
+                onComplete: () => {
+                    if (seq !== this._startSeqId) return;
 
-                        // map target container back to column index
-                        const idx = cols.indexOf(target as any);
-                        if (idx >= 0) this.setBlurVisibleForColumn(idx, true);
-                    },
+                    // snap this column into blur-view immediately
+                    this.enterBlurViewForColumn(c, yBlur);
+
+                    // force a layout update so there is no "gap frame"
+                    this.updateSpin(0);
+
+                    // if this was the last column to enter blur, mark all spinning
+                    let all = true;
+                    for (let i = 0; i < this.columns; i++) {
+                        if (!this.colActive[i]) {
+                            all = false;
+                            break;
+                        }
+                    }
+                    if (all) {
+                        this._allColumnsSpinning = true;
+
+                        // handle pending interrupt once blur-view is actually active
+                        if (this._interruptPending && this._hasBackendResult) {
+                            this._interruptPending = false;
+                            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
+                        }
+                    }
                 },
             },
-            ">-0.02"
+            // ✅ SHIFTED BY HOLD_DUR: column stays at peak before its drop starts
+            (this.columns * WAVE_STAGGER) + HOLD_DUR + c * WAVE_STAGGER
         );
+    }
 
-        await tl.then();
-        if (seq !== this._startSeqId) return;
+    await tl.then();
+    if (seq !== this._startSeqId) return;
 
-        // Make sure all columns are active and locked to blur-view
-        for (let c = 0; c < this.columns; c++) this.colActive[c] = true;
-
-        for (let c = 0; c < this.columns; c++) {
-            const col = this.realReels[c]?.container;
-            if (!col) continue;
-            gsap.killTweensOf(col);
-            col.y = yBlur;
-
-            // ✅ safety: ensure blur is visible after sequence ends
-            this.setBlurVisibleForColumn(c, true);
-        }
-
-        this._allColumnsSpinning = true;
-
-        if (this._interruptPending && this._hasBackendResult) {
-            this._interruptPending = false;
-            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
+    // Safety: ensure any still-not-active column enters blur
+    for (let c = 0; c < this.columns; c++) {
+        if (!this.colActive[c]) {
+            this.enterBlurViewForColumn(c, yBlur);
         }
     }
 
+    this.updateSpin(0);
+    this._allColumnsSpinning = true;
 
-        /**
-     * QUICK start: NO lift, NO stagger. All columns animate at the same time.
-     * Fixed: build strip BEFORE drop, enable blur right when drop starts (no gaps).
+    if (this._interruptPending && this._hasBackendResult) {
+        this._interruptPending = false;
+        this._spinSpeed = Math.max(this._spinSpeed, 1.8);
+    }
+}
+
+
+
+
+    /**
+     * QUICK start: no lift, no stagger.
+     * Clean: build strip hidden, then enter blur-view in the same tick (no empty gaps).
      */
     private async startSpinSeamlessQuickAllAtOnce(): Promise<void> {
         const seq = ++this._startSeqId;
@@ -675,14 +699,9 @@ export class Match3Board {
         const yLead = -offsetY;
         const yBlur = -offsetY + this.rows * this.tile;
 
-        // make blur spin active immediately for all columns
-        this.colActive = new Array(this.columns).fill(true);
+        // reset columns to lead and keep blur hidden
+        this.colActive = new Array(this.columns).fill(false);
 
-        const cols = this.realReels
-            .map((r) => r.container)
-            .filter(Boolean) as Container[];
-
-        // reset all columns to lead position and keep blur hidden
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container;
             if (!col) continue;
@@ -691,41 +710,18 @@ export class Match3Board {
             this.setBlurVisibleForColumn(c, false);
         }
 
-        // ✅ Build strip BEFORE drop (still hidden => no flick, and no empty gaps later)
+        // build strip BEFORE showing blur
         if (!this.hasSpinStripBuilt()) {
             const snap = this.getCurrentGridSnapshot();
             this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
         }
 
-        // drop all at once (no lift)
-        const DROP_DUR = 0.22;
+        // enter blur-view immediately (same frame)
+        this.enterBlurViewAllColumns(yBlur);
 
-        // ✅ Enable blur at the moment the drop starts (covers the grid immediately)
-        for (let c = 0; c < this.columns; c++) this.setBlurVisibleForColumn(c, true);
-
-        const t = gsap.to(cols, { y: yBlur, duration: DROP_DUR, ease: "none" });
-
-        await t.then();
         if (seq !== this._startSeqId) return;
-
-        // lock everyone to blur-view
-        for (let c = 0; c < this.columns; c++) {
-            const col = this.realReels[c]?.container;
-            if (!col) continue;
-            gsap.killTweensOf(col);
-            col.y = yBlur;
-            this.setBlurVisibleForColumn(c, true);
-            this.colActive[c] = true;
-        }
-
-        this._allColumnsSpinning = true;
-
-        // if user already requested interrupt and backend is ready, speed up immediately
-        if (this._interruptPending && this._hasBackendResult) {
-            this._interruptPending = false;
-            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
-        }
     }
+
 
 
     private forceAllColumnsToBlurViewAndActive() {
@@ -741,10 +737,17 @@ export class Match3Board {
             gsap.killTweensOf(col);
             col.y = yBlur;
             this.setBlurVisibleForColumn(c, true);
+
+            const reel = this.realReels[c];
+            if (reel) reel.position = 0;
         }
+
+        // ✅ ensure no empty gap on frame 1
+        this.updateSpin(0);
 
         this._allColumnsSpinning = true;
     }
+
 
     public applyBackendResults(reels: number[][], multipliers: number[][]) {
         this.backendReels = reels;
@@ -1790,4 +1793,41 @@ export class Match3Board {
             this.killLoops();
         }
     }
+
+    // -------------------------------------------------------------------------
+    // ✅ BLUR VIEW ENTER HELPERS (prevents blur-peek and first-frame gap)
+    // -------------------------------------------------------------------------
+    private enterBlurViewForColumn(column: number, yBlur: number) {
+        const reel = this.realReels[column];
+        const col = reel?.container;
+        if (!reel || !col) return;
+
+        // reset position so first visible layout is stable
+        reel.position = 0;
+
+        // make column active for blur ticker updates
+        this.colActive[column] = true;
+
+        // IMPORTANT: do this in the same tick before render
+        col.y = yBlur;
+        this.setBlurVisibleForColumn(column, true);
+    }
+
+    private enterBlurViewAllColumns(yBlur: number) {
+        for (let c = 0; c < this.columns; c++) {
+            this.enterBlurViewForColumn(c, yBlur);
+        }
+
+        // Force a layout pass immediately so no "empty row" is visible on frame 1
+        this.updateSpin(0);
+
+        this._allColumnsSpinning = true;
+
+        // handle pending interrupt once blur-view is actually active
+        if (this._interruptPending && this._hasBackendResult) {
+            this._interruptPending = false;
+            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
+        }
+    }
+
 }
