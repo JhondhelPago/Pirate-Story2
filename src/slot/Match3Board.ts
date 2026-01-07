@@ -10,6 +10,7 @@ import {
     SCATTERBONUS,
 } from "./SlotUtility";
 import { userSettings, SpinModeEnum } from "../utils/userSettings";
+import { ConfigAPI } from "../api/configApi";
 
 interface ReelColumn {
     container: Container;
@@ -770,6 +771,9 @@ private async startSpinSeamlessSequential(): Promise<void> {
     // =========================================================================
     public async startSpin(): Promise<void> {
         if (this._spinInProgress) return;
+
+        const PirateStoryConfig = await ConfigAPI.getPirateConfig();
+        console.log(PirateStoryConfig.data);
 
         // ✅ bump token so any existing replay loops instantly stop
         this._spinToken++;

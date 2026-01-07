@@ -1,4 +1,5 @@
 import { gameConfig } from '../utils/gameConfig';
+import { ConfigAPI } from '../api/configApi';
 
 /** Default match3 configuration */
 const defaultConfig = {
