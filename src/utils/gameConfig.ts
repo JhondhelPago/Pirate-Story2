@@ -3,20 +3,20 @@ import { Block, Paytable } from '../slot/Match3Config';
 const defaultBuyFeatureBetMultiplier: number = 100;
 
 // Default fallbacks (keep your existing arrays as fallbacks)
-const defaultBlocks: Block[] = [
-    { type: 1,  symbol: 'symbol-anchor',   name: 'Anchor' },
-    { type: 2,  symbol: 'symbol-mug',      name: 'Mug' },
-    { type: 3,  symbol: 'symbol-bomb',     name: 'Bomb' },
-    { type: 4,  symbol: 'symbol-hat',      name: 'Hat' },
-    { type: 5, symbol: 'symbol-sword',    name: 'Sword' },
-    { type: 6,  symbol: 'symbol-flag',     name: 'Flag' },
-    { type: 7, symbol: 'symbol-skull',    name: 'Skull' },
-    { type: 8,  symbol: 'symbol-canon',    name: 'Canon' },
-    { type: 9,  symbol: 'symbol-apple',    name: 'Apple' },
-    { type: 10,  symbol: 'symbol-goldbar',  name: 'Gold-bar'},
-    // { type: 11,  symbol: 'symbol-coin',     name: 'Coin' },
-    // { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
-];
+// const defaultBlocks: Block[] = [
+//     { type: 1,  symbol: 'symbol-anchor',   name: 'Anchor' },
+//     { type: 2,  symbol: 'symbol-mug',      name: 'Mug' },
+//     { type: 3,  symbol: 'symbol-bomb',     name: 'Bomb' },
+//     { type: 4,  symbol: 'symbol-hat',      name: 'Hat' },
+//     { type: 5, symbol: 'symbol-sword',    name: 'Sword' },
+//     { type: 6,  symbol: 'symbol-flag',     name: 'Flag' },
+//     { type: 7, symbol: 'symbol-skull',    name: 'Skull' },
+//     { type: 8,  symbol: 'symbol-canon',    name: 'Canon' },
+//     { type: 9,  symbol: 'symbol-apple',    name: 'Apple' },
+//     { type: 10,  symbol: 'symbol-goldbar',  name: 'Gold-bar'},
+//     // { type: 11,  symbol: 'symbol-coin',     name: 'Coin' },
+//     // { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
+// ];
 
 const bonusBlocks: Block[] = [
     { type: 11,  symbol: 'symbol-coin', name: 'Coin' },
@@ -25,6 +25,9 @@ const bonusBlocks: Block[] = [
 const wildBlocks: Block[] = [
     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
 ]
+
+const defaultBlocks = [1, 2,3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const specialBlocks = [11, 12];
 
 const defaultPaytable: Paytable[] = [
     {
@@ -141,7 +144,8 @@ const defaultPaytable: Paytable[] = [
 
 class GameConfig {
     // Configuration data
-    private blocks: Block[] = defaultBlocks;
+    private blocks: number[] = defaultBlocks;
+    private specialBlocks: number[] = specialBlocks;
     private paytable: Paytable[] = defaultPaytable;
     private bonusBlock: Block[] = bonusBlocks;
     private wildBlock: Block[] = wildBlocks;
@@ -154,8 +158,12 @@ class GameConfig {
     }
 
     // Setters
-    setBlocks(blocks: Block[]) {
+    setBlocks(blocks: number[]) {
         this.blocks = blocks;
+    }
+
+    setSpecialBlocks(blocks: number[]){
+        this.specialBlocks = blocks;
     }
 
     setPaytables(paytable: Paytable[]) {
@@ -163,8 +171,12 @@ class GameConfig {
     }
 
     // Getters
-    getBlocks(): Block[] {
+    getBlocks(): number[] {
         return this.blocks;
+    }
+
+    getSpecialBlocks(): number[] {
+        return this.specialBlocks;
     }
 
     getBonusBlocks(): Block[] {

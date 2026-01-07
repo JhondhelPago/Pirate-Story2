@@ -193,44 +193,31 @@ export class ConfigAPI {
                 // ------------------------------
                 // NORMAL BLOCKS (all PNG, all consistent)
                 // ------------------------------
-                blocks: [
-                    { type: 1,  symbol: 'symbol-anchor',   name: 'Anchor' },
-                    { type: 2,  symbol: 'symbol-mug',      name: 'Mug' },
-                    { type: 3,  symbol: 'symbol-bomb',     name: 'Bomb' },
-                    { type: 4,  symbol: 'symbol-hat',      name: 'Hat' },
-                    { type: 5, symbol: 'symbol-sword',    name: 'Sword' },
-                    { type: 6,  symbol: 'symbol-flag',     name: 'Flag' },
-                    { type: 7, symbol: 'symbol-skull',    name: 'Skull' },
-                    { type: 8,  symbol: 'symbol-canon',    name: 'Canon' },
-                    { type: 9,  symbol: 'symbol-apple',    name: 'Apple' },
-                    { type: 10,  symbol: 'symbol-goldbar',  name: 'Gold-bar'},
-                    { type: 11,  symbol: 'symbol-coin',     name: 'Coin' },
-                    { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
-                ],
-
-                specialBlocks: [
-                    { type: 11, symbol: 'symbol-coin', name: 'Coin' }, //bonus
-                    { type: 12, symbol: 'symbol-treasure', name: 'Treasure' }, //wild
-                ],
-
-                // "blocks": [
-                //     1,
-                //     2,
-                //     3,
-                //     4,
-                //     5,
-                //     6,
-                //     7,
-                //     8,
-                //     9,
-                //     10,
-                //     11,
-                //     12
+                // blocks: [
+                //     { type: 1,  symbol: 'symbol-anchor',   name: 'Anchor' },
+                //     { type: 2,  symbol: 'symbol-mug',      name: 'Mug' },
+                //     { type: 3,  symbol: 'symbol-bomb',     name: 'Bomb' },
+                //     { type: 4,  symbol: 'symbol-hat',      name: 'Hat' },
+                //     { type: 5, symbol: 'symbol-sword',    name: 'Sword' },
+                //     { type: 6,  symbol: 'symbol-flag',     name: 'Flag' },
+                //     { type: 7, symbol: 'symbol-skull',    name: 'Skull' },
+                //     { type: 8,  symbol: 'symbol-canon',    name: 'Canon' },
+                //     { type: 9,  symbol: 'symbol-apple',    name: 'Apple' },
+                //     { type: 10,  symbol: 'symbol-goldbar',  name: 'Gold-bar'},
+                //     { type: 11,  symbol: 'symbol-coin',     name: 'Coin' },
+                //     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
                 // ],
-                // "specialBlocks": [
-                //     11,
-                //     12
-                // ]
+
+                // specialBlocks: [
+                //     { type: 11, symbol: 'symbol-coin', name: 'Coin' }, //bonus
+                //     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' }, //wild
+                // ],
+
+                "blocks": [1, 2,3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                "specialBlocks": [
+                    11,
+                    12
+                ]
             };
 
             // return {

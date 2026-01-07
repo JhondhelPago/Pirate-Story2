@@ -136,7 +136,6 @@ export class Match3Board {
     private makeSlotSymbol(type: number, multiplier: number) {
         const sym = new SlotSymbol();
         sym.setup({
-            name: this.typesMap[type],
             type,
             // ✅ keep "size" as base logical tileSize; SlotSymbol may apply its own scaling internally
             size: this.tileSize,
@@ -300,7 +299,7 @@ export class Match3Board {
 
         const blocks = slotGetBlocks();
         this.typesMap = {};
-        for (const b of blocks) this.typesMap[b.type] = b.symbol;
+        for (const type of blocks) this.typesMap[type] = `symbol-${type}`;
 
         if (this.initialReels.length === 0) {
             const types = Object.keys(this.typesMap).map(Number);
@@ -526,7 +525,6 @@ export class Match3Board {
                 if (idx < 0.15) {
                     const nextType = this.randomType();
                     sym.setup({
-                        name: this.typesMap[nextType],
                         type: nextType,
                         // ✅ keep base size; spacing is handled by board via tile
                         size: this.tileSize,
@@ -878,7 +876,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
             const mult = this.backendMultipliers[r][column];
 
             sym.setup({
-                name: this.typesMap[type],
                 type,
                 // ✅ base size only
                 size: this.tileSize,
@@ -1769,7 +1766,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 }
 
                 sym.setup({
-                    name: this.typesMap[type],
                     type,
                     // ✅ base size only
                     size: this.tileSize,

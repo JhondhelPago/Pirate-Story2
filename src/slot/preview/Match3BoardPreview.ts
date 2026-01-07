@@ -60,29 +60,30 @@ export class Match3BoardPreview {
         this.rows = config.rows;
         this.columns = config.columns;
         this.tileSize = config.tileSize;
+
         this.piecesMask.width = this.getWidth();
         this.piecesMask.height = this.getHeight();
-        this.piecesContainer.visible = true;
-        // // The list of blocks (including specials) that will be used in the game
-        const blocks = slotGetBlocks();
+
+        const blocks = slotGetBlocks(); // number[]
+
+        this.commonTypes.length = 0;
         this.typesMap = {};
 
-        // Organise types and set up special handlers
-        // Piece types will be defined according to their positions in the string array of blocks
-        // Example: If 'piece-dragon' is the 2nd in the blocks list (blocks[1]), its type will be 2
-        for (let i = 0; i < blocks.length; i++) {
-            const name = blocks[i];
-            const type = i + 1;
+        for (const type of blocks) {
             this.commonTypes.push(type);
-            this.typesMap[type] = name.symbol;
+
+            // CLEAN: derive symbol name instead of reading `.symbol`
+            this.typesMap[type] = `symbol-${type}`;
         }
 
-        // Create the initial grid state
         this.grid = match3CreateGrid(this.rows, this.columns, this.commonTypes);
-        // Fill up the visual board with piece sprites
-        match3ForEach(this.grid, (gridPosition: Match3Position, type: Match3Type) => {
-            const multiplier = (type === 11 || type === 12) ? getRandomMultiplier() : 0;
-            this.createPiece(gridPosition, type, multiplier);
+
+        match3ForEach(this.grid, (pos, type) => {
+            const multiplier = (type === 11 || type === 12)
+                ? getRandomMultiplier()
+                : 0;
+
+            this.createPiece(pos, type, multiplier);
         });
     }
 
@@ -108,30 +109,30 @@ export class Match3BoardPreview {
         this.pieces.length = 0;
     }
 
-    public createPiece(position: Match3Position, pieceType: Match3Type, pieceMultiplier: number = 0) {
+    public createPiece(
+        position: Match3Position,
+        pieceType: Match3Type,
+        pieceMultiplier = 0
+    ) {
         const name = this.typesMap[pieceType];
         const piece = pool.get(SlotSymbol);
-        const viewPosition = this.getViewPositionByGridPosition(position);
-
-        const multiplier = pieceMultiplier;
+        const viewPos = this.getViewPositionByGridPosition(position);
 
         piece.setup({
-            name,
             type: pieceType,
-            size: this.match3.config.tileSize,
+            size: this.tileSize,
             interactive: true,
-            multiplier
+            multiplier: pieceMultiplier
         });
 
         piece.row = position.row;
         piece.column = position.column;
-
-        // Position piece above the grid, accounting for pieces above it
-        piece.x = viewPosition.x;
-        piece.y = viewPosition.y;
+        piece.x = viewPos.x;
+        piece.y = viewPos.y;
 
         this.pieces.push(piece);
         this.piecesContainer.addChild(piece);
+
         return piece;
     }
 

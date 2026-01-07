@@ -10,7 +10,6 @@ import { Physics, Spine } from '@esotericsoftware/spine-pixi-v8';
 
 /** Default piece options */
 const defaultSlotSymbolOptions = {
-    name: '',
     type: 0,
     size: 50,
     interactive: false,
@@ -151,7 +150,6 @@ export class SlotSymbol extends Container {
         this.alpha = 1;
 
         this.type = opts.type;
-        this.name = opts.name;
         this.scale.set(1);
 
         // Remove old spine if exists
@@ -268,7 +266,6 @@ export class SlotSymbol extends Container {
         for (let i = 0; i < needed; i++) {
             const fake = new SlotSymbol();
             fake.setup({
-                name: this.name,
                 type: this.type,
                 size: this.width,
                 multiplier: 0,
