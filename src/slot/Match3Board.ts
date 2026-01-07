@@ -792,11 +792,10 @@ private async startSpinSeamlessSequential(): Promise<void> {
         if (spinMode === SpinModeEnum.Turbo) {
             this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
 
-            // ✅ show blur immediately for turbo (no lift/drop)
-            for (let c = 0; c < this.columns; c++) this.setBlurVisibleForColumn(c, true);
+
+            this._spinSpeed = this._defaultSpinSpeed;
 
             this.forceAllColumnsToBlurViewAndActive();
-            this._spinSpeed = Math.max(this._spinSpeed, 1.4);
 
             this._interruptPending = false;
             this._interruptRequested = false;
@@ -804,6 +803,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this.ensureWildLayerOnTop();
             return;
         }
+
 
 
         // ✅ QUICK: no lift + all columns same time
@@ -1330,7 +1330,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
         this._landingInProgress = true;
         try {
             await this.landColumnsAllAtOnce({
-                slideDur: 0.1,
+                slideDur: 0.06,
                 bouncePx: 0,
                 bounceDownDur: 0,
                 bounceUpDur: 0,
@@ -1351,6 +1351,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
         const wins = this.match3.process.getWinningPositions() ?? [];
         this.animateWinsWithWildPriority(wins, this.getBonusPositions());
     }
+
 
     // =========================================================================
     // LOOP-BY-REPLAY HELPERS (infinite until next spin trigger)
