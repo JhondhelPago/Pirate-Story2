@@ -56,19 +56,7 @@ export class Match3Board {
 
     private readonly BLUR_EXTRA = 3;
 
-    // =========================================================================
-    // ✅ SCALE-AWARE GRID METRICS
-    // =========================================================================
-    /**
-     * We keep config.tileSize as the "logical" base size.
-     * If SlotSymbol applies a scale internally, the board must space/mask using the
-     * "cell size" (tileSize * symbolScale) so everything stays aligned.
-     *
-     * You will adjust the symbol scale inside SlotSymbol later.
-     * To make this auto-follow that change, the board reads an optional static:
-     *   SlotSymbol.VISUAL_SCALE  (or SlotSymbol.SCALE)
-     * If not present, defaults to 1.
-     */
+
     private get symbolScale(): number {
         const anySym = SlotSymbol as any;
         const v =
@@ -364,9 +352,9 @@ export class Match3Board {
                 const mult = this.initialPieceMutliplier(type);
 
                 const sym = this.makeSlotSymbol(type, mult);
-                sym.setBonusFlag(false); // ✅ reset bonus flag on build
+                sym.setBonusFlag(false);
 
-                sym.y = r * this.tile; // ✅ scale-aware spacing
+                sym.y = r * this.tile;
                 this.showSpine(sym);
 
                 reel.symbols.push(sym);
@@ -1556,11 +1544,14 @@ private async startSpinSeamlessSequential(): Promise<void> {
     }
 
     public initialPieceMutliplier(symbolType: number) {
+        if (symbolType !== 12) return 0;
+
         const multiplierOptions = [2, 3, 5];
-        const randomMultiplier =
-            multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
-        return [11, 12].includes(symbolType) ? randomMultiplier : 0;
+        return multiplierOptions[
+            Math.floor(Math.random() * multiplierOptions.length)
+        ];
     }
+
 
     public getTurboSpin() {
         return this.isTubroSpin;
