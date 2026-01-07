@@ -19,6 +19,7 @@ import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
+import { MessagePanel } from '../ui/MessagePanel';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -47,6 +48,8 @@ export class GameScreen extends Container {
 
     /** The Control Panel */
     public readonly controlPanel: ControlPanel;
+
+    public readonly messagePanel: MessagePanel;
 
     /** The special effects layer */
     public readonly vfx?: GameEffects;
@@ -115,6 +118,11 @@ export class GameScreen extends Container {
         this.addChild(this.controlPanel);
         this.controlPanel.setCredit(200000);
         this.controlPanel.setBet(2.0);
+        this.controlPanel.setMessage('HOLD SPACE FOR TURBO SPIN');
+
+        this.messagePanel = new MessagePanel();
+        this.addChild(this.messagePanel);
+        this.messagePanel.visible = false;
         this.controlPanel.setMessage('HOLD SPACE FOR TURBO SPIN');
 
         // ✅ Spin now supports interrupt-on-second-press
@@ -313,22 +321,41 @@ export class GameScreen extends Container {
             this.overtime.y = this.gameContainer.y;
         } else {
             this.gameContainer.x = centerX;
-            this.gameContainer.y = this.gameContainer.height * 0.68;
+            this.gameContainer.y = this.gameContainer.height * 0.70;
 
             this.barrelBoard?.scale.set(1.45);
             this.match3.scale.set(1.25);
 
             this.buyFreeSpin.scale.set(1);
-            this.buyFreeSpin.x = 220;
-            this.buyFreeSpin.y = height * 0.7;
+            this.buyFreeSpin.x = 180;
+            this.buyFreeSpin.y = height * 0.73;
 
             this.gameLogo.scale.set(0.87);
             this.gameLogo.x = width * 0.5;
             this.gameLogo.y = 130;
 
             this.goldRoger.x = width - 160;
-            this.goldRoger.y = height - 130;
-            this.goldRoger.scale.set(1.2);
+            this.goldRoger.y = height - 150;
+            this.goldRoger.scale.set(1);
+
+            this.messagePanel.visible = true;
+
+            // ✅ pick a scale you can tune easily (try 1.6, 1.8, 2.0)
+            const panelScale = this.match3.scale.x * 1.3;
+
+            // resize in LOCAL space (because we scale it)
+            this.messagePanel.resize(width, 200, panelScale);
+
+            // place it in world space (centered)
+            this.messagePanel.x = width * 0.5;
+            this.messagePanel.y = height * 0.66;
+
+            // this.messagePanel.setTitle("Welcome to Pirate Story");
+            this.messagePanel.setMessage("");
+
+
+
+
         }
 
         const isMobile = document.documentElement.id === 'isMobile';
@@ -376,7 +403,10 @@ export class GameScreen extends Container {
     private async onAutoSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         console.log("remaining spins left failed to display if there is no winning round");
+
         this.controlPanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
+        this.messagePanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
+
         this.lockInteraction();
     }
 
@@ -386,9 +416,11 @@ export class GameScreen extends Container {
 
         if (totalWon > 0){
             this.controlPanel.setTitle(`Win ${totalWon}`);
+            this.messagePanel.setTitle(`Win ${totalWon}`);
             this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);
+            this.messagePanel.setTitle(`GOOD LUCK`);
         }
 
         await this.finish();
@@ -437,6 +469,7 @@ export class GameScreen extends Container {
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
+        this.messagePanel.setMessage(`FREE SPIN LEFT ${remaining}`);
         this.lockInteraction();
     }
 
@@ -444,7 +477,11 @@ export class GameScreen extends Container {
         const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
 
         if (totalWon > 0) this.controlPanel.setTitle(`Win ${totalWon}`);
-        else this.controlPanel.setTitle(`GOOD LUCK`);
+        else {
+            this.controlPanel.setTitle(`GOOD LUCK`);
+            this.messagePanel.setTitle(`GOOD LUCK`);   
+        }
+
 
         this.messageMatchQueuing(this.match3.freeSpinProcess.getRoundResult());
 
@@ -478,7 +515,11 @@ export class GameScreen extends Container {
         const roundWin = this.match3.process.getRoundWin();
 
         if (roundWin > 0) this.controlPanel.setTitle(`Win ${roundWin}`);
-        else this.controlPanel.setTitle(`GOOD LUCK`);
+        else{
+            this.controlPanel.setTitle(`GOOD LUCK`);
+            this.messagePanel.setTitle(`GOOD LUCK`);
+        } 
+
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
 
@@ -612,9 +653,17 @@ export class GameScreen extends Container {
                 userSettings.getBet() * r.multiplier,
                 'krw'
             );
+
+            this.messagePanel.addMatchMessage(
+                r.multiplier,
+                r.type,
+                userSettings.getBet() * r.multiplier,
+                'krw'
+            )
         });
 
         this.controlPanel.playMatchMessages();
+        this.messagePanel.playMatchMessages();
     }
 
     private async checkBonus(feature: string){
