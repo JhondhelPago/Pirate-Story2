@@ -3,7 +3,8 @@ import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 
 
-const config = await ConfigAPI.config();
+const response = await ConfigAPI.getPirateConfig();
+export const config = response.data;
 
 // Keys for saved items in storage
 const KEY_VOLUME_MASTER = 'volume-master';

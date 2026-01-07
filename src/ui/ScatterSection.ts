@@ -2,12 +2,15 @@ import { Container } from 'pixi.js';
 import { Label } from './Label';
 import { List } from '@pixi/ui';
 import { PaytableSpecialCard } from './PaytableSpecialCard';
+import { config } from '../utils/userSettings';
+
+const bonusType = config.settings.specialBlocks[0]; //type 11 position at index 0
 
 export class ScatterSection extends Container {
     private symbolsDescriptionLabel: Label;
     private mainLayout: List;
-    private wildCardContainer: Container;
-    private wildCard: PaytableSpecialCard;
+    private bonusCardContainer: Container;
+    private bonusCard: PaytableSpecialCard;
 
     constructor() {
         super();
@@ -29,13 +32,13 @@ export class ScatterSection extends Container {
         this.symbolsDescriptionLabel.anchor.set(0.5);
         this.mainLayout.addChild(this.symbolsDescriptionLabel);
 
-        this.wildCardContainer = new Container();
-        this.wildCard = new PaytableSpecialCard({
-            image: 'symbol-11',
+        this.bonusCardContainer = new Container();
+        this.bonusCard = new PaytableSpecialCard({
+            image: `symbol-${bonusType}`,
             description: 'This is SCATTER symbol. \nSCATTER symbol is present on all reels',
         });
-        this.wildCardContainer.addChild(this.wildCard);
-        this.mainLayout.addChild(this.wildCardContainer);
+        this.bonusCardContainer.addChild(this.bonusCard);
+        this.mainLayout.addChild(this.bonusCardContainer);
     }
     public resize(width: number, height: number) {
         const isMobile = document.documentElement.id === 'isMobile';
@@ -46,7 +49,7 @@ export class ScatterSection extends Container {
             this.symbolsDescriptionLabel.style.fontSize = 28;
             this.symbolsDescriptionLabel.style.wordWrapWidth = 600;
 
-            this.wildCard.fontSize = 28;
+            this.bonusCard.fontSize = 28;
 
             this.mainLayout.y = 140;
         } else if (isMobile && !isPortrait) {
@@ -54,7 +57,7 @@ export class ScatterSection extends Container {
             this.symbolsDescriptionLabel.style.fontSize = 28;
             this.symbolsDescriptionLabel.style.wordWrapWidth = 1000;
 
-            this.wildCard.fontSize = 28;
+            this.bonusCard.fontSize = 28;
 
             this.mainLayout.y = 80;
         } else {
@@ -62,7 +65,7 @@ export class ScatterSection extends Container {
             this.symbolsDescriptionLabel.style.fontSize = 18;
             this.symbolsDescriptionLabel.style.wordWrapWidth = 800;
 
-            this.wildCard.fontSize = 18;
+            this.bonusCard.fontSize = 18;
 
             this.mainLayout.y = 60;
         }

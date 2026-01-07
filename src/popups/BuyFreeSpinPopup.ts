@@ -48,12 +48,10 @@ export class BuyFreeSpinPopup extends Container {
 
     private pulseTween?: gsap.core.Tween;
 
-    // NOTE: Config is loaded in prepare()
     private config?: Awaited<ReturnType<typeof ConfigAPI.config>>;
     private currencyType!: CurrencyType;
     private currencySymbol!: string;
 
-    // ✅ placeholder typeMap (because we cannot read config in constructor)
     private static readonly PLACEHOLDER_TYPE_MAP: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition> =
         {
             A: { bannerTextureKey: "green-spin-banner", spins: 0, scatters: 0 },
@@ -79,8 +77,7 @@ export class BuyFreeSpinPopup extends Container {
         this.buyLabel.anchor.set(0.5);
         this.panel.addChild(this.buyLabel);
 
-        // ❗ Do NOT read config here
-        // ✅ Must pass typeMap now (banner no longer reads ConfigAPI internally)
+
         this.featureA = new BuyFreeSpinOptionBanner({
             typeLetter: "A",
             typeMap: BuyFreeSpinPopup.PLACEHOLDER_TYPE_MAP,

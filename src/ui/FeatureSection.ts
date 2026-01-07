@@ -2,7 +2,10 @@ import { Container, Sprite } from 'pixi.js';
 import { List } from '@pixi/ui';
 import { Label } from './Label';
 import { gameConfig } from '../utils/gameConfig';
+import { config } from '../utils/userSettings';
 import { Block } from '../slot/Match3Config';
+
+const wildType = config.settings.specialBlocks[1]; //type 12 position at index 1
 
 export class FeatureSection extends Container {
     private descriptionLabel: Label;
@@ -10,12 +13,9 @@ export class FeatureSection extends Container {
     private descriptionLabel2: Label;
     private symbolsContainer: List;
     private symbols: Sprite[] = [];
-    private wildBlocks: Block[] = [];
 
     constructor() {
         super();
-        // Grab from game config
-        this.wildBlocks = gameConfig.getWildBlocks();
 
         this.mainLayout = new List({ type: 'vertical', elementsMargin: 40 });
         this.addChild(this.mainLayout);
@@ -26,8 +26,8 @@ export class FeatureSection extends Container {
                 fill: 0xffffff,
                 fontSize: 18,
                 fontWeight: '200',
-                wordWrap: true, // Enable word wrapping
-                align: 'center', // Optional: alignment for the wrapped text
+                wordWrap: true, 
+                align: 'center', 
                 wordWrapWidth: 1000,
                 lineHeight: 24,
             },
@@ -38,15 +38,14 @@ export class FeatureSection extends Container {
         this.symbolsContainer = new List({ type: 'horizontal', elementsMargin: 10 });
         this.mainLayout.addChild(this.symbolsContainer);
 
-        for (const jackpot of this.wildBlocks.reverse()) {
-            const jackpotSprite = Sprite.from(`symbol-${jackpot.type}`);
-            jackpotSprite.anchor.y = 0.5;
-            jackpotSprite.scale.set(1);
-            this.symbolsContainer.addChild(jackpotSprite);
-            this.symbols.push(jackpotSprite);
-        }
+        
+        const jackpotSprite = Sprite.from(`symbol-${wildType}`);
+        jackpotSprite.anchor.y = 0.5;
+        jackpotSprite.scale.set(1);
+        this.symbolsContainer.addChild(jackpotSprite);
+        this.symbols.push(jackpotSprite);
+        
 
-        // Center the symbols container after adding all symbols
         this.symbolsContainer.pivot.x = this.symbolsContainer.width / 2;
 
         this.descriptionLabel2 = new Label(
