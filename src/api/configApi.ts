@@ -231,9 +231,7 @@ export class ConfigAPI {
             const response = await axios.get("/api/api/v3/game/settings?gamecode=piratestory",
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            console.log("✅ getPirateConfig success");
-            console.log("data:", response.data);
+            
             return response.data;
 
         } catch (error: any) {
