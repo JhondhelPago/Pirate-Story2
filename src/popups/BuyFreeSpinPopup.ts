@@ -6,12 +6,11 @@ import { GameScreen } from "../screens/GameScreen";
 import { userSettings } from "../utils/userSettings";
 import { ConfigAPI } from "../api/configApi";
 
-const config = await ConfigAPI.config();
-
-// ✅ updated imports (letter type)
+// ✅ updated imports (letter type + definition)
 import {
     BuyFreeSpinOptionBanner,
     type BuyFreeTypeLetter,
+    type BuyFreeTypeDefinition,
 } from "../ui/FeatureBanner";
 
 /* ===============================
@@ -49,9 +48,18 @@ export class BuyFreeSpinPopup extends Container {
 
     private pulseTween?: gsap.core.Tween;
 
-    // ✅ resolved once, reused everywhere
-    private readonly currencyType = config.currency as CurrencyType;
-    private readonly currencySymbol = getCurrencySymbol(this.currencyType);
+    // NOTE: Config is loaded in prepare()
+    private config?: Awaited<ReturnType<typeof ConfigAPI.config>>;
+    private currencyType!: CurrencyType;
+    private currencySymbol!: string;
+
+    // ✅ placeholder typeMap (because we cannot read config in constructor)
+    private static readonly PLACEHOLDER_TYPE_MAP: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition> =
+        {
+            A: { bannerTextureKey: "green-spin-banner", spins: 0, scatters: 0 },
+            B: { bannerTextureKey: "red-spin-banner", spins: 0, scatters: 0 },
+            C: { bannerTextureKey: "blue-spin-banner", spins: 0, scatters: 0 },
+        };
 
     constructor() {
         super();
@@ -71,11 +79,13 @@ export class BuyFreeSpinPopup extends Container {
         this.buyLabel.anchor.set(0.5);
         this.panel.addChild(this.buyLabel);
 
-        // ✅ feature banners now use currency TYPE → symbol
+        // ❗ Do NOT read config here
+        // ✅ Must pass typeMap now (banner no longer reads ConfigAPI internally)
         this.featureA = new BuyFreeSpinOptionBanner({
             typeLetter: "A",
-            amount: config.feature.A.buyFeatureBetMultiplier * userSettings.getBet(),
-            currencySymbol: this.currencySymbol,
+            typeMap: BuyFreeSpinPopup.PLACEHOLDER_TYPE_MAP,
+            amount: 0,
+            currencySymbol: "$",
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
@@ -83,8 +93,9 @@ export class BuyFreeSpinPopup extends Container {
 
         this.featureB = new BuyFreeSpinOptionBanner({
             typeLetter: "B",
-            amount: config.feature.B.buyFeatureBetMultiplier * userSettings.getBet(),
-            currencySymbol: this.currencySymbol,
+            typeMap: BuyFreeSpinPopup.PLACEHOLDER_TYPE_MAP,
+            amount: 0,
+            currencySymbol: "$",
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
@@ -92,8 +103,9 @@ export class BuyFreeSpinPopup extends Container {
 
         this.featureC = new BuyFreeSpinOptionBanner({
             typeLetter: "C",
-            amount: config.feature.C.buyFeatureBetMultiplier * userSettings.getBet(),
-            currencySymbol: this.currencySymbol,
+            typeMap: BuyFreeSpinPopup.PLACEHOLDER_TYPE_MAP,
+            amount: 0,
+            currencySymbol: "$",
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
@@ -101,29 +113,14 @@ export class BuyFreeSpinPopup extends Container {
 
         const optionList = [this.featureA, this.featureB, this.featureC];
         for (const opt of optionList) {
+            opt.visible = false; // 🔒 hide until config ready
             this.panel.addChild(opt);
         }
 
-        this.featureA.setOnTap(() => {
-            const amount =
-                config.settings.features[0].buyFeatureBetMultiplier *
-                userSettings.getBet();
-            this.openConfirm("A", amount, this.featureA.getSpins());
-        });
-
-        this.featureB.setOnTap(() => {
-            const amount =
-                config.settings.features[1].buyFeatureBetMultiplier *
-                userSettings.getBet();
-            this.openConfirm("B", amount, this.featureB.getSpins());
-        });
-
-        this.featureC.setOnTap(() => {
-            const amount =
-                config.settings.features[2].buyFeatureBetMultiplier *
-                userSettings.getBet();
-            this.openConfirm("C", amount, this.featureC.getSpins());
-        });
+        // ✅ ARRAY-BASED taps
+        this.featureA.setOnTap(() => this.onFeatureTap(0, "A"));
+        this.featureB.setOnTap(() => this.onFeatureTap(1, "B"));
+        this.featureC.setOnTap(() => this.onFeatureTap(2, "C"));
 
         this.bg.on("pointertap", () => {
             if (!this.canClickAnywhere) return;
@@ -155,6 +152,20 @@ export class BuyFreeSpinPopup extends Container {
         });
     }
 
+    private getFeatureByIndex(index: number) {
+        return this.config!.settings.features[index];
+    }
+
+    private onFeatureTap(index: number, letter: BuyFreeTypeLetter) {
+        if (!this.config) return;
+
+        const feature = this.getFeatureByIndex(index);
+        const amount = feature.buyFeatureBetMultiplier * userSettings.getBet();
+
+        // ✅ spinCount MUST match banner spins (use feature.spins from config)
+        this.openConfirm(letter, amount, feature.spins);
+    }
+
     private openConfirm(
         typeLetter: BuyFreeTypeLetter,
         amount: number,
@@ -177,24 +188,6 @@ export class BuyFreeSpinPopup extends Container {
         });
     }
 
-    public setOptionAmounts(
-        vA: number,
-        vB: number,
-        vC: number,
-        currencyType: CurrencyType,
-        decimals = 0
-    ) {
-        const symbol = getCurrencySymbol(currencyType);
-
-        this.featureA.setAmount(vA, symbol, decimals);
-        this.featureB.setAmount(vB, symbol, decimals);
-        this.featureC.setAmount(vC, symbol, decimals);
-
-        this.featureA.relayout();
-        this.featureB.relayout();
-        this.featureC.relayout();
-    }
-
     private startLabelPulse() {
         gsap.killTweensOf(this.buyLabel.scale);
 
@@ -213,6 +206,7 @@ export class BuyFreeSpinPopup extends Container {
         gsap.to(this.buyLabel.scale, { x: 1, y: 1, duration: 0.2 });
     }
 
+    // ✅ entrance animation (unchanged from your latest)
     private animateEntrance() {
         const options = [this.featureA, this.featureB, this.featureC];
 
@@ -233,16 +227,77 @@ export class BuyFreeSpinPopup extends Container {
         });
     }
 
-    public prepare<T>(data?: T) {
+    public async prepare<T>(data?: T) {
         const anyData = data as any;
         if (anyData?.onSelect) this.onSelect = anyData.onSelect;
 
-        this.canClickAnywhere = false;
+        // 🔒 Load config FIRST
+        const response = await ConfigAPI.getPirateConfig();
 
+        // You logged response.data earlier; keep same shape usage
+        this.config = response.data;
+
+        this.currencyType = this.config?.currency as CurrencyType;
+        this.currencySymbol = getCurrencySymbol(this.currencyType);
+
+        // ✅ Build typeMap from config and inject into banners
+        // Prefer settings.features because that's what you're using for amounts/taps
+        const features = this.config?.settings.features;
+
+        const realTypeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition> = {
+            A: {
+                bannerTextureKey: "green-spin-banner",
+                spins: features?.[0]?.spins ?? 0,
+                scatters: features?.[0]?.scatters ?? 0,
+            },
+            B: {
+                bannerTextureKey: "red-spin-banner",
+                spins: features?.[1]?.spins ?? 0,
+                scatters: features?.[1]?.scatters ?? 0,
+            },
+            C: {
+                bannerTextureKey: "blue-spin-banner",
+                spins: features?.[2]?.spins ?? 0,
+                scatters: features?.[2]?.scatters ?? 0,
+            },
+        };
+
+        // ✅ This requires BuyFreeSpinOptionBanner to expose setTypeMap(...)
+        // If you followed the updated banner file I gave, this exists.
+        this.featureA.setTypeMap(realTypeMap);
+        this.featureB.setTypeMap(realTypeMap);
+        this.featureC.setTypeMap(realTypeMap);
+
+        // 🔒 Populate banners BEFORE showing them
+        this.updateFeatureAmounts();
+
+        // ✅ SAME visual flow as before
+        this.canClickAnywhere = false;
         this.startLabelPulse();
         this.animateEntrance();
 
         setTimeout(() => (this.canClickAnywhere = true), 500);
+    }
+
+    private updateFeatureAmounts() {
+        if (!this.config) return;
+
+        const bet = userSettings.getBet();
+        const features = this.config.settings.features;
+        const banners = [this.featureA, this.featureB, this.featureC];
+
+        features.forEach((feature, index) => {
+            const banner = banners[index];
+
+            banner.setAmount(
+                feature.buyFeatureBetMultiplier * bet,
+                this.currencySymbol,
+                0
+            );
+
+            banner.relayout();
+            banner.visible = true;
+        });
     }
 
     public resize(width: number, height: number) {
@@ -276,13 +331,11 @@ export class BuyFreeSpinPopup extends Container {
             this.buyLabel.y = -340;
             this.buyLabel.scale.set(1);
         }
-        this.buyLabel.x = 0;
 
         if (isMobile) {
             const targetWidth = width * 0.95;
             const bannersWidth = 500 * 3;
-            const scale = targetWidth / bannersWidth;
-            this.panel.scale.set(scale);
+            this.panel.scale.set(targetWidth / bannersWidth);
         } else {
             this.panel.scale.set(1);
         }
@@ -291,29 +344,17 @@ export class BuyFreeSpinPopup extends Container {
         const bannerY = isMobile ? 120 : 40;
 
         if (isMobile) {
-            this.featureA.scale.set(1.25);
-            this.featureB.scale.set(1.25);
-            this.featureC.scale.set(1.25);
-
-            this.featureA.setAmountFontSize(68);
-            this.featureB.setAmountFontSize(68);
-            this.featureC.setAmountFontSize(68);
-
-            this.featureA.setSpinsFontSize(120);
-            this.featureB.setSpinsFontSize(120);
-            this.featureC.setSpinsFontSize(120);
+            [this.featureA, this.featureB, this.featureC].forEach((f) => {
+                f.scale.set(1.25);
+                f.setAmountFontSize(68);
+                f.setSpinsFontSize(120);
+            });
         } else {
-            this.featureA.scale.set(1);
-            this.featureB.scale.set(1);
-            this.featureC.scale.set(1);
-
-            this.featureA.setAmountFontSize(76);
-            this.featureB.setAmountFontSize(76);
-            this.featureC.setAmountFontSize(76);
-
-            this.featureA.setSpinsFontSize(140);
-            this.featureB.setSpinsFontSize(140);
-            this.featureC.setSpinsFontSize(140);
+            [this.featureA, this.featureB, this.featureC].forEach((f) => {
+                f.scale.set(1);
+                f.setAmountFontSize(76);
+                f.setSpinsFontSize(140);
+            });
         }
 
         this.featureA.x = -spacing;

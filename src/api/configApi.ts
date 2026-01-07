@@ -6,7 +6,7 @@ export class ConfigAPI {
             return {
                 rules: 'Symbols pay anywhere on the screen. The total number of the same symbol on the screen at the end of a spin determines the value of the win.',
                 feature: {
-                    A: {spins: 10, scatters: 3, buyFeatureBetMultiplier: 100},
+                    A: {spins: 7, scatters: 3, buyFeatureBetMultiplier: 100},
                     B: {spins: 15, scatters: 4, buyFeatureBetMultiplier: 500},
                     C: {spins: 20, scatters: 5, buyFeatureBetMultiplier: 1000},
                 },
@@ -232,13 +232,12 @@ export class ConfigAPI {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-
+            console.log("✅ getPirateConfig success");
+            console.log("data:", response.data);
             return response.data;
 
         } catch (error: any) {
             
-            console.error("❌ getPirateConfig failed");
-
             console.error("message:", error?.message);
             console.error("status:", error?.response?.status);
             console.error("data:", error?.response?.data);

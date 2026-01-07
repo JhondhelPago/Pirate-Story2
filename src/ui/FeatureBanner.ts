@@ -1,57 +1,50 @@
 import { Container, Sprite, Texture, Text, Matrix } from "pixi.js";
 import gsap from "gsap";
-import { ConfigAPI } from "../api/configApi";
-
-const config = await ConfigAPI.config();
 
 // ✅ PRELOAD FONTS ASAP (before any banner Text is created)
 async function preloadBannerFonts() {
     try {
-        // guard for non-browser env
         const fonts: any = (globalThis as any)?.document?.fonts;
         if (!fonts?.load) return;
 
         await Promise.all([
-            // Pirata One
             fonts.load(`76px "Pirata One"`),
             fonts.load(`140px "Pirata One"`),
-
-            // Bangers
             fonts.load(`54px "Bangers"`),
             fonts.load(`68px "Bangers"`),
         ]);
 
-        // wait until fonts are actually ready
         await fonts.ready;
     } catch {
         // ignore
     }
 }
 
-// ✅ This runs once when this module is imported
+// ✅ runs once on module import
 await preloadBannerFonts();
 
 export type BuyFreeTypeLetter = "A" | "B" | "C";
 
 export type BuyFreeTypeDefinition = {
-    bannerTextureKey: string; // e.g. "10-spin-banner"
+    bannerTextureKey: string; // e.g. "green-spin-banner"
     spins: number;            // e.g. 10
     scatters: number;         // e.g. 3
 };
 
 export type BuyFreeSpinOptionBannerConfig = {
     typeLetter: BuyFreeTypeLetter;
+
+    // ✅ All data must be provided by popup (no internal config)
+    typeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>;
+
     amount: number;
     currencySymbol?: string;
     decimals?: number;
 
-    // mapping for A/B/C
-    typeMap?: Partial<Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>>;
-
     // sizes (popup can override per mobile/desktop)
-    amountFontSize?: number;     // bottom price
-    spinsFontSize?: number;      // big center number
-    labelFontSize?: number;      // "FREE SPINS" + "X SCATTERS"
+    amountFontSize?: number; // bottom price
+    spinsFontSize?: number;  // big center number
+    labelFontSize?: number;  // "FREE SPINS" + "X SCATTERS"
 };
 
 export class BuyFreeSpinOptionBanner extends Container {
@@ -60,7 +53,6 @@ export class BuyFreeSpinOptionBanner extends Container {
     private amountText: Text;
     private spinsText: Text;
 
-    // ✅ two-line label:
     private freeSpinsText: Text;
     private scattersLine: Container;
     private scattersNumberText: Text;
@@ -71,28 +63,23 @@ export class BuyFreeSpinOptionBanner extends Container {
     private currencySymbol: string;
     private decimals: number;
 
-    // cache gradient for all instances
-    private static amountGradientTexture?: Texture;
-    private static amountGradientMatrix?: Matrix;
-
     private onTap?: () => void;
 
     private typeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>;
+
+    // cache gradient for all instances
+    private static amountGradientTexture?: Texture;
+    private static amountGradientMatrix?: Matrix;
 
     constructor(cfg: BuyFreeSpinOptionBannerConfig) {
         super();
 
         this.typeLetter = cfg.typeLetter;
+        this.typeMap = cfg.typeMap;
+
         this.amount = cfg.amount;
         this.currencySymbol = cfg.currencySymbol ?? "$";
         this.decimals = cfg.decimals ?? 0;
-
-        this.typeMap = {
-            A: { bannerTextureKey: "green-spin-banner", spins: config.feature.A.spins, scatters: config.feature.A.scatters },
-            B: { bannerTextureKey: "red-spin-banner", spins: config.feature.B.spins, scatters: config.feature.B.scatters },
-            C: { bannerTextureKey: "blue-spin-banner", spins: config.feature.C.spins, scatters: config.feature.C.scatters },
-            ...(cfg.typeMap as any),
-        };
 
         const def = this.typeMap[this.typeLetter];
 
@@ -101,7 +88,11 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.addChild(this.sprite);
 
         // --- center block texts ---
-        this.spinsText = this.createStyledText(`${def.spins}`, cfg.spinsFontSize ?? 140, "Pirata One");
+        this.spinsText = this.createStyledText(
+            `${def.spins}`,
+            cfg.spinsFontSize ?? 140,
+            "Pirata One"
+        );
 
         const labelSize = cfg.labelFontSize ?? 54;
 
@@ -115,7 +106,7 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.scattersNumberText = this.createStyledText(`${def.scatters}`, labelSize, "Bangers");
         this.scattersWordText = this.createStyledText(" SCATTERS", labelSize, "Bangers");
 
-        // ✅ number only = white
+        // number only = white
         (this.scattersNumberText.style as any).fill = 0xffffff;
 
         this.scattersLine.addChild(this.scattersNumberText, this.scattersWordText);
@@ -151,6 +142,12 @@ export class BuyFreeSpinOptionBanner extends Container {
         });
     }
 
+    // ✅ NEW: popup can update ALL banner definitions after config loads
+    public setTypeMap(map: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>) {
+        this.typeMap = map;
+        this.refreshFromCurrentType();
+    }
+
     public setOnTap(fn?: () => void) {
         this.onTap = fn;
     }
@@ -170,10 +167,13 @@ export class BuyFreeSpinOptionBanner extends Container {
 
     public setTypeLetter(typeLetter: BuyFreeTypeLetter) {
         this.typeLetter = typeLetter;
+        this.refreshFromCurrentType();
+    }
 
+    private refreshFromCurrentType() {
         const def = this.typeMap[this.typeLetter];
-        this.sprite.texture = Texture.from(def.bannerTextureKey);
 
+        this.sprite.texture = Texture.from(def.bannerTextureKey);
         this.spinsText.text = `${def.spins}`;
         this.scattersNumberText.text = `${def.scatters}`;
 
@@ -213,7 +213,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.ensureAmountGradient();
 
         const style: any = {
-            // ✅ font is used immediately (fonts preloaded above)
             fontFamily,
             fontSize,
             align: "center",
