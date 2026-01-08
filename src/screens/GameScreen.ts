@@ -2,7 +2,7 @@ import { Container, Ticker } from 'pixi.js';
 import { Match3 } from '../slot/Match3';
 import { navigation } from '../utils/navigation';
 import { GameEffects } from '../ui/GameEffects';
-import { bgm } from '../utils/audio';
+import { bgm, sfx } from '../utils/audio';
 import { GameOvertime } from '../ui/GameOvertime';
 import { waitFor } from '../utils/asyncUtils';
 import { slotGetConfig } from '../slot/Match3Config';

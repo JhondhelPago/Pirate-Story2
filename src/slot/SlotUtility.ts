@@ -362,7 +362,9 @@ export function slotEvaluateClusterWins(
 ) {
     const clusters = slotGetClusters(grid);
 
-    const paytable: PaytableLedger[] = config.settings.paytable;
+    const paytable: PaytableLedger[] = config.settings.paytables;
+    console.log(config);
+    console.log("Paytable:", paytable);
 
     const results: ClusterWinResult[] = [];
 
@@ -429,7 +431,7 @@ export function calculateTotalWin(
     results: ClusterWinResult[],
     betAmount: number
 ): number {
-    const paytable: PaytableLedger[] = config.settings.paytable;
+    const paytable: PaytableLedger[] = config.settings.paytables;
     let totalWin = 0;
 
     results.forEach(r => {

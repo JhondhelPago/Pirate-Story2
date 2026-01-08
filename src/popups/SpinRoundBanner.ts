@@ -1,11 +1,13 @@
 import { AnimatedSprite, Container, Sprite, Texture, Text, Matrix } from "pixi.js";
 import gsap from "gsap";
 import { navigation } from "../utils/navigation";
+import { bgm, sfx } from "../utils/audio";
 
 type BannerItem = {
     max: number;
     board: string;
     text: string;
+    sfx: string
 };
 
 export type SpinRoundBannerData = {
@@ -91,7 +93,32 @@ export class SpinRoundBanner extends Container {
 
         this.winValue = anyData?.win ?? 0;
         this.targetDisplayValue = this.winValue;
-        this.onClosed = anyData?.onClosed;
+
+        // 🎚️ DUCK BGM NOW (fade down)
+        const music = bgm.current;
+        if (music) {
+            gsap.killTweensOf(music);
+            gsap.to(music, {
+                volume: bgm.getVolume() * 0.35, // duck level
+                duration: 0.2,
+                ease: "linear",
+            });
+        }
+
+        // ✅ wrap onClosed so it always restores BGM when banner closes
+        const userOnClosed = anyData?.onClosed;
+        this.onClosed = () => {
+            const m = bgm.current;
+            if (m) {
+                gsap.killTweensOf(m);
+                gsap.to(m, {
+                    volume: bgm.getVolume(), // restore to user's current set volume
+                    duration: 0.25,
+                    ease: "linear",
+                });
+            }
+            userOnClosed?.();
+        };
 
         this.createBanner();
         this.createGlow();
@@ -112,6 +139,7 @@ export class SpinRoundBanner extends Container {
             }, 6500),
         );
     }
+
 
     private syncGlowToBanner() {
         if (!this.banner) return;
@@ -477,15 +505,21 @@ export class SpinRoundBanner extends Container {
 
     private getBannerTexture(win: number): BannerItem {
         const bannerDict: BannerItem[] = [
-            { max: 80, board: "green-banner-board", text: "green-banner-text" },
-            { max: 150, board: "blue-banner-board", text: "blue-banner-text" },
-            { max: Infinity, board: "red-banner-board", text: "red-banner-text" },
+            { max: 80, board: "green-banner-board", text: "green-banner-text", sfx: "common/sfx-avast.wav" },
+            { max: 150, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-shiver.wav" },
+            { max: Infinity, board: "red-banner-board", text: "red-banner-text", sfx: "common/sfx-yar.wav" },
         ];
 
         return bannerDict.find((x) => win < x.max)!;
     }
 
     private animateEntrance() {
+
+        const tex = this.getBannerTexture(this.winValue);
+
+
+        this.playBannerSfx(tex.sfx);
+
         gsap.killTweensOf([this.banner, this.headerText, this.valueText, ...this.getGlows()]);
         gsap.killTweensOf([this.headerText.scale, this.valueText.scale]);
         for (const g of this.getGlows()) gsap.killTweensOf(g);
@@ -554,6 +588,16 @@ export class SpinRoundBanner extends Container {
             delay: 0.1,
         });
     }
+
+    private playBannerSfx(sfxKey: string) {
+        try {
+            sfx.play(sfxKey, {volume: 0.5}); // banner sound effect
+            sfx.play('common/sfx-coin-fall.wav'); //coin sound effect
+        } catch (e) {
+            console.warn("Failed to play banner SFX:", sfxKey, e);
+        }
+    }
+
 
     private showGlowEffects() {
         const gA = this.glowA;

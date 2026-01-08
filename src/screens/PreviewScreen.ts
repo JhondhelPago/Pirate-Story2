@@ -10,6 +10,7 @@ import { GameLogo } from '../ui/GameLogo';
 import { MessagePagination } from '../ui/MessagePagination';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { GoldRoger } from '../ui/GoldRoger';
+import { bgm } from '../utils/audio';
 
 /** Screen shown while loading assets */
 export class PreviewScreen extends Container {
@@ -183,6 +184,8 @@ export class PreviewScreen extends Container {
 }
 
     public async show() {
+        bgm.play('common/bgm-main.mp3', { volume: 0.5 });
+
         gsap.killTweensOf(this.message);
         this.message.alpha = 1;
         this.startMessageRotation();
