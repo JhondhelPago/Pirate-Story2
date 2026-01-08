@@ -363,8 +363,6 @@ export function slotEvaluateClusterWins(
     const clusters = slotGetClusters(grid);
 
     const paytable: PaytableLedger[] = config.settings.paytables;
-    console.log(config);
-    console.log("Paytable:", paytable);
 
     const results: ClusterWinResult[] = [];
 
