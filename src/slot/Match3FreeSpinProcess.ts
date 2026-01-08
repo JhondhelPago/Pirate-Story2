@@ -1,6 +1,7 @@
 import { userSettings } from "../utils/userSettings";
 import { Match3 } from "./Match3";
 import { Match3Process } from "./Match3Process";
+import { config, FreeSpinSetting } from "../utils/userSettings";
 import {
     calculateTotalWin,
     countScatterBonus,
@@ -225,13 +226,12 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public async getSpinWon() {
-        const config = await this.getConfig();
-        
+        // exported config from userSettings that fetches slot configuration
         const freeSpinsArray = config.settings.extraFreeSpins;
-
+        
         const freeSpinSettings = freeSpinsArray
-            .filter(item => item.count <= this.bonus)
-            .sort((a, b) => b.count - a.count)[0];
+            .filter((item: FreeSpinSetting) => item.count <= this.bonus)
+            .sort((a: FreeSpinSetting, b: FreeSpinSetting) => b.count - a.count)[0];
 
         const spins = freeSpinSettings?.spins ?? 0;
 

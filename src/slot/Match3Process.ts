@@ -1,7 +1,7 @@
 import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
-import { userSettings } from "../utils/userSettings";
+import { userSettings, config, FreeSpinSetting } from "../utils/userSettings";
 import { ConfigAPI } from "../api/configApi";
 import {
     RoundResult,
@@ -378,13 +378,12 @@ export class Match3Process {
     }
 
     public async getSpinWon() {
-        const config = await this.getConfig();
-
+        // exported config from userSettings that fetches slot configuration
         const freeSpinsArray = config.settings.freeSpins;
 
         const freeSpinSettings = freeSpinsArray
-            .filter(item => item.count <= this.bonus)
-            .sort((a, b) => b.count - a.count)[0];
+            .filter((item: FreeSpinSetting) => item.count <= this.bonus)
+            .sort((a: FreeSpinSetting, b: FreeSpinSetting) => b.count - a.count)[0];
 
         const spins = freeSpinSettings?.spins ?? 0;
 

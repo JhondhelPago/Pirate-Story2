@@ -6,6 +6,12 @@ import { storage } from './storage';
 const response = await ConfigAPI.getPirateConfig();
 export const config = response.data;
 
+export interface FreeSpinSetting {
+    count: number;
+    spins: number;
+}
+
+
 // Keys for saved items in storage
 const KEY_VOLUME_MASTER = 'volume-master';
 const KEY_VOLUME_BGM = 'volume-bgm';

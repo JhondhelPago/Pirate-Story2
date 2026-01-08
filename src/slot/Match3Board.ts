@@ -9,7 +9,7 @@ import {
     forEachCell,
     SCATTERBONUS,
 } from "./SlotUtility";
-import { userSettings, SpinModeEnum } from "../utils/userSettings";
+import { userSettings, config, FreeSpinSetting, SpinModeEnum } from "../utils/userSettings";
 import { ConfigAPI } from "../api/configApi";
 
 interface ReelColumn {
@@ -1485,11 +1485,14 @@ private async startSpinSeamlessSequential(): Promise<void> {
             : false;
 
         if (!isFreeSpin || (isFreeSpin && isInitialSpin)) {
-            if (Array.isArray(bonusPositions) && bonusPositions.length >= 2) {
+            const freeSpins = config.settings.freeSpins;
+            const minCountToAnimate = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
+
+            if (Array.isArray(bonusPositions) && bonusPositions.length >= minCountToAnimate) {
                 for (const p of bonusPositions) push(p);
             }
         } else {
-            // free spin feature bonus reels aas symbol badge
+            // free spin feature bonus reels as symbol badge
             if (Array.isArray(bonusPositions)) {
                 for (const { row, column } of bonusPositions) {
                     const r = Math.max(0, Math.min(rows - 1, row));
