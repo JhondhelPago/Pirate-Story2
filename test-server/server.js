@@ -53,7 +53,7 @@ function pickReelSymbolExcluding11() {
 function decideNum11s() {
     // probabilities for 1,2,3,4,5 occurrences (sum = 100)
     // ✅ exactly 2 occurs ~10% (≈ 1 in 10 spins)
-    const weights = [70, 10, 8, 7, 5];
+    const weights = [1, 1, 0, 0, 0];
     return pickWeightedIndex(weights) + 1; // => 1..5
 }
 
@@ -179,5 +179,6 @@ app.get('/spin', async (req, res) => {
 });
 
 app.listen(port, () => {
+
     console.log(`Express server listening at http://localhost:${port}`);
 });

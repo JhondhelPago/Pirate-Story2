@@ -1,6 +1,7 @@
 import { gameConfig } from '../utils/gameConfig';
 import { Pattern } from './Match3Config';
-import { userSettings } from '../utils/userSettings';
+import { userSettings, config, PaytableLedger } from '../utils/userSettings';
+import { PaytableCard } from '../ui/PaytableCard';
 
 /** Piece type on each position in the grid */
 export type Match3Type = number;
@@ -360,7 +361,8 @@ export function slotEvaluateClusterWins(
     bonusGrid: number[][]
 ) {
     const clusters = slotGetClusters(grid);
-    const paytable = gameConfig.getPaytables();
+
+    const paytable: PaytableLedger[] = config.settings.paytable;
 
     const results: ClusterWinResult[] = [];
 
@@ -427,7 +429,7 @@ export function calculateTotalWin(
     results: ClusterWinResult[],
     betAmount: number
 ): number {
-    const paytable = gameConfig.getPaytables();
+    const paytable: PaytableLedger[] = config.settings.paytable;
     let totalWin = 0;
 
     results.forEach(r => {

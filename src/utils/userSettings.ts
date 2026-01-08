@@ -3,13 +3,28 @@ import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 
 
+//PIRATE STORY GAME CONFIG
 const response = await ConfigAPI.getPirateConfig();
 export const config = response.data;
 
+// interface for the freeSpins and extraFreeSpins
 export interface FreeSpinSetting {
     count: number;
     spins: number;
 }
+
+// interface for the paytable
+export interface PatternSettings {
+    min: number;
+    max: number;
+    multiplier: number;
+}
+
+export interface PaytableLedger {
+    type: number;
+    patterns: PatternSettings[];
+}
+
 
 
 // Keys for saved items in storage
