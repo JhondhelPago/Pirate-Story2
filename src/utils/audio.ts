@@ -64,7 +64,9 @@ class SFX {
     /** Play an one-shot sound effect */
     public play(alias: string, options?: PlayOptions) {
         const volume = this.volume * (options?.volume ?? 1);
-        sound.play(alias, { ...options, volume });
+
+        // ✅ return the instance so callers can .stop() it if needed
+        return sound.play(alias, { ...options, volume });
     }
 
     // play only the segment of the sfx file

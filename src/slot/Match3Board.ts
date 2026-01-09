@@ -57,6 +57,8 @@ export class Match3Board {
 
     private readonly BLUR_EXTRA = 3;
 
+    private spinLoopSfx: any = null;
+
 
     private get symbolScale(): number {
         const anySym = SlotSymbol as any;
@@ -789,11 +791,11 @@ private async startSpinSeamlessSequential(): Promise<void> {
         this.startTickerIfNeeded();
         this.startSpinLoop();
 
+        this.spinLoopSfx = sfx.play("common/sfx-reel-spin-continuous.wav", {loop: true, volume: 0.6});
+
         const spinMode = userSettings.getSpinMode();
 
         if (spinMode === SpinModeEnum.Turbo) {
-            
-            sfx.playSegment("common/sfx-reel-spin-continuous.wav", 0, 0.5, {volume: 0.6});
 
             this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
 
@@ -808,20 +810,13 @@ private async startSpinSeamlessSequential(): Promise<void> {
             return;
         }
 
-
-
-        // ✅ QUICK: no lift + all columns same time
         if (spinMode === SpinModeEnum.Quick) {
-            sfx.playSegment("common/sfx-reel-spin-continuous.wav", 0, 0.9, {volume: 0.6});
             this._startSequencePromise = this.startSpinSeamlessQuickAllAtOnce();
             this.ensureWildLayerOnTop();
             return;
         }
 
         // NORMAL
-        
-        // play the spin sfx here
-        sfx.playSegment("common/sfx-reel-spin.wav", 0.8, 6, {volume: 0.6});
         this._startSequencePromise = this.startSpinSeamlessSequential();
         this.ensureWildLayerOnTop();
     }
@@ -1013,6 +1008,8 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 t.eventCallback("onComplete", () => resolve());
             });
 
+            sfx.play("common/sfx-reel-col-stop.wav", {volume: 0.6});
+
             if (!col || col?.destroyed) {
                 dropCol.removeChildren();
                 dropCol.destroy();
@@ -1162,6 +1159,8 @@ private async startSpinSeamlessSequential(): Promise<void> {
             t.eventCallback("onComplete", () => resolve());
         });
 
+        sfx.play("common/sfx-reel-col-stop.wav", {volume: 0.6});
+
         for (let c = 0; c < this.columns; c++) {
             const reel = this.realReels[c];
             const col = reel?.container as any;
@@ -1288,6 +1287,8 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this._landingInProgress = false;
         }
 
+        this.spinLoopSfx?.stop();
+
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
 
@@ -1318,6 +1319,8 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this._landingInProgress = false;
         }
 
+        this.spinLoopSfx?.stop();
+
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
 
@@ -1346,6 +1349,8 @@ private async startSpinSeamlessSequential(): Promise<void> {
         } finally {
             this._landingInProgress = false;
         }
+
+        this.spinLoopSfx?.stop();
 
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
