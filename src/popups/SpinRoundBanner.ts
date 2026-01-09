@@ -94,12 +94,11 @@ export class SpinRoundBanner extends Container {
         this.winValue = anyData?.win ?? 0;
         this.targetDisplayValue = this.winValue;
 
-        // 🎚️ DUCK BGM NOW (fade down)
         const music = bgm.current;
         if (music) {
             gsap.killTweensOf(music);
             gsap.to(music, {
-                volume: bgm.getVolume() * 0.35, // duck level
+                volume: bgm.getVolume() * 0.3, // duck level
                 duration: 0.2,
                 ease: "linear",
             });
@@ -113,7 +112,7 @@ export class SpinRoundBanner extends Container {
                 gsap.killTweensOf(m);
                 gsap.to(m, {
                     volume: bgm.getVolume(), // restore to user's current set volume
-                    duration: 0.25,
+                    duration: 0.1,
                     ease: "linear",
                 });
             }
@@ -505,9 +504,12 @@ export class SpinRoundBanner extends Container {
 
     private getBannerTexture(win: number): BannerItem {
         const bannerDict: BannerItem[] = [
+            // { max: 80, board: "green-banner-board", text: "green-banner-text", sfx: "common/sfx-avast.wav" },
+            // { max: 150, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-shiver.wav" },
+            // { max: Infinity, board: "red-banner-board", text: "red-banner-text", sfx: "common/sfx-yar.wav" },
             { max: 80, board: "green-banner-board", text: "green-banner-text", sfx: "common/sfx-avast.wav" },
-            { max: 150, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-shiver.wav" },
-            { max: Infinity, board: "red-banner-board", text: "red-banner-text", sfx: "common/sfx-yar.wav" },
+            { max: 150, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-avast.wav" },
+            { max: Infinity, board: "red-banner-board", text: "red-banner-text", sfx: "common/sfx-avast.wav" },
         ];
 
         return bannerDict.find((x) => win < x.max)!;

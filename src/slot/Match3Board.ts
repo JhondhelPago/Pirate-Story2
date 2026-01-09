@@ -11,6 +11,7 @@ import {
 } from "./SlotUtility";
 import { userSettings, config, FreeSpinSetting, SpinModeEnum } from "../utils/userSettings";
 import { ConfigAPI } from "../api/configApi";
+import { sfx } from "../utils/audio";
 
 interface ReelColumn {
     container: Container;
@@ -553,6 +554,7 @@ export class Match3Board {
  * ✅ Blur starts immediately per-column right after that column finishes drop (less delay)
  */
 private async startSpinSeamlessSequential(): Promise<void> {
+
     const seq = ++this._startSeqId;
 
     const { offsetY } = this.getOffsets();
@@ -790,8 +792,10 @@ private async startSpinSeamlessSequential(): Promise<void> {
         const spinMode = userSettings.getSpinMode();
 
         if (spinMode === SpinModeEnum.Turbo) {
-            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+            
+            sfx.playSegment("common/sfx-reel-spin-continuous.wav", 0, 0.5, {volume: 0.6});
 
+            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
 
             this._spinSpeed = this._defaultSpinSpeed;
 
@@ -808,12 +812,16 @@ private async startSpinSeamlessSequential(): Promise<void> {
 
         // ✅ QUICK: no lift + all columns same time
         if (spinMode === SpinModeEnum.Quick) {
+            sfx.playSegment("common/sfx-reel-spin-continuous.wav", 0, 0.9, {volume: 0.6});
             this._startSequencePromise = this.startSpinSeamlessQuickAllAtOnce();
             this.ensureWildLayerOnTop();
             return;
         }
 
         // NORMAL
+        
+        // play the spin sfx here
+        sfx.playSegment("common/sfx-reel-spin.wav", 0.8, 6, {volume: 0.6});
         this._startSequencePromise = this.startSpinSeamlessSequential();
         this.ensureWildLayerOnTop();
     }

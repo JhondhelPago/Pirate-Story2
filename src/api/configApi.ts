@@ -226,7 +226,7 @@ export class ConfigAPI {
     }
 
     static async getPirateConfig() {
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwic3ViIjoiMSIsIm5iZiI6MTc2Nzg1OTUxMywiZXhwIjoxNzczODU5NTEzLCJpYXQiOjE3Njc4NTk1MTMsImlzcyI6IlNsb3RBcGkifQ.jKmxzWamZXo04VPIYQIpgx5A5TSzlKzR5YQ3OFCaUp4";
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwic3ViIjoiMSIsIm5iZiI6MTc2NzkyNDkzNSwiZXhwIjoxNzczOTI0OTM1LCJpYXQiOjE3Njc5MjQ5MzUsImlzcyI6IlNsb3RBcGkifQ.Z7Gyt-j-9YCD7-_5L4uITNlNOo4DlMlis2EoTb-_ik8";
         try{
             const response = await axios.get("/api/api/v3/game/settings?gamecode=piratestory",
                 { headers: { Authorization: `Bearer ${token}` } }

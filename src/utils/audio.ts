@@ -67,6 +67,23 @@ class SFX {
         sound.play(alias, { ...options, volume });
     }
 
+    // play only the segment of the sfx file
+    public playSegment(
+        alias: string,
+        start: number,
+        duration: number,
+        options?: PlayOptions
+    ) {
+        const volume = this.volume * (options?.volume ?? 1);
+
+        return sound.play(alias, {
+            ...options,
+            start,
+            end: start + duration,
+            volume,
+        });
+    }
+
     /** Set sound effects volume */
     public getVolume() {
         return this.volume;

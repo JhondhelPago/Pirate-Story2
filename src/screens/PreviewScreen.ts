@@ -184,7 +184,7 @@ export class PreviewScreen extends Container {
 }
 
     public async show() {
-        bgm.play('common/bgm-main.mp3', { volume: 0.5 });
+        bgm.play('common/bgm-main.mp3', { volume: 0.3 });
 
         gsap.killTweensOf(this.message);
         this.message.alpha = 1;

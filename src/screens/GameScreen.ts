@@ -363,7 +363,7 @@ export class GameScreen extends Container {
     }
 
     public async show() {
-        bgm.play('common/bgm-game.mp3', { volume: 0.5 });
+        bgm.play('common/bgm-game.mp3', { volume: 0.3 });
         this.match3.startPlaying();
         this.syncFeatureAvailability();
     }
