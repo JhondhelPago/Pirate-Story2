@@ -7,7 +7,7 @@ type BannerItem = {
     max: number;
     board: string;
     text: string;
-    sfx: string
+    sfx: string;
 };
 
 export type SpinRoundBannerData = {
@@ -22,7 +22,6 @@ export class SpinRoundBanner extends Container {
     private panel: Container;
 
     // 🪙 coin effects container (blast + fall) - FULL SCREEN coords
-    // ✅ lowest layer above bg, below panel so it never overlaps UI
     private coinContainer: Container;
 
     // 🔥 two glow instances behind the board
@@ -42,17 +41,39 @@ export class SpinRoundBanner extends Container {
 
     private onClosed?: () => void;
 
-    // ✅ Fix Timeout typing issue across envs (browser/node)
     private timeouts: Array<ReturnType<typeof setTimeout>> = [];
 
     private glowEntranceTween?: gsap.core.Tween;
-    private glowOpacityTween?: gsap.core.Tween; // ✅ alternating opacity controller
+    private glowOpacityTween?: gsap.core.Tween;
 
     // coin blast controller
     private coinBlastActive = false;
 
+    // ✅ audio instances that MUST be stopped
+    private sfxCoinBlast: any = null;
+    private sfxCollectWin: any = null;
+
+    // ✅ keep a reference to the amount tween so it can’t get orphaned
+    private valueTween?: gsap.core.Tween;
+
     private readonly HEADER_OFFSET_Y = -180;
     private readonly HEADER_OFFSET_X = 20;
+
+    // ✅ event handlers (bound once)
+    private onVisibilityChangeBound = () => {
+        // If user switches tab while counting, onComplete may never run.
+        // So we force cleanup here.
+        if (document.hidden) {
+            this.forceStopAllBannerAudio();
+            this.killValueTweenOnly();
+        }
+    };
+
+    private onWindowBlurBound = () => {
+        // Some platforms fire blur without visibilitychange.
+        this.forceStopAllBannerAudio();
+        this.killValueTweenOnly();
+    };
 
     constructor() {
         super();
@@ -68,7 +89,6 @@ export class SpinRoundBanner extends Container {
         this.bg.eventMode = "static";
         this.addChild(this.bg);
 
-        // ✅ coin layer goes right after bg (so it's always behind popup UI)
         this.coinContainer = new Container();
         this.addChild(this.coinContainer);
 
@@ -91,6 +111,11 @@ export class SpinRoundBanner extends Container {
     public prepare<T>(data?: T) {
         const anyData = data as SpinRoundBannerData;
 
+        // ✅ safety: kill any leftovers if prepare is called again
+        this.clearTimeouts();
+        this.killValueTweenOnly();
+        this.forceStopAllBannerAudio();
+
         this.winValue = anyData?.win ?? 0;
         this.targetDisplayValue = this.winValue;
 
@@ -98,26 +123,33 @@ export class SpinRoundBanner extends Container {
         if (music) {
             gsap.killTweensOf(music);
             gsap.to(music, {
-                volume: bgm.getVolume() * 0.3, // duck level
+                volume: bgm.getVolume() * 0.3,
                 duration: 0.2,
                 ease: "linear",
             });
         }
 
-        // ✅ wrap onClosed so it always restores BGM when banner closes
         const userOnClosed = anyData?.onClosed;
+
         this.onClosed = () => {
+            // ✅ absolute safety net
+            this.forceStopAllBannerAudio();
+
             const m = bgm.current;
             if (m) {
                 gsap.killTweensOf(m);
                 gsap.to(m, {
-                    volume: bgm.getVolume(), // restore to user's current set volume
+                    volume: bgm.getVolume(),
                     duration: 0.1,
                     ease: "linear",
                 });
             }
             userOnClosed?.();
         };
+
+        // ✅ attach window/tab listeners while the banner is alive
+        document.addEventListener("visibilitychange", this.onVisibilityChangeBound);
+        window.addEventListener("blur", this.onWindowBlurBound);
 
         this.createBanner();
         this.createGlow();
@@ -139,6 +171,10 @@ export class SpinRoundBanner extends Container {
         );
     }
 
+    private clearTimeouts() {
+        for (const t of this.timeouts) clearTimeout(t);
+        this.timeouts = [];
+    }
 
     private syncGlowToBanner() {
         if (!this.banner) return;
@@ -180,11 +216,8 @@ export class SpinRoundBanner extends Container {
         ];
     }
 
-    // 🪙 entry point: orientation-aware coin blast
     private startCoinBlast() {
-        // always reset existing coins first
         this.stopCoinBlast();
-
         this.coinBlastActive = true;
 
         const coinTextures = this.buildCoinTextures();
@@ -193,8 +226,7 @@ export class SpinRoundBanner extends Container {
         const H = this.bg.height || 0;
         if (W <= 0 || H <= 0) return;
 
-        const isPortrait = H > W; // 📱 portrait → rain from top, 🌐 landscape → side blast
-
+        const isPortrait = H > W;
         if (isPortrait) {
             this.startCoinBlastPortrait(W, H, coinTextures);
         } else {
@@ -206,7 +238,7 @@ export class SpinRoundBanner extends Container {
         const leftSpawnX = -60;
         const rightSpawnX = W + 60;
 
-        const baseY = H * 0.78; // a bit lower so it feels more “from the bottom”
+        const baseY = H * 0.78;
         const yJitter = 280;
         const bottomY = H + 140;
 
@@ -234,7 +266,7 @@ export class SpinRoundBanner extends Container {
             const tween = gsap.to(coin, {
                 duration: 999999,
                 ease: "none",
-                delay: this.rand(0, 0.9), // stagger start to look more “continuous”
+                delay: this.rand(0, 0.9),
                 onStart: () => coin.play(),
                 onUpdate: () => {
                     vy += gravity;
@@ -245,7 +277,6 @@ export class SpinRoundBanner extends Container {
 
                     coin.rotation += (side === "L" ? 1 : -1) * this.rand(0.02, 0.06);
 
-                    // keep “side blast” feel
                     if (side === "L" && coin.x > inwardClamp - 70) {
                         coin.x = inwardClamp - 70;
                         vx *= 0.35;
@@ -279,7 +310,6 @@ export class SpinRoundBanner extends Container {
         for (let i = 0; i < RIGHT_COUNT; i++) makeCoin("R");
     }
 
-    // 📱 PORTRAIT / MOBILE: blast from TOP, coins fall down like rain
     private startCoinBlastPortrait(W: number, H: number, coinTextures: Texture[]) {
         const topY = -80;
         const bottomY = H + 80;
@@ -297,8 +327,8 @@ export class SpinRoundBanner extends Container {
             coin.x = this.rand(minX, maxX);
             coin.y = topY - this.rand(0, 120);
 
-            let vx = this.rand(-1.8, 1.8); // light horizontal drift
-            let vy = this.rand(4, 9); // falling speed
+            let vx = this.rand(-1.8, 1.8);
+            let vy = this.rand(4, 9);
 
             const gravity = this.rand(0.12, 0.28);
             const dragX = this.rand(0.985, 0.995);
@@ -318,19 +348,16 @@ export class SpinRoundBanner extends Container {
                     coin.x += vx + sway;
                     coin.y += vy;
 
-                    // gentle spin
                     coin.rotation += this.rand(0.01, 0.035);
 
-                    // keep coins inside horizontal border a bit
                     if (coin.x < minX) {
                         coin.x = minX;
-                        vx = Math.abs(vx); // bounce to the right
+                        vx = Math.abs(vx);
                     } else if (coin.x > maxX) {
                         coin.x = maxX;
-                        vx = -Math.abs(vx); // bounce to the left
+                        vx = -Math.abs(vx);
                     }
 
-                    // reset when it goes off bottom
                     if (coin.y > bottomY) {
                         coin.scale.set(this.rand(0.5, 1.0));
                         coin.rotation = this.rand(-Math.PI, Math.PI);
@@ -348,7 +375,7 @@ export class SpinRoundBanner extends Container {
             return coin;
         };
 
-        const COUNT = 60; // similar density to landscape (30+30)
+        const COUNT = 60;
         for (let i = 0; i < COUNT; i++) makeCoin();
     }
 
@@ -504,9 +531,6 @@ export class SpinRoundBanner extends Container {
 
     private getBannerTexture(win: number): BannerItem {
         const bannerDict: BannerItem[] = [
-            // { max: 80, board: "green-banner-board", text: "green-banner-text", sfx: "common/sfx-avast.wav" },
-            // { max: 150, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-shiver.wav" },
-            // { max: Infinity, board: "red-banner-board", text: "red-banner-text", sfx: "common/sfx-yar.wav" },
             { max: 80, board: "green-banner-board", text: "green-banner-text", sfx: "common/sfx-avast.wav" },
             { max: 150, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-avast.wav" },
             { max: Infinity, board: "red-banner-board", text: "red-banner-text", sfx: "common/sfx-avast.wav" },
@@ -516,9 +540,7 @@ export class SpinRoundBanner extends Container {
     }
 
     private animateEntrance() {
-
         const tex = this.getBannerTexture(this.winValue);
-
 
         this.playBannerSfx(tex.sfx);
 
@@ -570,7 +592,7 @@ export class SpinRoundBanner extends Container {
             onComplete: () => {
                 this.syncGlowToBanner();
                 this.showGlowEffects();
-                this.startCoinBlast(); // ✅ start after landing (now orientation-aware)
+                this.startCoinBlast();
             },
         });
 
@@ -593,13 +615,12 @@ export class SpinRoundBanner extends Container {
 
     private playBannerSfx(sfxKey: string) {
         try {
-            sfx.play(sfxKey, {volume: 0.5}); // banner sound effect
-            sfx.play('common/sfx-coin-fall.wav'); //coin sound effect
+            sfx.play(sfxKey, { volume: 0.5 });
+            this.sfxCoinBlast = sfx.playSegment("common/sfx-coin-fall.wav", 0, 1, { loop: true });
         } catch (e) {
             console.warn("Failed to play banner SFX:", sfxKey, e);
         }
     }
-
 
     private showGlowEffects() {
         const gA = this.glowA;
@@ -702,9 +723,17 @@ export class SpinRoundBanner extends Container {
     }
 
     private animateValue() {
+        // ✅ ensure no previous instance/tween keeps running
+        this.killValueTweenOnly();
+        this.stopCollectWinSfx();
+
         this.currentDisplayValue = 0;
 
-        gsap.to(this, {
+        // ✅ pixi sound volumes are typically 0..1 (avoid 3)
+        this.sfxCollectWin = sfx.play("common/sfx-collect-win.wav", { loop: true, volume: 0.7 });
+
+        // ✅ store tween reference, so it can be killed on blur/hidden/hide()
+        this.valueTween = gsap.to(this, {
             currentDisplayValue: this.targetDisplayValue,
             duration: 1.2,
             ease: "power2.out",
@@ -712,6 +741,10 @@ export class SpinRoundBanner extends Container {
                 this.valueText.text = this.formatCurrency(this.currentDisplayValue);
             },
             onComplete: () => {
+                this.valueTween = undefined;
+
+                this.stopCollectWinSfx();
+
                 gsap.fromTo(
                     this.valueText.scale,
                     { x: 0.85, y: 0.85 },
@@ -725,6 +758,27 @@ export class SpinRoundBanner extends Container {
                 );
             },
         });
+    }
+
+    private killValueTweenOnly() {
+        if (this.valueTween) {
+            try {
+                this.valueTween.kill();
+            } catch {}
+            this.valueTween = undefined;
+        }
+        // safety: kill any gsap tween targeting this object (amount tween is gsap.to(this, ...))
+        gsap.killTweensOf(this);
+    }
+
+    private forceStopAllBannerAudio() {
+        // stop both loop sounds, always safe
+        try {
+            this.sfxCoinBlast?.stop?.();
+        } catch {}
+        this.sfxCoinBlast = null;
+
+        this.stopCollectWinSfx();
     }
 
     private animateValuePulse() {
@@ -750,7 +804,6 @@ export class SpinRoundBanner extends Container {
         this.bg.width = width;
         this.bg.height = height;
 
-        // ✅ keep layering: bg (0), coins (1), panel (2)
         if (this.getChildIndex(this.bg) !== 0) this.setChildIndex(this.bg, 0);
         if (this.getChildIndex(this.coinContainer) !== 1) this.setChildIndex(this.coinContainer, 1);
         if (this.getChildIndex(this.panel) !== 2) this.setChildIndex(this.panel, 2);
@@ -788,8 +841,17 @@ export class SpinRoundBanner extends Container {
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
-        for (const t of this.timeouts) clearTimeout(t);
-        this.timeouts = [];
+        // ✅ detach handlers
+        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
+        window.removeEventListener("blur", this.onWindowBlurBound);
+
+        this.clearTimeouts();
+
+        // ✅ stop ANY audio owned by this banner no matter what
+        this.forceStopAllBannerAudio();
+
+        // ✅ also kill amount tween so onComplete can’t “revive” anything later
+        this.killValueTweenOnly();
 
         gsap.killTweensOf(this.headerText.scale);
         gsap.killTweensOf(this.valueText.scale);
@@ -810,9 +872,7 @@ export class SpinRoundBanner extends Container {
             gsap.killTweensOf(g.scale);
         }
 
-        // ✅ helper: dismiss popup WITHOUT waiting (removes the "delay after hide")
         const dismissNow = () => {
-            // don't await → avoids any internal transition delay blocking this hide() completion
             void navigation.dismissPopup().catch(() => {});
         };
 
@@ -838,11 +898,19 @@ export class SpinRoundBanner extends Container {
 
         SpinRoundBanner.currentInstance = null;
 
-        // ✅ immediately trigger dismiss; don't wait for its internal timing
         dismissNow();
 
         const cb = this.onClosed;
         this.onClosed = undefined;
         cb?.();
+    }
+
+    private stopCollectWinSfx() {
+        if (this.sfxCollectWin) {
+            try {
+                this.sfxCollectWin.stop();
+            } catch {}
+            this.sfxCollectWin = null;
+        }
     }
 }
