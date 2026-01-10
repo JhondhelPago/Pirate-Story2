@@ -72,8 +72,6 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         this.processing = false;
 
-        this.isInitialFreeSpin = false;
-
         await this.match3.onFreeSpinInitialBonusScatterComplete?.(this.spins);
     }
 

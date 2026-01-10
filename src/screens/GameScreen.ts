@@ -20,6 +20,7 @@ import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 import { MessagePanel } from '../ui/MessagePanel';
+import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -215,14 +216,8 @@ export class GameScreen extends Container {
         this.controlPanel.disableBetting();
     }
 
-    // =========================================================================
-    // ✅ INTERRUPT HOOK
-    // =========================================================================
     private requestSpinInterrupt() {
-        // stop win/wild replay loop immediately (board checks this flag)
         this.match3.board.hasIncomingSpinTrigger = true;
-
-        // request interrupt; Turbo is ignored inside board.interruptSpin()
         this.match3.board.interruptSpin();
     }
 
@@ -233,13 +228,17 @@ export class GameScreen extends Container {
 
         // block the trigger of the spin if there is current popups, to prevent keyboard input to trigger spins 
         if (navigation.currentPopup) return;
-        
+
         // Second press while spinning = interrupt
         if (this.match3.spinning) {
             this.requestSpinInterrupt();
             return;
         }
 
+
+        if (this.match3.process instanceof Match3FreeSpinProcess && this.match3.process.getIsInitialFreeSpin()) return; // preventing spin trigger while on the free spin initial bonus spin
+
+        
         // Don’t start a new spin if any process is busy
         if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
 
@@ -364,9 +363,7 @@ export class GameScreen extends Container {
         await waitFor(0.3);
     }
 
-    // =========================================================================
-    // CALLBACKS
-    // =========================================================================
+
     private async onSpinStart() {
         this.lockInteraction();
     }
