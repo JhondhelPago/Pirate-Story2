@@ -8,16 +8,16 @@ import {
 } from "pixi.js";
 import gsap from "gsap";
 import { navigation } from "../utils/navigation";
-import { GameScreen } from "../screens/GameScreen";
+import { bgm, sfx } from "../utils/audio";
 
 export type FreeSpinWinBannerData = {
     spins: number;
     topText?: string;
     bottomText?: string;
 
-    // ✅ NEW: optional auto close
-    autoClose?: boolean;   // default false
-    duration?: number;     // default 0 (ms). Used only when autoClose=true and duration>0
+    // optional auto close
+    autoClose?: boolean; // default false
+    duration?: number;   // ms. Used only when autoClose=true and duration>0
 
     onClosed?: () => void;
 };
@@ -36,7 +36,7 @@ export class FreeSpinWinBanner extends Container {
     private spinsText!: Text;
     private continueText!: Text;
 
-    // 🔥 same glow system as SpinRoundBanner (behind the board)
+    // glow system (behind the board)
     private glowA?: Sprite;
     private glowB?: Sprite;
     private glowBaseScale = 1;
@@ -50,19 +50,19 @@ export class FreeSpinWinBanner extends Container {
     private canClickAnywhere = false;
     private onClosed?: () => void;
 
-    // ✅ NEW: prevent double-callback (same pattern as TotalWinBanner)
+    // prevent double-callback
     private closedOnce = false;
 
-    // ✅ NEW: auto-close settings
-    private autoClose = false;         // default false
-    private autoCloseDuration = 0;     // default 0 (ms)
+    // auto-close settings
+    private autoClose = false;
+    private autoCloseDuration = 0;
     private autoCloseTimer?: number;
 
     private readonly TOP_TEXT_Y = -160;
     private readonly CENTER_NUMBER_Y = -5;
     private readonly BOTTOM_TEXT_Y = 155;
 
-    // ✅ Keyboard handling
+    // keyboard handling
     private keyListenerAdded = false;
     private readonly keyDownHandler = (e: KeyboardEvent) => {
         if (!this.canClickAnywhere) return;
@@ -72,20 +72,36 @@ export class FreeSpinWinBanner extends Container {
 
     private isClosing = false;
 
-    // ✅ NEW: static triggered close (like TotalWinBanner)
+    // ✅ audio instance(s) owned by this banner
+    private sfxFreeSpinWin: any = null;
+
+    // ✅ reduce/restore bgm like SpinRoundBanner
+    private bgmDuckTween?: gsap.core.Tween;
+    private bgmRestoreTween?: gsap.core.Tween;
+
+    // ✅ visibility/blur safety (same idea as SpinRoundBanner)
+    private onVisibilityChangeBound = () => {
+        if (document.hidden) {
+            this.forceStopAllBannerAudio();
+            this.killNumberTweenOnly();
+        }
+    };
+
+    private onWindowBlurBound = () => {
+        this.forceStopAllBannerAudio();
+        this.killNumberTweenOnly();
+    };
+
+    // number tween reference so it can’t orphan
+    private numberTween?: gsap.core.Tween;
+
+    // ==================================================
+    // static close helper
+    // ==================================================
     public static triggerClose(forceInstant = false) {
         if (FreeSpinWinBanner.currentInstance) {
             void FreeSpinWinBanner.currentInstance.hide(forceInstant);
         }
-    }
-
-    private async requestClose() {
-        if (!this.canClickAnywhere) return;
-        if (this.isClosing) return; // prevent double trigger
-        this.isClosing = true;
-        this.canClickAnywhere = false;
-
-        await this.hide(); // then dismiss popup
     }
 
     constructor() {
@@ -112,8 +128,17 @@ export class FreeSpinWinBanner extends Container {
         this.addChild(this.panel);
     }
 
+    private async requestClose() {
+        if (!this.canClickAnywhere) return;
+        if (this.isClosing) return;
+        this.isClosing = true;
+        this.canClickAnywhere = false;
+
+        await this.hide();
+    }
+
     // ==================================================
-    // ✅ NEW: auto-close helpers
+    // auto-close helpers
     // ==================================================
     private clearAutoCloseTimer() {
         if (this.autoCloseTimer != null) {
@@ -140,7 +165,10 @@ export class FreeSpinWinBanner extends Container {
         }, this.autoCloseDuration);
     }
 
-    private async fireClosedOnce() {
+    // ==================================================
+    // CLOSED callback (IMPORTANT ORDERING)
+    // ==================================================
+    private fireClosedOnce() {
         if (this.closedOnce) return;
         this.closedOnce = true;
 
@@ -160,27 +188,45 @@ export class FreeSpinWinBanner extends Container {
     public async prepare<T>(data?: T) {
         const d = data as any as FreeSpinWinBannerData;
 
-        this.spins = Math.max(0, Math.floor(d?.spins ?? 0));
-        this.onClosed = d?.onClosed;
+        // ✅ safety: cleanup if reused
+        this.clearAutoCloseTimer();
+        this.killNumberTweenOnly();
+        this.forceStopAllBannerAudio();
+        this.killBgmTweensOnly();
 
-        // ✅ NEW: reset close guards/timers
+        this.spins = Math.max(0, Math.floor(d?.spins ?? 0));
+
+        // ✅ wrap onClosed so we restore music no matter what (like SpinRoundBanner)
+        const userOnClosed = d?.onClosed;
+        this.onClosed = () => {
+            this.forceStopAllBannerAudio();
+            this.restoreBgmVolume();
+            userOnClosed?.();
+        };
+
+        // reset close guards
         this.closedOnce = false;
         this.isClosing = false;
         this.canClickAnywhere = false;
-        this.clearAutoCloseTimer();
 
-        // ✅ NEW: auto-close config with defaults
+        // auto-close config with defaults
         this.autoClose = typeof d?.autoClose === "boolean" ? d.autoClose : false;
-        const duration = typeof d?.duration === "number" ? d.duration : 0;
-        this.autoCloseDuration = duration;
+        this.autoCloseDuration = typeof d?.duration === "number" ? d.duration : 0;
 
         const topLabel = d?.topText ?? "YOU HAVE WON";
         const bottomLabel = d?.bottomText ?? "FREE SPINS";
 
         await this.waitForFonts(["Bangers", "Pirata One"]);
 
+        // ✅ duck BGM while banner SFX is playing (same logic as SpinRoundBanner)
+        this.duckBgmVolume();
+
+        // attach window/tab listeners while banner alive
+        document.addEventListener("visibilitychange", this.onVisibilityChangeBound);
+        window.addEventListener("blur", this.onWindowBlurBound);
+
         this.createBanner();
-        this.createGlow(); // ✅ NEW: glow behind board (same behavior as SpinRoundBanner)
+        this.createGlow();
         this.createWoodTexts(topLabel, bottomLabel);
         this.createCenterNumber();
         this.createContinueText();
@@ -190,7 +236,7 @@ export class FreeSpinWinBanner extends Container {
 
         setTimeout(() => this.animateNumber(), 350);
 
-        // ✅ attach keyboard listener once
+        // attach keyboard listener once
         if (!this.keyListenerAdded && typeof window !== "undefined") {
             window.addEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = true;
@@ -199,8 +245,6 @@ export class FreeSpinWinBanner extends Container {
         // enable "press anywhere"
         setTimeout(() => {
             this.canClickAnywhere = true;
-
-            // ✅ NEW: schedule auto-close once it becomes dismissable
             this.scheduleAutoCloseIfNeeded();
         }, 900);
     }
@@ -220,7 +264,55 @@ export class FreeSpinWinBanner extends Container {
     }
 
     // ==================================================
-    // GLOW HELPERS (same pattern as SpinRoundBanner)
+    // BGM DUCK / RESTORE (mirrors SpinRoundBanner)
+    // ==================================================
+    private killBgmTweensOnly() {
+        if (this.bgmDuckTween) {
+            try { this.bgmDuckTween.kill(); } catch {}
+            this.bgmDuckTween = undefined;
+        }
+        if (this.bgmRestoreTween) {
+            try { this.bgmRestoreTween.kill(); } catch {}
+            this.bgmRestoreTween = undefined;
+        }
+    }
+
+    private duckBgmVolume() {
+        const music = bgm.current;
+        if (!music) return;
+
+        this.killBgmTweensOnly();
+        gsap.killTweensOf(music);
+
+        this.bgmDuckTween = gsap.to(music, {
+            volume: bgm.getVolume() * 0.3,
+            duration: 0.2,
+            ease: "linear",
+            onComplete: () => {
+                this.bgmDuckTween = undefined;
+            },
+        });
+    }
+
+    private restoreBgmVolume() {
+        const music = bgm.current;
+        if (!music) return;
+
+        this.killBgmTweensOnly();
+        gsap.killTweensOf(music);
+
+        this.bgmRestoreTween = gsap.to(music, {
+            volume: bgm.getVolume(),
+            duration: 0.1,
+            ease: "linear",
+            onComplete: () => {
+                this.bgmRestoreTween = undefined;
+            },
+        });
+    }
+
+    // ==================================================
+    // GLOW HELPERS
     // ==================================================
     private syncGlowToBanner() {
         if (!this.banner) return;
@@ -245,7 +337,6 @@ export class FreeSpinWinBanner extends Container {
     }
 
     private createGlow() {
-        // cleanup existing
         for (const g of this.getGlows()) {
             g.removeFromParent();
             g.destroy();
@@ -264,14 +355,9 @@ export class FreeSpinWinBanner extends Container {
         this.glowA = makeGlow();
         this.glowB = makeGlow();
 
-        // ✅ behind the board & texts
+        // behind the board & texts
         this.panel.addChildAt(this.glowA, 0);
         this.panel.addChildAt(this.glowB, 1);
-
-        // ensure banner/texts stay above glow
-        if (this.banner) {
-            this.panel.setChildIndex(this.banner, this.panel.children.length - 1);
-        }
 
         this.syncGlowToBanner();
 
@@ -401,10 +487,16 @@ export class FreeSpinWinBanner extends Container {
     // UI BUILD
     // ==================================================
     private createBanner() {
-        this.banner?.destroy();
+        if (this.banner) {
+            this.banner.removeFromParent();
+            this.banner.destroy();
+        }
         this.banner = Sprite.from(FreeSpinWinBanner.BANNER_BOARD_TEX);
         this.banner.anchor.set(0.5);
-        this.panel.addChildAt(this.banner, 0);
+        this.banner.x = 0;
+        this.banner.y = 0;
+
+        this.panel.addChild(this.banner);
     }
 
     private createWoodTexts(topLabel: string, bottomLabel: string) {
@@ -523,19 +615,30 @@ export class FreeSpinWinBanner extends Container {
     // ANIMATIONS
     // ==================================================
     private animateEntrance() {
+        // ✅ play sfx and keep instance so we can stop it
+        this.forceStopAllBannerAudio();
+        try {
+            this.sfxFreeSpinWin = sfx.play("common/sfx-freespin-win.wav");
+        } catch {}
+
         const startOffset = -900;
 
         // kill any previous tweens
-        gsap.killTweensOf([
-            this.banner,
-            this.topText,
-            this.spinsText,
-            this.bottomText,
-            this.continueText,
-            ...this.getGlows(),
-        ].filter(Boolean));
-        gsap.killTweensOf([this.topText?.scale, this.bottomText?.scale, this.continueText?.scale].filter(Boolean));
-        gsap.killTweensOf(this);
+        gsap.killTweensOf(
+            [
+                this.banner,
+                this.topText,
+                this.spinsText,
+                this.bottomText,
+                this.continueText,
+                ...this.getGlows(),
+                this.bg,
+            ].filter(Boolean),
+        );
+        gsap.killTweensOf(
+            [this.topText?.scale, this.bottomText?.scale, this.continueText?.scale].filter(Boolean),
+        );
+        this.killNumberTweenOnly();
 
         if (this.glowEntranceTween) {
             this.glowEntranceTween.kill();
@@ -559,7 +662,7 @@ export class FreeSpinWinBanner extends Container {
         }
 
         const items = [
-            ...this.getGlows(), // ✅ glow comes in with the popup too
+            ...this.getGlows(),
             this.banner,
             this.topText,
             this.spinsText,
@@ -567,11 +670,13 @@ export class FreeSpinWinBanner extends Container {
             this.continueText,
         ].filter(Boolean) as any[];
 
+        // set initial state
         items.forEach((i) => {
             i.alpha = 0;
             i.y += startOffset;
         });
 
+        // animate in
         items.forEach((i, idx) => {
             gsap.to(i, {
                 alpha: 1,
@@ -580,14 +685,12 @@ export class FreeSpinWinBanner extends Container {
                 delay: idx * 0.05,
                 ease: "bounce.out",
                 onUpdate: () => {
-                    // keep glow locked to banner during entrance
                     if (i === this.banner || i === this.topText || i === this.spinsText) {
                         this.syncGlowToBanner();
                     }
                 },
                 onComplete: () => {
                     this.syncGlowToBanner();
-                    // once the board has landed, start the glow idle
                     if (i === this.banner) {
                         this.showGlowEffects();
                     }
@@ -597,23 +700,24 @@ export class FreeSpinWinBanner extends Container {
     }
 
     private animateWoodPulse() {
-        gsap.to(
-            [this.topText.scale, this.bottomText.scale, this.continueText.scale],
-            {
-                x: 1.06,
-                y: 1.06,
-                duration: 1.2,
-                yoyo: true,
-                repeat: -1,
-                ease: "sine.inOut",
-            }
-        );
+        gsap.killTweensOf([this.topText.scale, this.bottomText.scale, this.continueText.scale]);
+
+        gsap.to([this.topText.scale, this.bottomText.scale, this.continueText.scale], {
+            x: 1.06,
+            y: 1.06,
+            duration: 1.2,
+            yoyo: true,
+            repeat: -1,
+            ease: "sine.inOut",
+        });
     }
 
     private animateNumber() {
+        this.killNumberTweenOnly();
+
         this.currentDisplayValue = 0;
 
-        gsap.to(this, {
+        this.numberTween = gsap.to(this, {
             currentDisplayValue: this.spins,
             duration: 0.9,
             ease: "power2.out",
@@ -621,13 +725,31 @@ export class FreeSpinWinBanner extends Container {
                 this.spinsText.text = String(Math.floor(this.currentDisplayValue));
             },
             onComplete: () => {
+                this.numberTween = undefined;
+
                 gsap.fromTo(
                     this.spinsText.scale,
                     { x: 0.85, y: 0.85 },
-                    { x: 1, y: 1, duration: 0.6, ease: "elastic.out(1, 0.6)" }
+                    { x: 1, y: 1, duration: 0.6, ease: "elastic.out(1, 0.6)" },
                 );
             },
         });
+    }
+
+    private killNumberTweenOnly() {
+        if (this.numberTween) {
+            try { this.numberTween.kill(); } catch {}
+            this.numberTween = undefined;
+        }
+        // the number tween targets "this"
+        gsap.killTweensOf(this);
+    }
+
+    private forceStopAllBannerAudio() {
+        try {
+            this.sfxFreeSpinWin?.stop?.();
+        } catch {}
+        this.sfxFreeSpinWin = null;
     }
 
     // ==================================================
@@ -668,18 +790,25 @@ export class FreeSpinWinBanner extends Container {
     public async hide(forceInstant = false) {
         this.canClickAnywhere = false;
 
-        // ✅ NEW: clear auto-close timer on hide
+        // detach handlers
+        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
+        window.removeEventListener("blur", this.onWindowBlurBound);
+
+        // clear auto-close
         this.clearAutoCloseTimer();
 
-        // 🔻 remove keyboard listener
+        // remove keyboard listener
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
         }
 
-        // kill wood pulse tweens + number tween
+        // stop banner audio + kill number tween
+        this.forceStopAllBannerAudio();
+        this.killNumberTweenOnly();
+
+        // kill wood pulse tweens
         gsap.killTweensOf([this.topText?.scale, this.bottomText?.scale, this.continueText?.scale].filter(Boolean));
-        gsap.killTweensOf(this);
 
         // kill glow tweens
         if (this.glowEntranceTween) {
@@ -694,51 +823,57 @@ export class FreeSpinWinBanner extends Container {
             gsap.killTweensOf(g);
             gsap.killTweensOf(g.scale);
         }
+
+        const items = [
+            ...this.getGlows(),
+            this.banner,
+            this.topText,
+            this.spinsText,
+            this.bottomText,
+            this.continueText,
+            this.bg,
+        ].filter(Boolean);
 
         if (forceInstant) {
             this.alpha = 0;
             FreeSpinWinBanner.currentInstance = null;
 
-            await this.fireClosedOnce();
-            await navigation.dismissPopup();
+            // ✅ IMPORTANT: dismiss first, then onClosed (prevents “next popup got dismissed”)
+            try { await navigation.dismissPopup(); } catch {}
+            this.restoreBgmVolume();
+            this.fireClosedOnce();
             return;
         }
 
-        await gsap.to(
-            [
-                ...this.getGlows(),
-                this.banner,
-                this.topText,
-                this.spinsText,
-                this.bottomText,
-                this.continueText,
-                this.bg,
-            ].filter(Boolean),
-            { alpha: 0, duration: 0.25 }
-        );
+        await gsap.to(items as any, { alpha: 0, duration: 0.25 });
 
         FreeSpinWinBanner.currentInstance = null;
 
-        await this.fireClosedOnce();
-        await navigation.dismissPopup();
+        // ✅ IMPORTANT: dismiss first, then onClosed (same reasoning)
+        try { await navigation.dismissPopup(); } catch {}
+        this.restoreBgmVolume();
+        this.fireClosedOnce();
     }
 
     public override destroy(options?: any) {
-        
         this.clearAutoCloseTimer();
+
+        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
+        window.removeEventListener("blur", this.onWindowBlurBound);
 
         if (this.keyListenerAdded && typeof window !== "undefined") {
             window.removeEventListener("keydown", this.keyDownHandler);
             this.keyListenerAdded = false;
         }
 
-        // kill text tweens
+        this.forceStopAllBannerAudio();
+        this.killNumberTweenOnly();
+        this.killBgmTweensOnly();
+
         gsap.killTweensOf(this.topText?.scale);
         gsap.killTweensOf(this.bottomText?.scale);
         gsap.killTweensOf(this.continueText?.scale);
-        gsap.killTweensOf(this);
 
-        // kill glow tweens
         if (this.glowEntranceTween) {
             this.glowEntranceTween.kill();
             this.glowEntranceTween = undefined;
@@ -752,7 +887,10 @@ export class FreeSpinWinBanner extends Container {
             gsap.killTweensOf(g.scale);
         }
 
-        void this.fireClosedOnce();
+        // make sure bgm is restored if destroyed unexpectedly
+        this.restoreBgmVolume();
+
+        this.fireClosedOnce();
 
         super.destroy(options);
 
