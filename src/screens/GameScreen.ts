@@ -235,9 +235,7 @@ export class GameScreen extends Container {
             return;
         }
 
-
         if (this.match3.process instanceof Match3FreeSpinProcess && this.match3.process.getIsInitialFreeSpin()) return; // preventing spin trigger while on the free spin initial bonus spin
-
         
         // Don’t start a new spin if any process is busy
         if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
