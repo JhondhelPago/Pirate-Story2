@@ -179,6 +179,7 @@ export class GameScreen extends Container {
 
         // ✅ initial sync
         this.syncFeatureAvailability();
+
     }
 
     // =========================================================================

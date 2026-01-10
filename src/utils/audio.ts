@@ -57,41 +57,93 @@ class BGM {
  * with a limitation of not controlling volume of currently playing instances - only the new ones will
  * have their volume changed. But because most of sound effects are short sounds, this is generally fine.
  */
+
+type SoundInstance = any;
+
 class SFX {
     /** Volume scale for new instances */
     private volume = 1;
 
-    /** Play an one-shot sound effect */
-    public play(alias: string, options?: PlayOptions) {
+    /** All currently looping SFX instances */
+    private loopingInstances = new Set<SoundInstance>();
+
+    /** Play a sound effect (one-shot or looped) */
+    public play(alias: string, options?: PlayOptions): SoundInstance {
         const volume = this.volume * (options?.volume ?? 1);
 
-        // ✅ return the instance so callers can .stop() it if needed
-        return sound.play(alias, { ...options, volume });
+        const instance = sound.play(alias, {
+            ...options,
+            volume,
+        });
+
+        if (options?.loop) {
+            this.trackLoop(instance);
+        }
+
+        return instance;
     }
 
-    // play only the segment of the sfx file
+    /** Play only a segment of a sound (supports looping) */
     public playSegment(
         alias: string,
         start: number,
         duration: number,
         options?: PlayOptions
-    ) {
+    ): SoundInstance {
         const volume = this.volume * (options?.volume ?? 1);
 
-        return sound.play(alias, {
+        const instance = sound.play(alias, {
             ...options,
             start,
             end: start + duration,
             volume,
         });
+
+        if (options?.loop) {
+            this.trackLoop(instance);
+        }
+
+        return instance;
     }
 
-    /** Set sound effects volume */
+    /** Track a looping instance and auto-untrack on stop/end */
+    private trackLoop(instance: SoundInstance) {
+        this.loopingInstances.add(instance);
+
+        const originalStop = instance.stop?.bind(instance);
+
+        instance.stop = () => {
+            try {
+                originalStop?.();
+            } catch {}
+            this.loopingInstances.delete(instance);
+        };
+    }
+
+    public stopAll() {
+        // stop tracked loops
+        this.stopAllLoops();
+
+        // stop any Pixi Sound instance (including suspended)
+        sound.stopAll();
+    }
+
+    /** Stop ALL looping SFX immediately (tab switch safety) */
+    public stopAllLoops() {
+        for (const inst of this.loopingInstances) {
+            try {
+                inst.stop?.();
+            } catch {}
+        }
+        this.loopingInstances.clear();
+    }
+
+    /** Get sound effects volume */
     public getVolume() {
         return this.volume;
     }
 
-    /** Set sound effects volume. Does not affect instances that are currently playing */
+    /** Set sound effects volume (affects new instances only) */
     public setVolume(v: number) {
         this.volume = v;
     }

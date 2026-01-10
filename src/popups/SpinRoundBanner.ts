@@ -616,7 +616,7 @@ export class SpinRoundBanner extends Container {
     private playBannerSfx(sfxKey: string) {
         try {
             sfx.play(sfxKey, { volume: 0.5 });
-            this.sfxCoinBlast = sfx.playSegment("common/sfx-coin-fall.wav", 0, 1, { loop: true });
+            this.sfxCoinBlast = sfx.play("common/sfx-coin-fall.wav");
         } catch (e) {
             console.warn("Failed to play banner SFX:", sfxKey, e);
         }
@@ -730,7 +730,7 @@ export class SpinRoundBanner extends Container {
         this.currentDisplayValue = 0;
 
         // ✅ pixi sound volumes are typically 0..1 (avoid 3)
-        this.sfxCollectWin = sfx.play("common/sfx-collect-win.wav", { loop: true, volume: 0.7 });
+        this.sfxCollectWin = sfx.play("common/sfx-collect-win.wav");
 
         // ✅ store tween reference, so it can be killed on blur/hidden/hide()
         this.valueTween = gsap.to(this, {

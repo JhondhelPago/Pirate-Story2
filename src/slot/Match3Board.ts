@@ -57,7 +57,6 @@ export class Match3Board {
 
     private readonly BLUR_EXTRA = 3;
 
-    private spinLoopSfx: any = null;
 
 
     private get symbolScale(): number {
@@ -612,6 +611,9 @@ private async startSpinSeamlessSequential(): Promise<void> {
         );
     }
 
+    
+
+
     // --- DROP wave back to yLead ---
     // ✅ when each column finishes dropping, immediately enter blur-view for THAT column
     for (let c = 0; c < this.columns; c++) {
@@ -790,8 +792,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
         this.stopAndDestroyTicker();
         this.startTickerIfNeeded();
         this.startSpinLoop();
-
-        this.spinLoopSfx = sfx.play("common/sfx-reel-spin-continuous.wav", {loop: true, volume: 0.6});
 
         const spinMode = userSettings.getSpinMode();
 
@@ -1287,7 +1287,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this._landingInProgress = false;
         }
 
-        this.spinLoopSfx?.stop();
 
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
@@ -1319,8 +1318,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this._landingInProgress = false;
         }
 
-        this.spinLoopSfx?.stop();
-
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
 
@@ -1350,7 +1347,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this._landingInProgress = false;
         }
 
-        this.spinLoopSfx?.stop();
+
 
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
