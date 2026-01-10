@@ -1405,6 +1405,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
         sym.animatePlay(false);
     }
 
+   
     private startReplayLoop(
         getSymbols: () => SlotSymbol[],
         which: "win" | "wild"
@@ -1414,16 +1415,14 @@ private async startSpinSeamlessSequential(): Promise<void> {
 
         this.openAnimationGate();
 
-        // capture spin token at loop start
+        // ✅ capture token at the time we start looping
         const token = this._spinToken;
 
-        // clear incoming spin flag so loop can run
+        // ✅ IMPORTANT: clear the old flag so it doesn't auto-stop the loop
         this.hasIncomingSpinTrigger = false;
-        
-        let playedOnce = false;
 
         const tick = () => {
-            // stop only if a new spin started
+            // ✅ stop ONLY if a new spin started
             if (token !== this._spinToken) {
                 this.closeAnimationGate();
                 return;
@@ -1432,15 +1431,9 @@ private async startSpinSeamlessSequential(): Promise<void> {
             const symbols = getSymbols();
 
             if (!symbols.length) {
+                // no symbols to animate -> stop
                 this.closeAnimationGate();
                 return;
-            }
-
-            if (!playedOnce) {
-                sfx.play(
-                    "common/sfx-symbol-win.wav"
-                );
-                playedOnce = true;
             }
 
             for (const s of symbols) {

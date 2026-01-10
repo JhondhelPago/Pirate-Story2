@@ -54,6 +54,7 @@ function decideNum11s() {
     // probabilities for 1,2,3,4,5 occurrences (sum = 100)
     // ✅ exactly 2 occurs ~10% (≈ 1 in 10 spins)
     const weights = [1, 1, 1, 0, 0];
+    return 0;
     return pickWeightedIndex(weights) + 1; // => 1..5
 }
 
