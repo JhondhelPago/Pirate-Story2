@@ -182,9 +182,7 @@ export class GameScreen extends Container {
 
     }
 
-    // =========================================================================
-    // BUSY FLAGS
-    // =========================================================================
+   
     private getNormalProcessing(): boolean {
         return this.match3.process?.isProcessing?.() ?? false;
     }
@@ -196,15 +194,6 @@ export class GameScreen extends Container {
     private getAutoSpinProcessing(): boolean {
         return this.match3.autoSpinProcess?.getAutoSpinProcessing?.() ?? false;
     }
-
-    /**
-     * ✅ BuyFreeSpin stays VISIBLE but is DISABLED while:
-     * - normal process is processing
-     * - OR free spin process is processing
-     * - OR auto spin process is processing
-     *
-     * ✅ Spin/betting disabled while either processing is active
-     */
     private syncFeatureAvailability() {
         const normalProcessing = this.getNormalProcessing();
         const freeSpinProcessing = this.getFreeSpinProcessing();
@@ -615,32 +604,20 @@ export class GameScreen extends Container {
                 break;
         }
 
-        if (hasPrevProcess){
-            return new Promise((resolve) => {
-                navigation.presentPopup(FreeSpinWinBanner, {
-                    spins,
-                    autoClose: true,
-                    duration: duration,
-                    onClosed: () => {
-                        if (initiateSpin) this.onFreeSpinStart(spins); // start the free spin session after closing the banner
-                        resolve();
-                    },
-                });
+        return new Promise<void>((resolve) => {
+            navigation.presentPopup(FreeSpinWinBanner, {
+                spins,
+                autoClose: true,
+                duration: hasPrevProcess ? duration : duration + 2000,
+                onClosed: () => {
+                    if (initiateSpin) {
+                        this.onFreeSpinStart(spins); // start the free spin session after closing the banner
+                    }
+                    resolve();
+                },
             });
-        } else {
+        });
 
-            return new Promise((resolve) => {
-                navigation.presentPopup(FreeSpinWinBanner, {
-                    spins,
-                    autoClose: true,
-                    duration: duration + 2000, // extra 4s for manual close
-                    onClosed: () => {
-                        if (initiateSpin) this.onFreeSpinStart(spins); // start the free spin session after closing the banner
-                        resolve();
-                    },
-                });
-            });
-        }
 
     }
 
@@ -667,28 +644,36 @@ export class GameScreen extends Container {
         this.messagePanel.playMatchMessages();
     }
 
-    private async checkBonus(feature: string){
-        
+    private async checkBonus(feature: string) {
         let spinWon = 0;
-        switch(feature){
-            case "normalspin":
+
+        switch (feature) {
+            case "normalspin": {
                 spinWon = await this.match3.process.getSpinWon();
                 if (spinWon > 0) {
-                    await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
+                    await this.match3.switchToFreeSpin(spinWon, { initial: false });
                 }
+                return;
+            }
 
-            case "autospin": 
+            case "autospin": {
                 spinWon = await this.match3.autoSpinProcess.getSpinWon();
                 if (spinWon > 0) {
-                    await this.match3.switchToFreeSpin(spinWon, {initial: false}); // game screen will switch the process if found bonus
+                    await this.match3.switchToFreeSpin(spinWon, { initial: false });
                 }
-            case "freespin":
+                return;
+            }
+
+            case "freespin": {
                 spinWon = await this.match3.freeSpinProcess.getSpinWon();
                 if (spinWon > 0) {
-                    this.drawFreeSpinWonBanner(spinWon, false); // game screen will switch the process if found bonus
-                    this.match3.freeSpinProcess.addSpins(spinWon); // no process switching, just show banner and add spins, then continue the free spin process
+                    await waitFor(.5); // wait so the navigation have time to dismiss the current popup
+                    await this.drawFreeSpinWonBanner(spinWon, false);
+                    this.match3.freeSpinProcess.addSpins(spinWon);
                 }
-                
+                return;
+            }
         }
     }
+
 }
