@@ -167,7 +167,7 @@ export class SpinRoundBanner extends Container {
                 if (SpinRoundBanner.currentInstance === this) {
                     if (this.canClickAnywhere) this.hide();
                 }
-            }, 6500),
+            }, 6000),
         );
     }
 
@@ -616,7 +616,8 @@ export class SpinRoundBanner extends Container {
     private playBannerSfx(sfxKey: string) {
         try {
             sfx.play(sfxKey, { volume: 0.5 });
-            this.sfxCoinBlast = sfx.play("common/sfx-coin-fall.wav");
+            // this.sfxCoinBlast = sfx.play("common/sfx-coin-fall.wav");
+            this.sfxCoinBlast = sfx.playLoopTimes("common/sfx-coin-fall.wav", 2, );
         } catch (e) {
             console.warn("Failed to play banner SFX:", sfxKey, e);
         }

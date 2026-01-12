@@ -83,6 +83,35 @@ class SFX {
         return instance;
     }
 
+    public playLoopTimes(
+        alias: string,
+        times: number,
+        options?: PlayOptions
+    ): SoundInstance {
+        if (times <= 0) return null;
+
+        let played = 0;
+        let instance: SoundInstance;
+
+        const playOnce = () => {
+            instance = this.play(alias, {
+                ...options,
+                loop: false, // IMPORTANT: no native loop
+            });
+
+            played++;
+
+            instance?.once?.('end', () => {
+                if (played < times) {
+                    playOnce();
+                }
+            });
+        };
+
+        playOnce();
+        return instance;
+    }
+
     /** Play only a segment of a sound (supports looping) */
     public playSegment(
         alias: string,
