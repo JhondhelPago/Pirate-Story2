@@ -1,9 +1,15 @@
 import axiosInstance from "../config/axios";
 
 export const getGameConfig = async () => {
-    return axiosInstance.get('/game/settings', {
+    const response = await axiosInstance.get('/game/settings', {
         params: {
             gamecode: 'piratestory'
         },
     });
+
+    return response.data;
+}
+
+export const spin = async () => {
+    // return axiosInstance.get
 }

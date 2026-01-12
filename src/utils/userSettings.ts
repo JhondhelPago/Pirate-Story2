@@ -1,13 +1,16 @@
 import { ConfigAPI } from '../api/configApi';
-import { login } from '../api/services/authServices';
+import { AuthServices, GameServices } from '../api/services';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 
 
+export const loginResponse = await AuthServices.login();
+
 //PIRATE STORY GAME CONFIG
-const response = await ConfigAPI.getPirateConfig();
+// const response = await ConfigAPI.getPirateConfig();
+const response = await GameServices.getGameConfig();
+console.log("using game services", response);
 export const config = response.data;
-console.log("config in userSettings", config);
 
 // interface for the freeSpins and extraFreeSpins
 export interface FreeSpinSetting {
@@ -27,9 +30,6 @@ export interface PaytableLedger {
     patterns: PatternSettings[];
 }
 
-
-const loginResponse = await login();
-console.log(loginResponse);
 
 
 

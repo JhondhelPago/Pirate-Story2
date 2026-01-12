@@ -21,6 +21,7 @@ import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 import { MessagePanel } from '../ui/MessagePanel';
 import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
+import { getGameConfig } from '../api/services/gameServices';
 
 export type SettingsPopupData = {
     finished: boolean;
