@@ -71,6 +71,7 @@ export class TotalWinBanner extends Container {
 
     // ✅ audio instances owned by this banner
     private sfxTotalWin: any = null; // main banner sfx instance
+    private sfxWinRise: any = null;
 
     // ✅ keep amount tween ref so it can be killed safely
     private amountTween?: gsap.core.Tween;
@@ -742,16 +743,20 @@ export class TotalWinBanner extends Container {
 
         this.currentDisplayValue = 0;
 
+        console.log("expected total win from this.targetDisplayValue: ", this.targetDisplayValue);
+
         // ✅ play banner sfx and keep instance
         this.forceStopAllBannerAudio();
         try {
             this.sfxTotalWin = sfx.play("common/sfx-total-win.wav");
+            // this.sfxWinRise = sfx.playSegment("common/sfx-win-rise.wav", 0, 2);
+            this.sfxWinRise = this.targetDisplayValue > 0 ? sfx.playSegment("common/sfx-win-rise.wav", 0, 2, {volume: 0.5}) : null;
         } catch {}
 
         // ✅ store tween reference, so it can be killed on blur/hidden/hide()
         this.amountTween = gsap.to(this, {
             currentDisplayValue: this.targetDisplayValue,
-            duration: 1.2,
+            duration: 2,
             ease: "power2.out",
             onUpdate: () => {
                 this.amountText.text = this.formatCurrency(this.currentDisplayValue);
@@ -765,7 +770,7 @@ export class TotalWinBanner extends Container {
                     {
                         x: 1,
                         y: 1,
-                        duration: 0.6,
+                        duration: 1,
                         ease: "elastic.out(1, 0.6)",
                         onComplete: () => this.animateAmountPulse(),
                     },
@@ -788,8 +793,10 @@ export class TotalWinBanner extends Container {
     private forceStopAllBannerAudio() {
         try {
             this.sfxTotalWin?.stop?.();
+            this.sfxWinRise?.stop?.();
         } catch {}
         this.sfxTotalWin = null;
+        this.sfxWinRise = null;
     }
 
     private animateAmountPulse() {

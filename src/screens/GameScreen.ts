@@ -462,10 +462,11 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinRoundComplete() {
-        const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
+        const roundWin = this.match3.freeSpinProcess.getRoundWin();
+        if (roundWin > 0) sfx.play('common/sfx-symbol-win.wav');
 
+        const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0){
-            sfx.play('common/sfx-symbol-win.wav');
             this.controlPanel.setTitle(`Win ${totalWon}`);   
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);

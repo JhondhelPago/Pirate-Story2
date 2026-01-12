@@ -730,12 +730,12 @@ export class SpinRoundBanner extends Container {
         this.currentDisplayValue = 0;
 
         // ✅ pixi sound volumes are typically 0..1 (avoid 3)
-        this.sfxCollectWin = sfx.play("common/sfx-collect-win.wav");
+        this.sfxCollectWin = sfx.playSegment("common/sfx-win-rise.wav", 0, 2, {volume: 0.5});
 
         // ✅ store tween reference, so it can be killed on blur/hidden/hide()
         this.valueTween = gsap.to(this, {
             currentDisplayValue: this.targetDisplayValue,
-            duration: 1.2,
+            duration: 2,
             ease: "power2.out",
             onUpdate: () => {
                 this.valueText.text = this.formatCurrency(this.currentDisplayValue);
