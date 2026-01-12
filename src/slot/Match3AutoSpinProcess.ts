@@ -46,6 +46,10 @@ export class Match3AutoSpinProcess extends Match3Process {
 
     public async start() {
         if (this.processing) return;
+
+        userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
+        console.log("user balance from start of auto spin: ", userSettings.getBalance());
+
         this.processing = true;
 
         const token = { cancelled: false };

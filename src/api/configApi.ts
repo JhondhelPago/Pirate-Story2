@@ -242,8 +242,7 @@ export class ConfigAPI {
             console.error("headers:", error?.response?.headers);
             console.error("config:", error?.config);
 
-            throw error; // rethrow original error for now
-
+            throw error; // rethrow original error for nowx `
 
         }
     }

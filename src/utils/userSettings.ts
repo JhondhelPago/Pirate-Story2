@@ -1,5 +1,6 @@
 import { ConfigAPI } from '../api/configApi';
 import { AuthServices, GameServices } from '../api/services';
+import { collect } from '../api/services/gameServices';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 
@@ -9,8 +10,10 @@ export const loginResponse = await AuthServices.login();
 //PIRATE STORY GAME CONFIG
 // const response = await ConfigAPI.getPirateConfig();
 const response = await GameServices.getGameConfig();
-console.log("using game services", response);
 export const config = response.data;
+
+const collectResponse = await GameServices.collect();
+console.log("collect response: ", collectResponse);
 
 // interface for the freeSpins and extraFreeSpins
 export interface FreeSpinSetting {
@@ -61,6 +64,7 @@ class UserSettings {
     private freeSpins: number;
     private currency: string;
     private balance: number;
+    private spinIndex: number;
 
     constructor() {
         this.spinMode = SpinModeEnum.Normal;
@@ -70,6 +74,9 @@ class UserSettings {
 
         this.betOptions = config.bettingLimit.MONEY_OPTION;
         this.betIndex = 0;
+
+        this.spinIndex = collectResponse.data.index;
+        this.balance = collectResponse.data.balance;
 
         setMasterVolume(this.getMasterVolume());
         bgm.setVolume(this.getBgmVolume());
@@ -151,6 +158,7 @@ class UserSettings {
     public setFreeSpins(totalSpins: number) {
         this.freeSpins = totalSpins;
     }
+
 }
 
 /** SHared user settings instance */

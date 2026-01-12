@@ -147,7 +147,6 @@ export class ControlPanel extends Container {
         this.contentContainer.addChild(this.plusButton);
         this.contentContainer.addChild(this.autoplayButton);
 
-        userSettings.setBalance(5000);
     }
 
     /**

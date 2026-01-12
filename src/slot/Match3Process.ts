@@ -234,6 +234,11 @@ export class Match3Process {
 
     public async start() {
         if (this.processing) return;
+        this.match3.onSpinStart?.();
+
+        //update the user balance here to syncm with the credit value of the 
+        userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
+        console.log("user balance from start of nornal spin: ", userSettings.getBalance());
 
         this.processing = true;
 

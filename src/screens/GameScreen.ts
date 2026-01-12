@@ -22,6 +22,8 @@ import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 import { MessagePanel } from '../ui/MessagePanel';
 import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
 import { getGameConfig } from '../api/services/gameServices';
+import { Match3Process } from '../slot/Match3Process';
+import { Match3AutoSpinProcess } from '../slot/Match3AutoSpinProcess';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -115,10 +117,11 @@ export class GameScreen extends Container {
         this.overtime = new GameOvertime();
         this.addChild(this.overtime);
 
+        console.log("balance from settings: ", userSettings.getBalance());
         /** Control panel */
         this.controlPanel = new ControlPanel();
         this.addChild(this.controlPanel);
-        this.controlPanel.setCredit(200000);
+        this.controlPanel.setCredit(userSettings.getBalance());
         this.controlPanel.setBet(2.0);
         this.controlPanel.setMessage('HOLD SPACE FOR TURBO SPIN');
 
@@ -226,7 +229,6 @@ export class GameScreen extends Container {
     // SPIN ENTRY
     // =========================================================================
     public async startSpinning() {
-
         // block the trigger of the spin if there is current popups, to prevent keyboard input to trigger spins 
         if (navigation.currentPopup) return;
 
@@ -246,6 +248,7 @@ export class GameScreen extends Container {
 
         this.lockInteraction();
         await this.match3.spin();
+
     }
 
     public freeSpinStartSpinning(spins: number) {
@@ -341,9 +344,6 @@ export class GameScreen extends Container {
             // this.messagePanel.setTitle("Welcome to Pirate Story");
             this.messagePanel.setMessage("");
 
-
-
-
         }
 
         const isMobile = document.documentElement.id === 'isMobile';
@@ -364,13 +364,49 @@ export class GameScreen extends Container {
 
 
     private async onSpinStart() {
+        this.controlPanel.setCredit(userSettings.getBalance() - userSettings.getBet());
         this.lockInteraction();
+    }
+
+        private onProcessStart() {
+        console.log('ON PROCESS START');
+        this.lockInteraction();
+    }
+
+    private async onProcessComplete() {
+        const roundWin = this.match3.process.getRoundWin();
+
+        if (roundWin > 0){
+            sfx.play('common/sfx-symbol-win.wav');
+            this.controlPanel.setTitle(`Win ${roundWin}`);
+        } 
+        else{
+            this.controlPanel.setTitle(`GOOD LUCK`);
+            this.messagePanel.setTitle(`GOOD LUCK`);
+        } 
+
+
+        this.messageMatchQueuing(this.match3.process.getRoundResult());
+
+        // ✅ If NOT in free-spin session, show banner. Keep UI locked while popup shows.
+        if (!this.getFreeSpinProcessing()) {
+            this.lockInteraction();
+            await this.drawWinBannerAsync(roundWin);
+        }
+
+        // check for bonus and process switching if there is passed bonus condition
+        await this.checkBonus("normalspin");
+
+        this.controlPanel.enableBetting();
+        this.finished = false;
+
+        this.syncFeatureAvailability();
     }
 
     public async onAutoSpinStart(spins: number) {
         if (this.finished) return;
         if (this.match3.autoSpinProcess.getAutoSpinProcessing()) return;
-
+        
         this.lockInteraction();
         this.match3.autoSpin(spins);
         this.finished = true;
@@ -387,6 +423,7 @@ export class GameScreen extends Container {
     }
 
     private async onAutoSpinRoundStart(current: number, remaining: number) {
+        this.controlPanel.setCredit(userSettings.getBalance() - userSettings.getBet());
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         console.log("remaining spins left failed to display if there is no winning round");
 
@@ -495,41 +532,6 @@ export class GameScreen extends Container {
         this.finished = false;
         await waitFor(3);
         await this.drawFreeSpinWonBanner(currentSpin);
-        this.syncFeatureAvailability();
-    }
-
-    private onProcessStart() {
-        console.log('ON PROCESS START');
-        this.lockInteraction();
-    }
-
-    private async onProcessComplete() {
-        const roundWin = this.match3.process.getRoundWin();
-
-        if (roundWin > 0){
-            sfx.play('common/sfx-symbol-win.wav');
-            this.controlPanel.setTitle(`Win ${roundWin}`);
-        } 
-        else{
-            this.controlPanel.setTitle(`GOOD LUCK`);
-            this.messagePanel.setTitle(`GOOD LUCK`);
-        } 
-
-
-        this.messageMatchQueuing(this.match3.process.getRoundResult());
-
-        // ✅ If NOT in free-spin session, show banner. Keep UI locked while popup shows.
-        if (!this.getFreeSpinProcessing()) {
-            this.lockInteraction();
-            await this.drawWinBannerAsync(roundWin);
-        }
-
-        // check for bonus and process switching if there is passed bonus condition
-        await this.checkBonus("normalspin");
-
-        this.controlPanel.enableBetting();
-        this.finished = false;
-
         this.syncFeatureAvailability();
     }
 
