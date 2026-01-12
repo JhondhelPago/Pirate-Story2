@@ -23,7 +23,7 @@ export class PayTableSection extends Container {
 
         this.betAmount = userSettings.getBet();
         this.currency = userSettings.getCurrency();
-        this.paytables = config.settings.paytable;
+        this.paytables = config.settings.paytables;
 
         this.mainLayout = new List({ type: 'vertical', elementsMargin: 20 });
         this.addChild(this.mainLayout);

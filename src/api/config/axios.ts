@@ -7,9 +7,9 @@ const axiosInstance: AxiosInstance = axios.create({
         /** @ts-ignore */
         import.meta.env.MODE === 'development'
             ? /** @ts-ignore */
-              `${import.meta.env.VITE_DEV_API_URL}/api`
+              `${import.meta.env.VITE_DEV_API_URL}`
             : /** @ts-ignore */
-              `${import.meta.env.VITE_PROD_API_URL}/api`,
+              `${import.meta.env.VITE_PROD_API_URL}`,
     timeout: 30000, // 30 seconds
     withCredentials: true,
 });

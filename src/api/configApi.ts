@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import axiosInstance from './config/axios';
 export class ConfigAPI {
     static async config() {
         try {
@@ -226,9 +226,9 @@ export class ConfigAPI {
     }
 
     static async getPirateConfig() {
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwic3ViIjoiMSIsIm5iZiI6MTc2NzkyNDkzNSwiZXhwIjoxNzczOTI0OTM1LCJpYXQiOjE3Njc5MjQ5MzUsImlzcyI6IlNsb3RBcGkifQ.Z7Gyt-j-9YCD7-_5L4uITNlNOo4DlMlis2EoTb-_ik8";
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwic3ViIjoiMSIsIm5iZiI6MTc2ODE5NTIyNiwiZXhwIjoxNzc0MTk1MjI2LCJpYXQiOjE3NjgxOTUyMjYsImlzcyI6IlNsb3RBcGkifQ.H8sjOCz3bjaz3Hy-krXmac1DrNaVPGSYuiw12jVxXCw";
         try{
-            const response = await axios.get("/api/api/v3/game/settings?gamecode=piratestory",
+            const response = await axios.get("api/v3/game/settings?gamecode=piratestory",
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             

@@ -11,6 +11,7 @@ import { MessagePagination } from '../ui/MessagePagination';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { GoldRoger } from '../ui/GoldRoger';
 import { bgm } from '../utils/audio';
+import { login } from '../api/services/authServices';
 
 /** Screen shown while loading assets */
 export class PreviewScreen extends Container {

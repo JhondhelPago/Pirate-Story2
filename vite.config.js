@@ -8,7 +8,6 @@ export default {
                 target: "http://139.180.157.23:8083",
                 changeOrigin: true,
                 secure: false,
-                rewrite: (path) => path.replace(/^\/api/, ""),
             },
         },
     },
