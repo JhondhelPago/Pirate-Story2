@@ -377,8 +377,9 @@ export class GameScreen extends Container {
         const roundWin = this.match3.process.getRoundWin();
 
         if (roundWin > 0){
-            sfx.play('common/sfx-symbol-win.wav');
+            this.controlPanel.setCredit(userSettings.getBalance());
             this.controlPanel.setTitle(`Win ${roundWin}`);
+            sfx.play('common/sfx-symbol-win.wav');
         } 
         else{
             this.controlPanel.setTitle(`GOOD LUCK`);
@@ -436,7 +437,10 @@ export class GameScreen extends Container {
     private async onAutoSpinRoundComplete() {
 
         const roundWin = this.match3.autoSpinProcess.getRoundWin();
-        if (roundWin > 0) sfx.play('common/sfx-symbol-win.wav');
+        if (roundWin > 0) {
+            this.controlPanel.setCredit(userSettings.getBalance());
+            sfx.play('common/sfx-symbol-win.wav');
+        };
 
         const totalWon = this.match3.autoSpinProcess.getAccumulatedWin();
 

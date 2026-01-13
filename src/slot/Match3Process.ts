@@ -370,6 +370,7 @@ export class Match3Process {
     public setRoundWin() {
         const bet = userSettings.getBet();
         this.roundWin = calculateTotalWin(this.roundResult, bet);
+        userSettings.setBalance(userSettings.getBalance() + this.roundWin);
         console.log("Round Win: " + this.roundWin);
     }
 
