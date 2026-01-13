@@ -14,7 +14,7 @@ import { GoldRoger } from '../ui/GoldRoger';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
 import { SpinRoundBanner } from '../popups/SpinRoundBanner';
-import { RoundResult } from '../slot/SlotUtility';
+import { getPatternByCount, RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
@@ -640,18 +640,22 @@ export class GameScreen extends Container {
     private messageMatchQueuing(roundResult: RoundResult) {
         if (!roundResult || roundResult.length === 0) return;
 
+        console.log("Round Result on messageMatchQueuing: ", roundResult);
+
         roundResult.forEach(r => {
+            const baseWin  = (getPatternByCount(r.type, r.count)?.multiplier * userSettings.getBet());
+
             this.controlPanel.addMatchMessage(
-                r.multiplier,
+                r.count,
                 r.type,
-                userSettings.getBet() * r.multiplier,
+                baseWin,
                 'krw'
             );
 
             this.messagePanel.addMatchMessage(
-                r.multiplier,
+                r.count,
                 r.type,
-                userSettings.getBet() * r.multiplier,
+                baseWin,
                 'krw'
             )
         });

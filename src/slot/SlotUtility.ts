@@ -1,6 +1,6 @@
 import { gameConfig } from '../utils/gameConfig';
 import { Pattern } from './Match3Config';
-import { userSettings, config, PaytableLedger } from '../utils/userSettings';
+import { userSettings, config, PaytableLedger, PatternSettings } from '../utils/userSettings';
 import { PaytableCard } from '../ui/PaytableCard';
 
 /** Piece type on each position in the grid */
@@ -608,9 +608,7 @@ export function sleep(ms: number) {
 
 export function isMaxWin(win: number) { // boolean checker for max win
     const bet  = userSettings.getBet();
-    // const limit = bet * config.settings.maxBaseMultiplier;
-    const limit = bet * 3;
-    
+    const limit = bet * config.settings.maxBaseMultiplier;
     console.log("Win Cap Hit");
 
     return win >= limit ? true : false;
@@ -618,6 +616,28 @@ export function isMaxWin(win: number) { // boolean checker for max win
 
 export function getmaxWin(){
     const bet  = userSettings.getBet();
-    // return bet * config.settings.maxBaseMultiplier;
-    return bet * 3;
+    return bet * config.settings.maxBaseMultiplier;
 }
+
+export function getPatternByCount(
+    type: number,
+    count: number
+): PatternSettings {
+    const paytables: PaytableLedger[] = config.settings.paytables;
+
+    const ledger = paytables.find(pt => pt.type === type);
+    if (!ledger) {
+        throw new Error(`Paytable type ${type} not found`);
+    }
+
+    const pattern = ledger.patterns.find(
+        p => count >= p.min && count <= p.max
+    );
+
+    if (!pattern) {
+        throw new Error(`No pattern found for count ${count}`);
+    }
+
+    return pattern;
+}
+
