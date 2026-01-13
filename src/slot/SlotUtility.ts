@@ -605,3 +605,10 @@ export function forEachCell(
 export function sleep(ms: number) {
     return new Promise<void>(resolve => setTimeout(resolve, ms));
 }
+
+export function isMaxWin(win: number) { // boolean checker for max win
+    const bet  = userSettings.getBet();
+    const limit = bet * 7500;
+
+    return win >= limit ? true : false;
+}
