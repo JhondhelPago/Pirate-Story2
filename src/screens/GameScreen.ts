@@ -364,7 +364,7 @@ export class GameScreen extends Container {
 
 
     private async onSpinStart() {
-        this.controlPanel.setCredit(userSettings.getBalance() - userSettings.getBet());
+        this.controlPanel.setCredit(userSettings.getBalance());
         this.lockInteraction();
     }
 
@@ -423,7 +423,7 @@ export class GameScreen extends Container {
     }
 
     private async onAutoSpinRoundStart(current: number, remaining: number) {
-        this.controlPanel.setCredit(userSettings.getBalance() - userSettings.getBet());
+        this.controlPanel.setCredit(userSettings.getBalance());
         console.log("Current Spin: ", current, "Remaining Spins: ", remaining);
         console.log("remaining spins left failed to display if there is no winning round");
 
@@ -474,6 +474,7 @@ export class GameScreen extends Container {
         if (this.finished) return;
         if (this.getFreeSpinProcessing()) return;
 
+
         this.lockInteraction();
         this.match3.freeSpin(spins);
         this.finished = true;
@@ -481,6 +482,7 @@ export class GameScreen extends Container {
 
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
+        //set the credit here with all of the acumulated wins
 
         // ✅ hard lock while banner is open
         this.lockInteraction();

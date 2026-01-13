@@ -133,6 +133,10 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     public async start() {
         if (this.processing) return;
+
+        //update the user balance here to sync with the credit value of the control panel
+        userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
+
         this.processing = true;
 
         const token = { cancelled: false };

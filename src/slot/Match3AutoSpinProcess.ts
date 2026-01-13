@@ -47,8 +47,8 @@ export class Match3AutoSpinProcess extends Match3Process {
     public async start() {
         if (this.processing) return;
 
+        //update the user balance here to sync with the credit value of the control panel
         userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
-        console.log("user balance from start of auto spin: ", userSettings.getBalance());
 
         this.processing = true;
 
