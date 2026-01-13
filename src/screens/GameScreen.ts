@@ -465,15 +465,18 @@ export class GameScreen extends Container {
         if (this.finished) return;
         if (this.getFreeSpinProcessing()) return;
 
+        // set updated Credit here
+        this.controlPanel.setCredit(userSettings.getBalance());
+
         this.lockInteraction();
         this.match3.freeSpinInitial(spins);
         this.finished = true;
     }
 
+
     public async onFreeSpinStart(spins: number) {
         if (this.finished) return;
         if (this.getFreeSpinProcessing()) return;
-
 
         this.lockInteraction();
         this.match3.freeSpin(spins);
@@ -482,7 +485,7 @@ export class GameScreen extends Container {
 
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
-        //set the credit here with all of the acumulated wins
+        this.controlPanel.setCredit(userSettings.getBalance());
 
         // ✅ hard lock while banner is open
         this.lockInteraction();

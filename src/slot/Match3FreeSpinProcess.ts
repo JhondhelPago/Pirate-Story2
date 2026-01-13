@@ -114,6 +114,8 @@ export class Match3FreeSpinProcess extends Match3Process {
         if (!this.processCheckpoint()) {
             this.freeSpinProcessing = false;
 
+            userSettings.setBalance(userSettings.getBalance() + this.accumulatedWin);
+
             // ✅ CRITICAL FIX:
             // Await the callback (TotalWinBanner must finish/close)
             await this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
@@ -133,9 +135,6 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     public async start() {
         if (this.processing) return;
-
-        //update the user balance here to sync with the credit value of the control panel
-        userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
 
         this.processing = true;
 
