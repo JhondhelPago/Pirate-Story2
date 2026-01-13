@@ -10,6 +10,7 @@ import {
     isMaxWin,
     slotEvaluateClusterWins,
 } from "./SlotUtility";
+import { userStats } from "../utils/userStats";
 
 export class Match3FreeSpinProcess extends Match3Process {
     constructor(match3: Match3) {
@@ -82,8 +83,9 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.waitIfPaused();
 
         await this.queue.add(async () => this.checkBonus(this.reels), false);
-        await this.queue.add(async () => {
+        await this.queue.add(async () => { // in this block give intial win for the user, doubling the bet
             console.log(this.bonusReels);
+            this.accumulatedWin = userSettings.getBet() * 2;
         }, false);
 
         await this.queue.add(async () => {
@@ -97,18 +99,6 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         await this.waitIfPaused();
     }
-
-    // public processCheckpoint() {
-    //     if (this.remainingSpins > 0) {
-    //         this.remainingSpins--;
-    //         this.currentSpin++;
-    //         return true;
-    //     } else if (isMaxWin(this.accumulatedWin)){ // utility function here the return boolean value, evaluating the the max win
-    //         console.log("free spin process forfitied.");
-    //         return false; // this will end remaining spins if it reaches the win cap
-    //     }
-    //     return false;
-    // }
 
     public processCheckpoint() {
         if (isMaxWin(this.accumulatedWin)) {// utility function here the return boolean value, evaluating the the max win

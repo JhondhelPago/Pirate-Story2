@@ -375,6 +375,7 @@ export class GameScreen extends Container {
 
     private async onProcessComplete() {
         const roundWin = this.match3.process.getRoundWin();
+        console.log("in onProcessComplete round win: ", roundWin);
 
         if (roundWin > 0){
             this.controlPanel.setCredit(userSettings.getBalance());
@@ -542,6 +543,8 @@ export class GameScreen extends Container {
         this.finished = false;
         await waitFor(3);
         await this.drawFreeSpinWonBanner(currentSpin);
+        this.controlPanel.setTitle(`Win ${this.match3.freeSpinProcess.getAccumulatedWin()}`); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
+
         this.syncFeatureAvailability();
     }
 

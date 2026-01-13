@@ -300,13 +300,7 @@ export class Match3Process {
         await this.match3.onProcessComplete?.();
     }
 
-    /**
-     * ✅ IMPORTANT:
-     * Your project uses AsyncQueue heavily.
-     * So we keep the same pattern BUT make it truly awaitable by:
-     * - add steps with autoStart=false
-     * - then await queue.process()
-     */
+   
     public async runProcessRound(): Promise<void> {
         this.round++;
 
@@ -331,6 +325,14 @@ export class Match3Process {
         this.bonus = checked_result.count;
         this.match3.board.setBonusPositions(checked_result.positions);
         this.bonusReels = gridZeroReset();
+    } 
+    public rewardBonusCheckpoint() { 
+        const freeSpins = config.settings.freeSpins;
+        const minBonusCount = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
+        if (!(this.bonus >= minBonusCount)){
+            this.roundWin += userSettings.getBet() * 2;
+            console.log("in checkBonus round win: ", this.roundWin);
+        }
     }
 
     protected setRoundResult() {
