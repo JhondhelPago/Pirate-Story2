@@ -489,6 +489,7 @@ export class GameScreen extends Container {
 
     private async onFreeSpinComplete(current: number, remaining: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
+        this.controlPanel.setMessage("");
         this.controlPanel.setCredit(userSettings.getBalance());
 
         // ✅ hard lock while banner is open

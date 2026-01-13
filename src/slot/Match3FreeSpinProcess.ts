@@ -5,6 +5,7 @@ import { config, FreeSpinSetting } from "../utils/userSettings";
 import {
     calculateTotalWin,
     countScatterBonus,
+    getmaxWin,
     gridZeroReset,
     isMaxWin,
     slotEvaluateClusterWins,
@@ -97,13 +98,26 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.waitIfPaused();
     }
 
+    // public processCheckpoint() {
+    //     if (this.remainingSpins > 0) {
+    //         this.remainingSpins--;
+    //         this.currentSpin++;
+    //         return true;
+    //     } else if (isMaxWin(this.accumulatedWin)){ // utility function here the return boolean value, evaluating the the max win
+    //         console.log("free spin process forfitied.");
+    //         return false; // this will end remaining spins if it reaches the win cap
+    //     }
+    //     return false;
+    // }
+
     public processCheckpoint() {
-        if (this.remainingSpins > 0) {
+        if (isMaxWin(this.accumulatedWin)) {// utility function here the return boolean value, evaluating the the max win
+            console.log("free spin process forfitied.");
+            return false;
+        } else if (this.remainingSpins > 0){ 
             this.remainingSpins--;
             this.currentSpin++;
             return true;
-        } else if (isMaxWin(this.accumulatedWin)){ // utility function here the return boolean value, evaluating the the max win
-            return true; // this will end remaining spins if it reaches the win cap
         }
         return false;
     }
@@ -225,9 +239,25 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.roundResult = slotEvaluateClusterWins(reels, multipliers);
     }
 
+    public setRoundWin() {
+        const bet = userSettings.getBet();
+        // this.roundWin = calculateTotalWin(this.roundResult, bet);
+        const roundWin = calculateTotalWin(this.roundResult, bet);
+        this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
+        userSettings.setBalance(userSettings.getBalance() + this.roundWin);
+        console.log("Round Win: " + this.roundWin);
+    }
+
+
+
     public addRoundWin() {
         const totalRoundWin = calculateTotalWin(this.roundResult, userSettings.getBet());
-        this.accumulatedWin += totalRoundWin;
+
+        if(isMaxWin(totalRoundWin)){
+            this.accumulatedWin = getmaxWin();
+        } else {
+            this.accumulatedWin += totalRoundWin;
+        }
     }
 
     public async getSpinWon() {
