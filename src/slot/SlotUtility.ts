@@ -608,7 +608,7 @@ export function sleep(ms: number) {
 
 export function isMaxWin(win: number) { // boolean checker for max win
     const bet  = userSettings.getBet();
-    const limit = bet * 7500;
+    const limit = bet * config.settings.maxBaseMultiplier;
 
     return win >= limit ? true : false;
 }
