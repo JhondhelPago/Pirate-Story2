@@ -1,33 +1,38 @@
 symbol-1.png
-	size: 340, 484
+	size: 648, 545
 	filter: Linear, Linear
-0
-	bounds: 279, 395, 23, 12
-	offsets: 1, 1, 25, 14
-01
-	bounds: 211, 409, 103, 73
-	offsets: 1, 1, 105, 75
-02
-	bounds: 182, 12, 147, 142
-	offsets: 1, 1, 149, 144
-03
-	bounds: 2, 2, 178, 177
-	offsets: 1, 1, 180, 179
-04
-	bounds: 2, 181, 185, 147
-	offsets: 1, 1, 198, 149
-05
-	bounds: 189, 156, 172, 148
-	offsets: 1, 1, 175, 150
+0000
+	bounds: 271, 364, 179, 179
+	offsets: 1, 1, 181, 181
+0001
+	bounds: 271, 183, 179, 179
+	offsets: 1, 1, 181, 181
+0002
+	bounds: 2, 95, 179, 179
+	offsets: 1, 1, 181, 181
+0003
+	bounds: 183, 2, 179, 179
+	offsets: 1, 1, 181, 181
+0004
+	bounds: 364, 2, 179, 179
+	offsets: 1, 1, 181, 181
+0005
+	bounds: 452, 364, 179, 179
+	offsets: 1, 1, 181, 181
+0006
+	bounds: 452, 183, 179, 179
+	offsets: 1, 1, 181, 181
+bar A
+	bounds: 545, 26, 155, 101
+	offsets: 1, 1, 157, 103
 	rotate: 90
-Anchor
-	bounds: 2, 330, 152, 207
+bar B
+	bounds: 545, 26, 155, 101
+	offsets: 1, 1, 157, 103
 	rotate: 90
-weed-one
-	bounds: 211, 370, 37, 66
+bar C
+	bounds: 545, 26, 155, 101
+	offsets: 1, 1, 157, 103
 	rotate: 90
-weed-three
-	bounds: 316, 423, 22, 59
-	offsets: 0, 0, 23, 59
-weed-two
-	bounds: 316, 381, 20, 40
+bg
+	bounds: 2, 276, 267, 267

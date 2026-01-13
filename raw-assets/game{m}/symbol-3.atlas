@@ -1,35 +1,31 @@
 symbol-3.png
-	size: 953, 198
+	size: 682, 282
 	filter: Linear, Linear
-0
-	bounds: 224, 4, 23, 12
-	offsets: 1, 1, 25, 14
-1
-	bounds: 846, 4, 103, 73
-	offsets: 1, 1, 105, 75
-2
-	bounds: 702, 49, 147, 142
-	offsets: 1, 1, 149, 144
+0000
+	bounds: 470, 176, 104, 104
+	offsets: 1, 1, 106, 106
+0001
+	bounds: 470, 70, 104, 104
+	offsets: 1, 1, 106, 106
+0002
+	bounds: 271, 2, 104, 104
+	offsets: 1, 1, 106, 106
+0003
+	bounds: 576, 176, 104, 104
+	offsets: 1, 1, 106, 106
+0004
+	bounds: 576, 70, 104, 104
+	offsets: 1, 1, 106, 106
+bg
+	bounds: 2, 13, 267, 267
+canon
+	bounds: 271, 108, 172, 197
+	offsets: 1, 1, 174, 199
 	rotate: 90
-3
-	bounds: 224, 18, 178, 177
-	offsets: 1, 1, 180, 179
+canon back
+	bounds: 458, 23, 45, 68
+	offsets: 1, 1, 47, 70
 	rotate: 90
-4
-	bounds: 403, 11, 185, 147
-	offsets: 1, 1, 198, 149
-	rotate: 90
-5
-	bounds: 552, 24, 172, 148
-	offsets: 1, 1, 175, 150
-	rotate: 90
-bomb
-	bounds: 2, 6, 190, 220
-	offsets: 1, 1, 192, 222
-	rotate: 90
-bomb rope
-	bounds: 702, 2, 42, 45
-bomb skull
-	bounds: 846, 79, 117, 105
-	offsets: 1, 1, 119, 107
-	rotate: 90
+canon front
+	bounds: 377, 7, 79, 99
+	offsets: 1, 1, 81, 101

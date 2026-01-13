@@ -1,33 +1,20 @@
 symbol-9.png
-	size: 816, 306
+	size: 384, 204
 	filter: Linear, Linear
-0
-	bounds: 2, 23, 23, 12
-	offsets: 1, 1, 25, 14
-1
-	bounds: 271, 52, 103, 73
-	offsets: 1, 1, 105, 75
-2
-	bounds: 620, 12, 147, 142
-	offsets: 1, 1, 149, 144
-3
-	bounds: 271, 127, 178, 177
-	offsets: 1, 1, 180, 179
-4
-	bounds: 451, 157, 185, 147
-	offsets: 1, 1, 198, 149
-5
-	bounds: 638, 156, 172, 148
-	offsets: 1, 1, 175, 150
-apple
-	bounds: 451, 2, 153, 167
-	offsets: 1, 1, 155, 169
+beer
+	bounds: 317, 81, 121, 65
 	rotate: 90
-bg
-	bounds: 2, 37, 267, 267
-bite
-	bounds: 376, 35, 52, 90
-	offsets: 1, 1, 54, 92
-leaf
-	bounds: 769, 80, 74, 45
+bubble
+	bounds: 205, 92, 110, 110
+	offsets: 2, 3, 115, 115
+eyes
+	bounds: 279, 34, 56, 27
+	offsets: 1, 1, 59, 29
 	rotate: 90
+mug
+	bounds: 2, 2, 200, 201
+	offsets: 1, 1, 202, 203
+	rotate: 90
+skull
+	bounds: 205, 19, 72, 71
+	offsets: 1, 1, 74, 73

@@ -1,36 +1,33 @@
 symbol-7.png
-	size: 809, 605
+	size: 768, 365
 	filter: Linear, Linear
-0030
-	bounds: 193, 135, 199, 199
-	offsets: 1, 1, 201, 201
-0031
-	bounds: 271, 404, 199, 199
-	offsets: 1, 1, 201, 201
-0032
-	bounds: 394, 203, 199, 199
-	offsets: 1, 1, 201, 201
-0033
-	bounds: 472, 404, 199, 199
-	offsets: 1, 1, 201, 201
-0034
-	bounds: 407, 2, 199, 199
-	offsets: 1, 1, 201, 201
-0035
-	bounds: 595, 203, 199, 199
-	offsets: 1, 1, 201, 201
-0036
-	bounds: 608, 2, 199, 199
-	offsets: 1, 1, 201, 201
-Skull
-	bounds: 2, 117, 217, 189
-	rotate: 90
-bg
-	bounds: 2, 336, 267, 267
-bone
-	bounds: 193, 2, 212, 131
-	offsets: 1, 1, 214, 133
-eyes
-	bounds: 2, 8, 107, 42
-	offsets: 2, 2, 110, 45
-	rotate: 90
+0000
+	bounds: 2, 184, 179, 179
+	offsets: 1, 1, 181, 181
+0001
+	bounds: 2, 3, 179, 179
+	offsets: 1, 1, 181, 181
+0002
+	bounds: 183, 184, 179, 179
+	offsets: 1, 1, 181, 181
+0003
+	bounds: 183, 3, 179, 179
+	offsets: 1, 1, 181, 181
+0004
+	bounds: 364, 184, 179, 179
+	offsets: 1, 1, 181, 181
+0005
+	bounds: 364, 3, 179, 179
+	offsets: 1, 1, 181, 181
+0006
+	bounds: 545, 70, 179, 179
+	offsets: 1, 1, 181, 181
+Hat
+	bounds: 545, 251, 221, 112
+	offsets: 0, 1, 221, 113
+feather
+	bounds: 545, 2, 95, 66
+	offsets: 0, 1, 95, 68
+skull
+	bounds: 642, 4, 72, 64
+	offsets: 1, 1, 74, 66
