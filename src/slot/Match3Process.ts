@@ -13,6 +13,7 @@ import {
     calculateTotalWin,
     gridZeroReset,
     countScatterBonus,
+    getmaxWin,
 } from "./SlotUtility";
 
 export interface BackendSpinResult {
@@ -370,6 +371,8 @@ export class Match3Process {
     public setRoundWin() {
         const bet = userSettings.getBet();
         this.roundWin = calculateTotalWin(this.roundResult, bet);
+        // const roundWin = calculateTotalWin(this.roundResult, bet);
+        // this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
         userSettings.setBalance(userSettings.getBalance() + this.roundWin);
         console.log("Round Win: " + this.roundWin);
     }

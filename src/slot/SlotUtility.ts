@@ -608,7 +608,16 @@ export function sleep(ms: number) {
 
 export function isMaxWin(win: number) { // boolean checker for max win
     const bet  = userSettings.getBet();
-    const limit = bet * config.settings.maxBaseMultiplier;
+    // const limit = bet * config.settings.maxBaseMultiplier;
+    const limit = bet * 3;
+    
+    console.log("Win Cap Hit");
 
     return win >= limit ? true : false;
+}
+
+export function getmaxWin(){
+    const bet  = userSettings.getBet();
+    // return bet * config.settings.maxBaseMultiplier;
+    return bet * 3;
 }

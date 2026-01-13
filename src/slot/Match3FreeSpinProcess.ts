@@ -6,6 +6,7 @@ import {
     calculateTotalWin,
     countScatterBonus,
     gridZeroReset,
+    isMaxWin,
     slotEvaluateClusterWins,
 } from "./SlotUtility";
 
@@ -101,6 +102,8 @@ export class Match3FreeSpinProcess extends Match3Process {
             this.remainingSpins--;
             this.currentSpin++;
             return true;
+        } else if (isMaxWin(this.accumulatedWin)){ // utility function here the return boolean value, evaluating the the max win
+            return true; // this will end remaining spins if it reaches the win cap
         }
         return false;
     }
@@ -116,7 +119,7 @@ export class Match3FreeSpinProcess extends Match3Process {
 
             userSettings.setBalance(userSettings.getBalance() + this.accumulatedWin);
 
-            // ✅ CRITICAL FIX:
+            // CRITICAL FIX:
             // Await the callback (TotalWinBanner must finish/close)
             await this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
 
@@ -209,6 +212,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.queue.add(async () => this.setRoundWin(), false);
         await this.queue.add(async () => this.addRoundWin(), false);
         await this.queue.add(async () => this.setWinningPositions(), false);
+
 
         await this.queue.process();
 
