@@ -87,20 +87,20 @@ async function setupUserSettings() {
     await userSettings.setupCollect();
 }
 
-async function loadGameConfig() {
+// async function loadGameConfig() {
 
-    await setupUserSettings();
+//     await setupUserSettings();
     
-    // const result = await ConfigAPI.config();
+//     // const result = await ConfigAPI.config();
 
-    // Game configuration from server
-    // gameConfig.setBlocks(result.blocks);
-    // gameConfig.setPaytables(result.paytable);
-    // gameConfig.setSpecialBlocks(result.specialBlocks);
-    // gameConfig.setScatterBlocks(result.scatterBlocks);
-    // gameConfig.setScatterBlocksTrigger(result.scatterBlocksTrigger);
-    // gameConfig.setJackpots(result.jackpots);
-}
+//     // Game configuration from server
+//     // gameConfig.setBlocks(result.blocks);
+//     // gameConfig.setPaytables(result.paytable);
+//     // gameConfig.setSpecialBlocks(result.specialBlocks);
+//     // gameConfig.setScatterBlocks(result.scatterBlocks);
+//     // gameConfig.setScatterBlocksTrigger(result.scatterBlocksTrigger);
+//     // gameConfig.setJackpots(result.jackpots);
+// }
 
 async function preloadFonts() {
     if (!('fonts' in document)) return;
@@ -123,7 +123,7 @@ async function preloadFonts() {
 
 /** Setup app and initialise assets */
 async function init() {
-    await loadGameConfig();
+    await setupUserSettings();
     await preloadFonts();
 
     // @ts-ignore

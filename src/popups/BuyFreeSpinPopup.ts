@@ -183,7 +183,7 @@ export class BuyFreeSpinPopup extends Container {
                 userSettings.setBalance(userSettings.getBalance() - amount);
 
                 const game = navigation.currentScreen as GameScreen;
-                game.onFreeSpinInitialStart(spinCount);
+                game.onFreeSpinInitialStart(spinCount); // additional parameter that holds feature type, to be passs to that method
             },
         });
     }
