@@ -375,8 +375,6 @@ export class GameScreen extends Container {
 
     private async onProcessComplete() {
         const roundWin = this.match3.process.getRoundWin();
-        console.log("in onProcessComplete round win: ", roundWin);
-
         if (roundWin > 0){
             this.controlPanel.setCredit(userSettings.getBalance());
             this.controlPanel.setTitle(`Win ${roundWin}`);

@@ -75,8 +75,8 @@ class UserSettings {
         this.betOptions = config.bettingLimit.MONEY_OPTION;
         this.betIndex = 0;
 
-        this.spinIndex = collectResponse.data.index;
-        this.balance = collectResponse.data.balance;
+        this.spinIndex = collectResponse.index;
+        this.balance = collectResponse.balance;
 
         setMasterVolume(this.getMasterVolume());
         bgm.setVolume(this.getBgmVolume());
@@ -157,6 +157,10 @@ class UserSettings {
 
     public setFreeSpins(totalSpins: number) {
         this.freeSpins = totalSpins;
+    }
+
+    public getSpinIndex() {
+        return this.spinIndex;
     }
 
 }

@@ -16,6 +16,7 @@ import {
     getmaxWin,
 } from "./SlotUtility";
 import { userStats } from "../utils/userStats";
+import { GameServices } from "../api/services";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -253,6 +254,8 @@ export class Match3Process {
 
         await this.match3.board.startSpin();
 
+        const PirateApiResponse = await GameServices.spin();
+
         // Fetch backend + dynamic delay based on spinMode
         const backendPromise = this.fetchBackendSpin();
         const delayPromise =
@@ -272,9 +275,13 @@ export class Match3Process {
         }
 
         // setting the 3 layers reels
-        this.reels = result.reels;
-        this.multiplierReels = result.multiplierReels;
-        this.bonusReels = result.bonusReels;
+        // this.reels = result.reels;
+        // this.multiplierReels = result.multiplierReels;
+        // this.bonusReels = result.bonusReels;
+
+        this.reels = PirateApiResponse.data.reels;
+        this.multiplierReels = PirateApiResponse.data.multiplierReels;
+        this.bonusReels = PirateApiResponse.data.bonusReels;
 
         this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
@@ -321,8 +328,6 @@ export class Match3Process {
 
     public checkBonus(reels: number[][]): void {
         const checked_result = countScatterBonus(reels);
-        console.log("checking bonus: ", checked_result);
-
         this.bonus = checked_result.count;
         this.match3.board.setBonusPositions(checked_result.positions);
         this.bonusReels = gridZeroReset();
@@ -380,7 +385,6 @@ export class Match3Process {
         const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint();  // express as total wins + reward if there is
         this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
         userSettings.setBalance(userSettings.getBalance() + this.roundWin);
-        console.log("Round Win: " + this.roundWin);
     }
 
     public getRoundWin() {

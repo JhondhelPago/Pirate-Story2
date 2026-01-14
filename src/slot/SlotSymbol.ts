@@ -107,7 +107,7 @@ export class SlotSymbol extends Container {
                 fontWeight: '800',
             },
         });
-        this.textLabel.visible = false;
+        this.textLabel.visible = true
         this.addChild(this.textLabel);
     }
 
