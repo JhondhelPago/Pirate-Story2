@@ -229,24 +229,21 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.roundResult = slotEvaluateClusterWins(reels, multipliers);
     }
 
+    // override method without setting the balance, specific logic for the free spin process
     public setRoundWin() {
-        const bet = userSettings.getBet();
-        // this.roundWin = calculateTotalWin(this.roundResult, bet);
-        const roundWin = calculateTotalWin(this.roundResult, bet);
+        const bet = userSettings.getBet(); 
+        const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint();  // express as total wins + reward if there is
         this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
-        userSettings.setBalance(userSettings.getBalance() + this.roundWin);
         console.log("Round Win: " + this.roundWin);
     }
 
 
 
     public addRoundWin() {
-        const totalRoundWin = calculateTotalWin(this.roundResult, userSettings.getBet());
-
-        if(isMaxWin(totalRoundWin)){
+        if(isMaxWin(this.roundWin)){
             this.accumulatedWin = getmaxWin();
         } else {
-            this.accumulatedWin += totalRoundWin;
+            this.accumulatedWin += this.roundWin;
         }
     }
 

@@ -15,6 +15,7 @@ import {
     countScatterBonus,
     getmaxWin,
 } from "./SlotUtility";
+import { userStats } from "../utils/userStats";
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -310,9 +311,9 @@ export class Match3Process {
         await this.queue.add(async () => this.checkBonus(this.reels), false);
         await this.queue.add(async () => this.setRoundResult(), false);
         await this.queue.add(async () => this.setRoundWin(), false);
+
         await this.queue.add(async () => this.setWinningPositions(), false);
 
-        // ✅ this will honor AsyncQueue.pause/resume
         await this.queue.process();
 
         await this.waitIfPaused();
@@ -325,14 +326,18 @@ export class Match3Process {
         this.bonus = checked_result.count;
         this.match3.board.setBonusPositions(checked_result.positions);
         this.bonusReels = gridZeroReset();
-    } 
+    }
+
     public rewardBonusCheckpoint() { 
         const freeSpins = config.settings.freeSpins;
         const minBonusCount = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
-        if (!(this.bonus >= minBonusCount)){
-            this.roundWin += userSettings.getBet() * 2;
-            console.log("in checkBonus round win: ", this.roundWin);
+        if (this.bonus >= minBonusCount){ // will get 2x bet reward if there is valid bonus appearance
+            const bonusReward =  userSettings.getBet() * 2;
+            console.log("check bonusReward in rewardBonusCheckpoint: ", bonusReward);
+            return bonusReward;
         }
+
+        return 0;
     }
 
     protected setRoundResult() {
@@ -372,8 +377,7 @@ export class Match3Process {
 
     public setRoundWin() {
         const bet = userSettings.getBet();
-        // this.roundWin = calculateTotalWin(this.roundResult, bet);
-        const roundWin = calculateTotalWin(this.roundResult, bet);
+        const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint();  // express as total wins + reward if there is
         this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
         userSettings.setBalance(userSettings.getBalance() + this.roundWin);
         console.log("Round Win: " + this.roundWin);
