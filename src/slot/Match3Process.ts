@@ -59,6 +59,9 @@ export class Match3Process {
     protected pauseResolver: (() => void) | null = null;
     protected pausePromise: Promise<void> | null = null;
 
+    // feature integer code
+    protected featureCode = 0;
+
     constructor(match3: Match3) {
         this.match3 = match3;
         this.queue = new AsyncQueue();
@@ -254,7 +257,7 @@ export class Match3Process {
 
         await this.match3.board.startSpin();
 
-        const PirateApiResponse = await GameServices.spin();
+        const PirateApiResponse = await GameServices.spin(this.featureCode);
 
         // Fetch backend + dynamic delay based on spinMode
         const backendPromise = this.fetchBackendSpin();

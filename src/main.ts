@@ -12,6 +12,7 @@ import { ResultScreen } from './screens/ResultScreen';
 import { ConfigAPI } from './api/configApi';
 import { gameConfig } from './utils/gameConfig';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
+import { userSettings } from './utils/userSettings';
 
 /** The PixiJS app Application instance, shared across the project */
 export const app = new Application();
@@ -81,12 +82,20 @@ function visibilityChange() {
     }
 }
 
+
+async function setupUserSettings() {
+    await userSettings.setupCollect();
+}
+
 async function loadGameConfig() {
-    const result = await ConfigAPI.config();
+
+    await setupUserSettings();
+    
+    // const result = await ConfigAPI.config();
 
     // Game configuration from server
-    gameConfig.setBlocks(result.blocks);
-    gameConfig.setPaytables(result.paytable);
+    // gameConfig.setBlocks(result.blocks);
+    // gameConfig.setPaytables(result.paytable);
     // gameConfig.setSpecialBlocks(result.specialBlocks);
     // gameConfig.setScatterBlocks(result.scatterBlocks);
     // gameConfig.setScatterBlocksTrigger(result.scatterBlocksTrigger);
@@ -114,7 +123,6 @@ async function preloadFonts() {
 
 /** Setup app and initialise assets */
 async function init() {
-    // Load game config
     await loadGameConfig();
     await preloadFonts();
 

@@ -1,6 +1,5 @@
 import { ConfigAPI } from '../api/configApi';
 import { AuthServices, GameServices } from '../api/services';
-import { collect } from '../api/services/gameServices';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 
@@ -75,8 +74,8 @@ class UserSettings {
         this.betOptions = config.bettingLimit.MONEY_OPTION;
         this.betIndex = 0;
 
-        this.spinIndex = collectResponse.index;
-        this.balance = collectResponse.balance;
+        this.spinIndex = -1
+        this.balance = 0;
 
         setMasterVolume(this.getMasterVolume());
         bgm.setVolume(this.getBgmVolume());
@@ -163,7 +162,19 @@ class UserSettings {
         return this.spinIndex;
     }
 
+    public incrementSpinIndex(){
+        this.spinIndex++;
+        return this.spinIndex
+    }
+
+    public async setupCollect(){
+        //
+        const collectResponse = await GameServices.collect();
+        this.spinIndex = collectResponse.index;
+        this.balance = collectResponse.balance;
+    }
+
 }
 
-/** SHared user settings instance */
+/** Shared user settings instance */
 export const userSettings = new UserSettings();

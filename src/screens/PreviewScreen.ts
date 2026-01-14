@@ -31,7 +31,7 @@ export class PreviewScreen extends Container {
 
     constructor() {
         super();
-
+        
         this.barrelBoard = new BarrelBoard('Barrel-Board');
         this.barrelBoard.scale.set(0.8);
         this.addChild(this.barrelBoard);
