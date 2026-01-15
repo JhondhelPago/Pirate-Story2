@@ -14,10 +14,17 @@ export const config = response.data;
 const collectResponse = await GameServices.collect();
 console.log("collect response: ", collectResponse);
 
-// interface for the freeSpins and extraFreeSpins
+// interface for the extraFreeSpins
 export interface FreeSpinSetting {
     count: number;
     spins: number;
+}
+
+// interface from the feature as freeSpins
+export interface features {
+    scatters: number;
+    spins: number;
+    buyFeatureBetMultiplier: number;
 }
 
 // interface for the paytable

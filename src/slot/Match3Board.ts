@@ -9,7 +9,7 @@ import {
     forEachCell,
     SCATTERBONUS,
 } from "./SlotUtility";
-import { userSettings, config, FreeSpinSetting, SpinModeEnum } from "../utils/userSettings";
+import { userSettings, config, FreeSpinSetting, SpinModeEnum, features } from "../utils/userSettings";
 import { ConfigAPI } from "../api/configApi";
 import { sfx } from "../utils/audio";
 
@@ -1495,8 +1495,8 @@ private async startSpinSeamlessSequential(): Promise<void> {
             : false;
 
         if (!isFreeSpin || (isFreeSpin && isInitialSpin)) {
-            const freeSpins = config.settings.freeSpins;
-            const minCountToAnimate = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
+            const freeSpins = config.settings.features;
+            const minCountToAnimate = Math.min(...freeSpins.map((item: features) => item.scatters));
 
             if (Array.isArray(bonusPositions) && bonusPositions.length >= minCountToAnimate) {
                 for (const p of bonusPositions) push(p);

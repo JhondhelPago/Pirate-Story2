@@ -229,6 +229,19 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.roundResult = slotEvaluateClusterWins(reels, multipliers);
     }
 
+    // need an specific override for the rewardBonusCheckpoint here in the Match3FreeSpinProcess
+    public rewardBonusCheckpoint() { 
+        const freeSpins = config.settings.extraFreeSpins;
+        const minBonusCount = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
+        if (this.bonus >= minBonusCount){ // will get 2x bet reward if there is valid bonus appearance
+            const bonusReward =  userSettings.getBet() * 2;
+            console.log("check bonusReward in rewardBonusCheckpoint: ", bonusReward);
+            return bonusReward;
+        }
+
+        return 0;
+    }
+
     // override method without setting the balance, specific logic for the free spin process
     public setRoundWin() {
         const bet = userSettings.getBet(); 

@@ -1,7 +1,7 @@
 import { BetAPI } from "../api/betApi";
 import { AsyncQueue } from "../utils/asyncUtils";
 import { Match3 } from "./Match3";
-import { userSettings, config, FreeSpinSetting } from "../utils/userSettings";
+import { userSettings, config, FreeSpinSetting, features } from "../utils/userSettings";
 import { ConfigAPI } from "../api/configApi";
 import {
     RoundResult,
@@ -337,8 +337,8 @@ export class Match3Process {
     }
 
     public rewardBonusCheckpoint() { 
-        const freeSpins = config.settings.freeSpins;
-        const minBonusCount = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
+        const freeSpins = config.settings.features;
+        const minBonusCount = Math.min(...freeSpins.map((item: features) => item.scatters));
         if (this.bonus >= minBonusCount){ // will get 2x bet reward if there is valid bonus appearance
             const bonusReward =  userSettings.getBet() * 2;
             console.log("check bonusReward in rewardBonusCheckpoint: ", bonusReward);
@@ -400,11 +400,11 @@ export class Match3Process {
 
     public async getSpinWon() {
         // exported config from userSettings that fetches slot configuration
-        const freeSpinsArray = config.settings.freeSpins;
+        const freeSpinsArray = config.settings.features;
 
         const freeSpinSettings = freeSpinsArray
-            .filter((item: FreeSpinSetting) => item.count <= this.bonus)
-            .sort((a: FreeSpinSetting, b: FreeSpinSetting) => b.count - a.count)[0];
+            .filter((item: features) => item.scatters <= this.bonus)
+            .sort((a: features, b: features) => b.scatters - a.scatters)[0];
 
         const spins = freeSpinSettings?.spins ?? 0;
 
