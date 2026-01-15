@@ -464,7 +464,7 @@ export class GameScreen extends Container {
         this.syncFeatureAvailability();
     }
 
-    public async onFreeSpinInitialStart(spins: number) {
+    public async onFreeSpinInitialStart(spins: number, featureCode: number) {
         if (this.finished) return;
         if (this.getFreeSpinProcessing()) return;
 
@@ -472,7 +472,7 @@ export class GameScreen extends Container {
         this.controlPanel.setCredit(userSettings.getBalance());
 
         this.lockInteraction();
-        this.match3.freeSpinInitial(spins);
+        this.match3.freeSpinInitial(spins, featureCode);
         this.finished = true;
     }
 
@@ -641,9 +641,6 @@ export class GameScreen extends Container {
 
     private messageMatchQueuing(roundResult: RoundResult) {
         if (!roundResult || roundResult.length === 0) return;
-
-        console.log("Round Result on messageMatchQueuing: ", roundResult);
-
         roundResult.forEach(r => {
             const baseWin  = (getPatternByCount(r.type, r.count)?.multiplier * userSettings.getBet());
 

@@ -11,6 +11,7 @@ import {
     slotEvaluateClusterWins,
 } from "./SlotUtility";
 import { userStats } from "../utils/userStats";
+import { GameServices } from "../api/services";
 
 export class Match3FreeSpinProcess extends Match3Process {
     constructor(match3: Match3) {
@@ -45,6 +46,8 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.waitIfPaused();
         await this.match3.board.startSpin();
 
+        const PirateApiResponse = await GameServices.spin(this.featureCode);
+
         const backendPromise = this.fetchBackendSpin();
         const delayPromise =
             minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
@@ -62,11 +65,15 @@ export class Match3FreeSpinProcess extends Match3Process {
             return;
         }
 
-        this.reels = result.reels;
-        this.multiplierReels = result.multiplierReels;
-        this.bonusReels = result.bonusReels;
+        // this.reels = result.reels;
+        // this.multiplierReels = result.multiplierReels;
+        // this.bonusReels = result.bonusReels;
 
-        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
+        this.reels = PirateApiResponse.data.reels;
+        this.multiplierReels = PirateApiResponse.data.multiplierReels;
+        this.bonusReels = PirateApiResponse.data.bonusReels;
+
+        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
         await this.runInitialBonusProcess();
 
@@ -143,6 +150,8 @@ export class Match3FreeSpinProcess extends Match3Process {
     public async start() {
         if (this.processing) return;
 
+        console.log("current code: ", this.featureCode);
+
         this.processing = true;
 
         const token = { cancelled: false };
@@ -154,6 +163,8 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         await this.waitIfPaused();
         await this.match3.board.startSpin();
+
+        const PirateApiResponse = await GameServices.spin(this.featureCode);
 
         const backendPromise = this.fetchBackendSpin();
         const delayPromise =
@@ -172,17 +183,21 @@ export class Match3FreeSpinProcess extends Match3Process {
             return;
         }
 
-        this.reels = result.reels;
-        this.multiplierReels = result.multiplierReels;
-        this.bonusReels = result.bonusReels;
+        // this.reels = result.reels;
+        // this.multiplierReels = result.multiplierReels;
+        // this.bonusReels = result.bonusReels;
 
-        this.reelsTraversed = this.mergeReels(this.reelsTraversed, result.reels);
+        this.reels = PirateApiResponse.data.reels;
+        this.multiplierReels = PirateApiResponse.data.multiplierReels;
+        this.bonusReels = PirateApiResponse.data.bonusReels;
+
+        this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
         this.multiplierTraversed = this.mergeMultipliers(
             this.multiplierTraversed,
-            result.multiplierReels
+            this.multiplierReels
         );
 
-        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
+        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
         await this.runProcessRound();
 

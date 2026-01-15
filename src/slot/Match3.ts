@@ -349,9 +349,11 @@ export class Match3 extends Container {
         this.spinning = false;
     }
 
-    public async freeSpinInitial(spins: number) {
+    public async freeSpinInitial(spins: number, featureCode: number) {
         if (this.spinning || this.controllerBusy) return;
         this.spinning = true;
+
+        this.freeSpinProcess.setFeatureCode(featureCode);
 
         await this.actions.actionFreeSpinInitial(spins);
 

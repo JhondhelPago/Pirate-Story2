@@ -241,6 +241,8 @@ export class Match3Process {
     public async start() {
         if (this.processing) return;
 
+        console.log("current code: ", this.featureCode);
+
         //update the user balance here to sync with the credit value of the control panel
         userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
         this.match3.onSpinStart?.();
@@ -410,6 +412,10 @@ export class Match3Process {
 
         this.bonus = 0;
         return spins;
+    }
+
+    public setFeatureCode(code: number){
+        this.featureCode = code;
     }
 
 }

@@ -360,6 +360,8 @@ export function slotEvaluateClusterWins(
     grid: Match3Grid,
     bonusGrid: number[][]
 ) {
+    console.log(bonusGrid);
+
     const clusters = slotGetClusters(grid);
 
     const paytable: PaytableLedger[] = config.settings.paytables;
@@ -397,9 +399,34 @@ export function slotEvaluateClusterWins(
         });
     }
 
+    console.log(results);
+
     return results;
 }
 
+
+export function calculateTotalWin(
+    results: ClusterWinResult[],
+    betAmount: number
+): number {
+    const paytable: PaytableLedger[] = config.settings.paytables;
+    let totalWin = 0;
+    
+    results.forEach(r => {
+        const payLedger = paytable.find(p => p.type === r.type);
+        if (!payLedger) return;
+        
+        const payMatrix = payLedger.patterns.find(
+            p => r.count >= p.min && r.count <= p.max
+        );
+        if (!payMatrix) return;
+        
+        const singleWin = (betAmount * payMatrix.multiplier) * r.multiplier; // (bet * equivalent multiplier) * TotalWildMultiplier
+        totalWin += singleWin;
+    });
+    
+    return totalWin;
+}
 
 export type ScatterResult = {
     count: number;
@@ -423,31 +450,6 @@ export function countScatterBonus(
 
     return { count, positions };
 }
-
-
-export function calculateTotalWin(
-    results: ClusterWinResult[],
-    betAmount: number
-): number {
-    const paytable: PaytableLedger[] = config.settings.paytables;
-    let totalWin = 0;
-
-    results.forEach(r => {
-        const payLedger = paytable.find(p => p.type === r.type);
-        if (!payLedger) return;
-
-        const payMatrix = payLedger.patterns.find(
-            p => r.count >= p.min && r.count <= p.max
-        );
-        if (!payMatrix) return;
-
-        const singleWin = (betAmount * payMatrix.multiplier) * r.multiplier; // (bet * equivalent multiplier) * TotalWildMultiplier
-        totalWin += singleWin;
-    });
-
-    return totalWin;
-}
-
 
 /**
  * Flattens cluster win results into a single list of unique positions.
@@ -477,36 +479,35 @@ export function flattenClusterPositions(
 
 
 //  PIRATE GRID UTILITIES
-export function mergeNonZero(
-    current: number[][],
-    incoming: number[][]
-): number[][] {
-    const rows = Math.max(current.length, incoming.length);
-    const result: number[][] = [];
+export function mergeNonZero(current: number[][], incoming: number[][]): number[][] {
+  const rows = Math.max(current.length, incoming.length);
+  const result: number[][] = [];
 
-    for (let r = 0; r < rows; r++) {
-        const curRow = current[r] ?? [];
-        const inRow = incoming[r] ?? [];
+  for (let r = 0; r < rows; r++) {
+    const curRow = current[r] ?? [];
+    const inRow = incoming[r] ?? [];
 
-        const cols = Math.max(curRow.length, inRow.length);
-        const newRow: number[] = [];
+    const cols = Math.max(curRow.length, inRow.length);
+    const newRow: number[] = [];
 
-        for (let c = 0; c < cols; c++) {
-            const cur = curRow[c] ?? 0;
-            const inc = inRow[c] ?? 0;
+    for (let c = 0; c < cols; c++) {
+      const cur = curRow[c] ?? 0;
+      const inc = inRow[c] ?? 0;
 
-            if (cur === 0 && inc !== 0) {
-                newRow[c] = inc;
-            } else {
-                newRow[c] = cur;
-            }
-        }
-
-        result[r] = newRow;
+      // ✅ treat 1 like "empty" so we can overwrite it
+      if ((cur === 0 || cur === 1) && inc !== 0) {
+        newRow[c] = inc;
+      } else {
+        newRow[c] = cur;
+      }
     }
 
-    return result;
+    result[r] = newRow;
+  }
+
+  return result;
 }
+
 
 export function mergeWildType(
     current: number[][],

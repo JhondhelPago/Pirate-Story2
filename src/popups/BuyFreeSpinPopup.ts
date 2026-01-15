@@ -119,7 +119,7 @@ export class BuyFreeSpinPopup extends Container {
 
         const optionList = [this.featureA, this.featureB, this.featureC];
         for (const opt of optionList) {
-            opt.visible = false; // 🔒 hide until config ready
+            opt.visible = false; 
             this.panel.addChild(opt);
         }
 
@@ -167,15 +167,17 @@ export class BuyFreeSpinPopup extends Container {
 
         const feature = this.getFeatureByIndex(index);
         const amount = feature.buyFeatureBetMultiplier * userSettings.getBet();
+        const featureCode = index + 1; // equivalent feature value that the api expect
 
         // ✅ spinCount MUST match banner spins
-        this.openConfirm(letter, amount, feature.spins);
+        this.openConfirm(letter, amount, feature.spins, featureCode);
     }
 
     private openConfirm(
         typeLetter: BuyFreeTypeLetter,
         amount: number,
-        spinCount: number
+        spinCount: number,
+        featureCode: number
     ) {
         this.onSelect?.(typeLetter);
 
@@ -191,7 +193,7 @@ export class BuyFreeSpinPopup extends Container {
                 userSettings.setBalance(userSettings.getBalance() - amount);
 
                 const game = navigation.currentScreen as GameScreen;
-                game.onFreeSpinInitialStart(spinCount);
+                game.onFreeSpinInitialStart(spinCount, featureCode);
             },
         });
     }
