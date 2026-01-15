@@ -2,9 +2,10 @@ import { AnimatedSprite, Container, Sprite, Texture, Text, Matrix } from "pixi.j
 import gsap from "gsap";
 import { navigation } from "../utils/navigation";
 import { bgm, sfx } from "../utils/audio";
+import { userSettings } from "../utils/userSettings";
 
 type BannerItem = {
-    max: number;
+    min: number;
     board: string;
     text: string;
     sfx: string;
@@ -530,14 +531,17 @@ export class SpinRoundBanner extends Container {
     }
 
     private getBannerTexture(win: number): BannerItem {
+        const bet = userSettings.getBet();
+
         const bannerDict: BannerItem[] = [
-            { max: 80, board: "green-banner-board", text: "green-banner-text", sfx: "common/sfx-avast.wav" },
-            { max: 150, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-avast.wav" },
-            { max: Infinity, board: "red-banner-board", text: "red-banner-text", sfx: "common/sfx-avast.wav" },
+            { min: bet * 10, board: "red-banner-board",  text: "red-banner-text",  sfx: "common/sfx-avast.wav" },
+            { min: bet * 5, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-avast.wav" },
+            { min: bet * 3, board: "green-banner-board",text: "green-banner-text",sfx: "common/sfx-avast.wav" },
         ];
 
-        return bannerDict.find((x) => win < x.max)!;
+        return bannerDict.find(x => win >= x.min)!;
     }
+
 
     private animateEntrance() {
         const tex = this.getBannerTexture(this.winValue);

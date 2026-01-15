@@ -552,7 +552,7 @@ export class GameScreen extends Container {
     }
 
     private async drawWinBannerAsync(winAmount: number): Promise<void> {
-        if (winAmount < 50) return;
+        if (winAmount < userSettings.getBet() * 3) return; // return if win is below mimimum to draw the banner
 
         await waitFor(1.5);
         await new Promise<void>((resolve) => {
@@ -560,7 +560,7 @@ export class GameScreen extends Container {
                 win: winAmount,
                 onClosed: resolve,
             });
-        });
+        });  
     }
 
     private drawTotalWinBanner(winAmount: number, freeSpins: number): Promise<void> {
