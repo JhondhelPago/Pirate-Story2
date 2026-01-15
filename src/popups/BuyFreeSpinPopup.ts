@@ -3,8 +3,9 @@ import gsap from "gsap";
 import { navigation } from "../utils/navigation";
 import { ConfirmationBuyFreeSpinPopup } from "./BuyFreeConfirmationPopup";
 import { GameScreen } from "../screens/GameScreen";
-import { userSettings } from "../utils/userSettings";
-import { ConfigAPI } from "../api/configApi";
+
+// ✅ use already-loaded config from userSettings.ts
+import { userSettings, config as loadedConfig } from "../utils/userSettings";
 
 // ✅ updated imports (letter type + definition)
 import {
@@ -31,6 +32,13 @@ function getCurrencySymbol(type: CurrencyType): string {
     }
 }
 
+type BuyFeature = {
+    spins: number;
+    scatters: number;
+    buyFeatureBetMultiplier: number;
+};
+
+
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
     private panel: Container;
@@ -48,7 +56,9 @@ export class BuyFreeSpinPopup extends Container {
 
     private pulseTween?: gsap.core.Tween;
 
-    private config?: Awaited<ReturnType<typeof ConfigAPI.config>>;
+    // ✅ config now comes from userSettings.ts export
+    private config?: typeof loadedConfig;
+
     private currencyType!: CurrencyType;
     private currencySymbol!: string;
 
@@ -76,7 +86,6 @@ export class BuyFreeSpinPopup extends Container {
         this.buyLabel = Sprite.from("buy-free-spin-label");
         this.buyLabel.anchor.set(0.5);
         this.panel.addChild(this.buyLabel);
-
 
         this.featureA = new BuyFreeSpinOptionBanner({
             typeLetter: "A",
@@ -159,7 +168,7 @@ export class BuyFreeSpinPopup extends Container {
         const feature = this.getFeatureByIndex(index);
         const amount = feature.buyFeatureBetMultiplier * userSettings.getBet();
 
-        // ✅ spinCount MUST match banner spins (use feature.spins from config)
+        // ✅ spinCount MUST match banner spins
         this.openConfirm(letter, amount, feature.spins);
     }
 
@@ -179,11 +188,10 @@ export class BuyFreeSpinPopup extends Container {
             confirmButton: "confirm-button",
             cancelButton: "cancel-button",
             onConfirm: () => {
-
                 userSettings.setBalance(userSettings.getBalance() - amount);
 
                 const game = navigation.currentScreen as GameScreen;
-                game.onFreeSpinInitialStart(spinCount); // additional parameter that holds feature type, to be passs to that method
+                game.onFreeSpinInitialStart(spinCount);
             },
         });
     }
@@ -206,7 +214,6 @@ export class BuyFreeSpinPopup extends Container {
         gsap.to(this.buyLabel.scale, { x: 1, y: 1, duration: 0.2 });
     }
 
-    // ✅ entrance animation (unchanged from your latest)
     private animateEntrance() {
         const options = [this.featureA, this.featureB, this.featureC];
 
@@ -231,17 +238,20 @@ export class BuyFreeSpinPopup extends Container {
         const anyData = data as any;
         if (anyData?.onSelect) this.onSelect = anyData.onSelect;
 
-        // 🔒 Load config FIRST
-        const response = await ConfigAPI.getPirateConfig();
+        // ✅ USE already-loaded config from userSettings.ts
+        // If userSettings loads it at app start, this should already be ready here.
+        this.config = loadedConfig;
 
-        // You logged response.data earlier; keep same shape usage
-        this.config = response.data;
+        // (Optional safety) If somehow it's not loaded yet, fail gracefully.
+        if (!this.config) {
+            // keep banners hidden, but don't crash
+            this.canClickAnywhere = true;
+            return;
+        }
 
-        this.currencyType = this.config?.currency as CurrencyType;
+        this.currencyType = (this.config.currency as CurrencyType) ?? "US";
         this.currencySymbol = getCurrencySymbol(this.currencyType);
 
-        // ✅ Build typeMap from config and inject into banners
-        // Prefer settings.features because that's what you're using for amounts/taps
         const features = this.config?.settings.features;
 
         const realTypeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition> = {
@@ -262,16 +272,13 @@ export class BuyFreeSpinPopup extends Container {
             },
         };
 
-        // ✅ This requires BuyFreeSpinOptionBanner to expose setTypeMap(...)
-        // If you followed the updated banner file I gave, this exists.
         this.featureA.setTypeMap(realTypeMap);
         this.featureB.setTypeMap(realTypeMap);
         this.featureC.setTypeMap(realTypeMap);
 
-        // 🔒 Populate banners BEFORE showing them
+        // ✅ populate amounts based on CURRENT bet
         this.updateFeatureAmounts();
 
-        // ✅ SAME visual flow as before
         this.canClickAnywhere = false;
         this.startLabelPulse();
         this.animateEntrance();
@@ -283,7 +290,7 @@ export class BuyFreeSpinPopup extends Container {
         if (!this.config) return;
 
         const bet = userSettings.getBet();
-        const features = this.config.settings.features;
+        const features = this.config.settings.features as BuyFeature[];
         const banners = [this.featureA, this.featureB, this.featureC];
 
         features.forEach((feature, index) => {
