@@ -339,4 +339,15 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         super.reset();
     }
+
+    public setupResume(){
+        // set the userSettings.balance
+        // set the userSettings.index for the spin index
+
+        // set the tracked reels
+        // set last reels, multipliers, bonus
+
+        
+
+    }
 }

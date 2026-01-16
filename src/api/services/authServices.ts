@@ -5,9 +5,9 @@ export const loginCred = {
     token: '7408d33a197ca940e6bb31e5d3f7b313',
 };
 
-export const login = async () => {
+export const login = async (token: string) => {
     // in future  accept token parameter to be the body of this post request
-    const res = await axiosInstance.post('/auth/login', loginCred);
+    const res = await axiosInstance.post('/auth/login', {token});
 
     const accessToken = res.data?.data?.accessToken;
 

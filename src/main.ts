@@ -13,6 +13,8 @@ import { ConfigAPI } from './api/configApi';
 import { gameConfig } from './utils/gameConfig';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { userSettings } from './utils/userSettings';
+import { AuthServices } from './api/services';
+import { userAuth } from './utils/userAuth';
 
 /** The PixiJS app Application instance, shared across the project */
 export const app = new Application();
@@ -83,7 +85,10 @@ function visibilityChange() {
 }
 
 async function setupUserSettings() {
+    await userSettings.setupGameConfig();
     await userSettings.setupCollect();
+    // call the resume here
+    await userSettings.setupResume();
 }
 
 // async function loadGameConfig() {

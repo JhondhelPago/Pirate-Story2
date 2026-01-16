@@ -36,6 +36,19 @@ export const collect = async (): Promise<CollectData> => {
         });
 };
 
+export const checkResume = async () => {
+    return axiosInstance
+        .get('/game/check-resume', {
+            params: {
+                gamecode: Code,
+            },
+        }).then((res) => res.data.data as any)
+        .catch((error) => {
+            console.error('[checkResume] failed:', error);
+            return null;
+        });
+}
+
 export const spin = async (feature: number) => {
     const response = await axiosInstance.post('/game/spin', {
         gamecode: gamecode,

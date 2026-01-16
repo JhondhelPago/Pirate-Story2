@@ -2,8 +2,10 @@ import { ConfigAPI } from '../api/configApi';
 import { AuthServices, GameServices } from '../api/services';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
+import { userAuth } from './userAuth';
 
-export const loginResponse = await AuthServices.login();
+// export const loginResponse = await AuthServices.login("7408d33a197ca940e6bb31e5d3f7b313");
+await userAuth.login('7408d33a197ca940e6bb31e5d3f7b313');
 
 //PIRATE STORY GAME CONFIG
 // const response = await ConfigAPI.getPirateConfig();
@@ -67,6 +69,8 @@ class UserSettings {
     private currency: string;
     private balance: number;
     private spinIndex: number;
+
+    private gameConfig: any = null;
 
     constructor() {
         this.spinMode = SpinModeEnum.Normal;
@@ -170,13 +174,28 @@ class UserSettings {
         return this.spinIndex;
     }
 
+    public async setupGameConfig() {
+        const response = await GameServices.getGameConfig();
+        this.gameConfig = response.data;
+    }
+
     public async setupCollect() {
         //
         const collectResponse = await GameServices.collect();
         this.spinIndex = collectResponse.index;
         this.balance = collectResponse.balance;
     }
+
+    public async setupResume() {
+        const resumeData = await GameServices.checkResume();
+        console.log(resumeData);
+
+    }
 }
+
+// const response = await GameServices.getGameConfig();
+// export const config = response.data;
+
 
 /** Shared user settings instance */
 export const userSettings = new UserSettings();

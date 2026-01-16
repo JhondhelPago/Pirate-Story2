@@ -1,3 +1,5 @@
+import { AuthServices } from "../api/services";
+
 class UserAuth {
     public accessToken: string | null = null;
 
@@ -11,6 +13,12 @@ class UserAuth {
 
     public clear() {
         this.accessToken = null;
+    }
+
+
+    public async login(token: string) {
+        const response = await AuthServices.login(token);
+        return response;
     }
 }
 
