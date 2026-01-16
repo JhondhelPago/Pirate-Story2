@@ -11,6 +11,8 @@ import { Match3RoundResults } from './Match3RounResults';
 import { gameConfig } from '../utils/gameConfig';
 import { waitFor } from '../utils/asyncUtils';
 import { userSettings } from '../utils/userSettings';
+import { ResultScreen } from '../screens/ResultScreen';
+import { countScatterBonus } from './SlotUtility';
 
 // Match3.ts - Holds the state
 export enum SpinState {
@@ -316,11 +318,26 @@ export class Match3 extends Container {
 
         // need to have a checker her if the resume type specific setup is fo the normal spin, or free spin
         const ResumeData = userSettings.getResumeData();
-        
-        this.board.applyBackendResults(
-            ResumeData?.reels,
-            ResumeData?.multiplierReels
-        );
+
+        //resumeType of not equal 2 is non free spin resume
+        if (ResumeData.resumeType != 2){ // setting up the board from resume of NonFreeSpin
+            this.board.applyBackendResults(
+                ResumeData?.reels,
+                ResumeData?.multiplierReels
+            );
+        } else { // setting up the board from resume of FreeSpin
+            
+            this.useFreeSpinProcess();
+
+            this.board.applyBackendResults(
+                ResumeData?.reels,
+                ResumeData?.multiplierReels,
+            );
+   
+            const checked_result = countScatterBonus(ResumeData?.bonusReels);
+            this.board.setBonusPositions(checked_result.positions);
+
+        }
        
         this.board.setup(config);
     }

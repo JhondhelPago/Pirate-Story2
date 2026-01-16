@@ -310,6 +310,14 @@ export class Match3Board {
     private buildIdleGridFromBackendSource() {
         const { offsetX, offsetY } = this.getOffsets();
 
+        // ✅ fast lookup for bonus cells
+        const bonusSet = new Set<string>();
+        for (const p of this.backendBonusPositions ?? []) {
+            const r = Math.max(0, Math.min(this.rows - 1, p.row));
+            const c = Math.max(0, Math.min(this.columns - 1, p.column));
+            bonusSet.add(`${r}:${c}`);
+        }
+
         this.realLayer.removeChildren();
         this.destroyReels(this.realReels);
         this.realReels = [];
@@ -326,16 +334,19 @@ export class Match3Board {
                 const type = this.backendReels?.[r]?.[c];
                 const mult = this.backendMultipliers?.[r]?.[c] ?? 0;
 
-                // if you truly guarantee non-empty, you can remove these fallbacks
+                // If you truly guarantee non-empty & valid, you can remove the fallback.
                 const safeType =
                     typeof type === "number" && this.typesMap?.[type]
                         ? type
                         : this.randomType();
 
                 const sym = this.makeSlotSymbol(safeType, mult);
-                sym.setBonusFlag(false);
 
-                sym.y = r * this.tile;
+                // ✅ set bonus flag based on backendBonusPositions, but NEVER for type 11
+                const isBonus = safeType !== 11 && bonusSet.has(`${r}:${c}`);
+                sym.setBonusFlag(isBonus);
+
+                sym.y = r * this.tile; // ✅ scale-aware spacing
                 this.showSpine(sym);
 
                 reel.symbols.push(sym);
@@ -347,6 +358,8 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
     }
+
+
 
 
     private getDisplayedRealSymbol(row: number, column: number): SlotSymbol | null {
