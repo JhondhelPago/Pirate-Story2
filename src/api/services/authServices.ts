@@ -1,9 +1,6 @@
 import axiosInstance from '../config/axios';
 import { userAuth } from '../../utils/userAuth';
 
-export const loginCred = {
-    token: '7408d33a197ca940e6bb31e5d3f7b313',
-};
 
 export const login = async (token: string) => {
     // in future  accept token parameter to be the body of this post request

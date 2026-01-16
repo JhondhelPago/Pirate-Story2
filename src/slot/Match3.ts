@@ -10,6 +10,7 @@ import { SlotSymbol } from './SlotSymbol';
 import { Match3RoundResults } from './Match3RounResults';
 import { gameConfig } from '../utils/gameConfig';
 import { waitFor } from '../utils/asyncUtils';
+import { userSettings } from '../utils/userSettings';
 
 // Match3.ts - Holds the state
 export enum SpinState {
@@ -312,6 +313,15 @@ export class Match3 extends Container {
     public setup(config: Match3Config) {
         this.config = config;
         this.reset();
+
+        // need to have a checker her if the resume type specific setup is fo the normal spin, or free spin
+        const ResumeData = userSettings.getResumeData();
+        
+        this.board.applyBackendResults(
+            ResumeData?.reels,
+            ResumeData?.multiplierReels
+        );
+       
         this.board.setup(config);
     }
 

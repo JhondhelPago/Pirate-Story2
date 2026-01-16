@@ -18,6 +18,7 @@ class UserAuth {
 
     public async login(token: string) {
         const response = await AuthServices.login(token);
+        this.accessToken = response.data.data.accessToken;
         return response;
     }
 }

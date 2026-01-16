@@ -141,8 +141,6 @@ export class Match3Board {
         return new Promise<void>((resolve) => setTimeout(resolve, ms));
     }
 
-    private initialReels: number[][] = [];
-    private initialMultipliers: number[][] = [];
     private isTubroSpin = true;
 
     // =========================================================================
@@ -271,6 +269,7 @@ export class Match3Board {
         this.piecesContainer.y = BOARD_Y_OFFSET;
         this.piecesMask.y = BOARD_Y_OFFSET;
     }
+    
 
     public setup(config: Match3Config) {
         this.rows = config.rows;
@@ -283,17 +282,6 @@ export class Match3Board {
         this.typesMap = {};
         for (const type of blocks) this.typesMap[type] = `symbol-${type}`;
 
-        if (this.initialReels.length === 0) {
-            const types = Object.keys(this.typesMap).map(Number);
-            this.initialReels = initGrid(this.rows, this.columns, 0);
-            this.initialMultipliers = initGrid(this.rows, this.columns, 0);
-
-            forEachCell(this.rows, this.columns, (r, c) => {
-                this.initialReels[r][c] = types[Math.floor(Math.random() * types.length)];
-                this.initialMultipliers[r][c] = 0;
-            });
-        }
-
         if (this.wildGrid.length === 0) {
             this.wildGrid = initGrid(this.rows, this.columns, 0);
         }
@@ -301,18 +289,13 @@ export class Match3Board {
         // ✅ mask depends on tile + symbol scale, so refresh after tileSize is set
         this.refreshMask();
 
-        this.buildIdleGridFromInitial();
+        this.buildIdleGridFromBackendSource();
 
         this.rebuildWildLayerStructure();
         this.applyWildGridToWildLayer();
         this.ensureWildLayerOnTop();
 
         this.wildLayer.visible = true;
-    }
-
-    public setInitialReels(reels: number[][], multipliers: number[][]) {
-        this.initialReels = reels;
-        this.initialMultipliers = multipliers;
     }
 
     public setWildReels(wild: number[][]) {
@@ -324,7 +307,7 @@ export class Match3Board {
         }
     }
 
-    private buildIdleGridFromInitial() {
+    private buildIdleGridFromBackendSource() {
         const { offsetX, offsetY } = this.getOffsets();
 
         this.realLayer.removeChildren();
@@ -340,10 +323,16 @@ export class Match3Board {
             const reel: ReelColumn = { container: col, symbols: [], position: 0 };
 
             for (let r = 0; r < this.rows; r++) {
-                const type = this.initialReels[r][c];
-                const mult = this.initialPieceMutliplier(type);
+                const type = this.backendReels?.[r]?.[c];
+                const mult = this.backendMultipliers?.[r]?.[c] ?? 0;
 
-                const sym = this.makeSlotSymbol(type, mult);
+                // if you truly guarantee non-empty, you can remove these fallbacks
+                const safeType =
+                    typeof type === "number" && this.typesMap?.[type]
+                        ? type
+                        : this.randomType();
+
+                const sym = this.makeSlotSymbol(safeType, mult);
                 sym.setBonusFlag(false);
 
                 sym.y = r * this.tile;
@@ -358,6 +347,7 @@ export class Match3Board {
 
         this.ensureWildLayerOnTop();
     }
+
 
     private getDisplayedRealSymbol(row: number, column: number): SlotSymbol | null {
         const reel = this.realReels[column];
@@ -396,10 +386,10 @@ export class Match3Board {
             for (let r = 0; r < this.rows; r++) {
                 const cell = this.getDisplayedRealSymbol(r, c);
                 if (cell) {
-                    types[r][c] = (cell as any).type ?? this.initialReels?.[r]?.[c] ?? this.randomType();
+                    types[r][c] = (cell as any).type ?? this.backendReels?.[r]?.[c] ?? this.randomType();
                     mults[r][c] = (cell as any).multiplier ?? 0;
                 } else {
-                    types[r][c] = this.initialReels?.[r]?.[c] ?? this.randomType();
+                    types[r][c] = this.backendReels?.[r]?.[c] ?? this.randomType();
                     mults[r][c] = 0;
                 }
             }
@@ -1481,13 +1471,6 @@ export class Match3Board {
         }, 'win');
     }
 
-    public initialPieceMutliplier(symbolType: number) {
-        if (symbolType !== 12) return 0;
-
-        const multiplierOptions = [2, 3, 5];
-        return multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
-    }
-
     public getTurboSpin() {
         return this.isTubroSpin;
     }
@@ -1648,7 +1631,7 @@ export class Match3Board {
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                safeTypes[r][c] = reels5x5?.[r]?.[c] ?? this.initialReels?.[r]?.[c] ?? this.randomType();
+                safeTypes[r][c] = reels5x5?.[r]?.[c] ?? this.backendReels?.[r]?.[c] ?? this.randomType();
 
                 safeMults[r][c] = bonus5x5?.[r]?.[c] ?? 0;
             }

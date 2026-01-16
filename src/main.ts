@@ -9,12 +9,8 @@ import { IslandBackground } from './ui/IslandBackground';
 import { getUrlParam } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
 import { ResultScreen } from './screens/ResultScreen';
-import { ConfigAPI } from './api/configApi';
-import { gameConfig } from './utils/gameConfig';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { userSettings } from './utils/userSettings';
-import { AuthServices } from './api/services';
-import { userAuth } from './utils/userAuth';
 
 /** The PixiJS app Application instance, shared across the project */
 export const app = new Application();
@@ -90,21 +86,6 @@ async function setupUserSettings() {
     // call the resume here
     await userSettings.setupResume();
 }
-
-// async function loadGameConfig() {
-
-//     await setupUserSettings();
-
-//     // const result = await ConfigAPI.config();
-
-//     // Game configuration from server
-//     // gameConfig.setBlocks(result.blocks);
-//     // gameConfig.setPaytables(result.paytable);
-//     // gameConfig.setSpecialBlocks(result.specialBlocks);
-//     // gameConfig.setScatterBlocks(result.scatterBlocks);
-//     // gameConfig.setScatterBlocksTrigger(result.scatterBlocksTrigger);
-//     // gameConfig.setJackpots(result.jackpots);
-// }
 
 async function preloadFonts() {
     if (!('fonts' in document)) return;
