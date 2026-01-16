@@ -1,14 +1,7 @@
-import {
-    Container,
-    Sprite,
-    Texture,
-    Text,
-    Matrix,
-    type TextStyle,
-} from "pixi.js";
-import gsap from "gsap";
-import { navigation } from "../utils/navigation";
-import { bgm, sfx } from "../utils/audio";
+import { Container, Sprite, Texture, Text, Matrix, type TextStyle } from 'pixi.js';
+import gsap from 'gsap';
+import { navigation } from '../utils/navigation';
+import { bgm, sfx } from '../utils/audio';
 
 export type FreeSpinWinBannerData = {
     spins: number;
@@ -17,7 +10,7 @@ export type FreeSpinWinBannerData = {
 
     // optional auto close
     autoClose?: boolean; // default false
-    duration?: number;   // ms. Used only when autoClose=true and duration>0
+    duration?: number; // ms. Used only when autoClose=true and duration>0
 
     onClosed?: () => void;
 };
@@ -25,7 +18,7 @@ export type FreeSpinWinBannerData = {
 export class FreeSpinWinBanner extends Container {
     public static currentInstance: FreeSpinWinBanner | null = null;
 
-    private static readonly BANNER_BOARD_TEX = "freeSpinWinBoard";
+    private static readonly BANNER_BOARD_TEX = 'freeSpinWinBoard';
 
     private bg: Sprite;
     private panel: Container;
@@ -66,7 +59,7 @@ export class FreeSpinWinBanner extends Container {
     private keyListenerAdded = false;
     private readonly keyDownHandler = (e: KeyboardEvent) => {
         if (!this.canClickAnywhere) return;
-        if (e.code !== "Space" && e.code !== "Enter") return;
+        if (e.code !== 'Space' && e.code !== 'Enter') return;
         this.requestClose();
     };
 
@@ -109,17 +102,17 @@ export class FreeSpinWinBanner extends Container {
 
         FreeSpinWinBanner.currentInstance = this;
 
-        this.eventMode = "static";
+        this.eventMode = 'static';
         this.interactiveChildren = true;
 
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
-        this.bg.eventMode = "static";
+        this.bg.eventMode = 'static';
         this.addChild(this.bg);
 
         // close on click anywhere
-        this.on("pointertap", () => {
+        this.on('pointertap', () => {
             if (!this.canClickAnywhere) return;
             this.requestClose();
         });
@@ -178,7 +171,7 @@ export class FreeSpinWinBanner extends Container {
         try {
             cb?.();
         } catch (e) {
-            console.warn("[FreeSpinWinBanner] onClosed error:", e);
+            console.warn('[FreeSpinWinBanner] onClosed error:', e);
         }
     }
 
@@ -210,20 +203,20 @@ export class FreeSpinWinBanner extends Container {
         this.canClickAnywhere = false;
 
         // auto-close config with defaults
-        this.autoClose = typeof d?.autoClose === "boolean" ? d.autoClose : false;
-        this.autoCloseDuration = typeof d?.duration === "number" ? d.duration : 0;
+        this.autoClose = typeof d?.autoClose === 'boolean' ? d.autoClose : false;
+        this.autoCloseDuration = typeof d?.duration === 'number' ? d.duration : 0;
 
-        const topLabel = d?.topText ?? "YOU HAVE WON";
-        const bottomLabel = d?.bottomText ?? "FREE SPINS";
+        const topLabel = d?.topText ?? 'YOU HAVE WON';
+        const bottomLabel = d?.bottomText ?? 'FREE SPINS';
 
-        await this.waitForFonts(["Bangers", "Pirata One"]);
+        await this.waitForFonts(['Bangers', 'Pirata One']);
 
         // ✅ duck BGM while banner SFX is playing (same logic as SpinRoundBanner)
         this.duckBgmVolume();
 
         // attach window/tab listeners while banner alive
-        document.addEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.addEventListener("blur", this.onWindowBlurBound);
+        document.addEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.addEventListener('blur', this.onWindowBlurBound);
 
         this.createBanner();
         this.createGlow();
@@ -237,8 +230,8 @@ export class FreeSpinWinBanner extends Container {
         setTimeout(() => this.animateNumber(), 350);
 
         // attach keyboard listener once
-        if (!this.keyListenerAdded && typeof window !== "undefined") {
-            window.addEventListener("keydown", this.keyDownHandler);
+        if (!this.keyListenerAdded && typeof window !== 'undefined') {
+            window.addEventListener('keydown', this.keyDownHandler);
             this.keyListenerAdded = true;
         }
 
@@ -268,11 +261,15 @@ export class FreeSpinWinBanner extends Container {
     // ==================================================
     private killBgmTweensOnly() {
         if (this.bgmDuckTween) {
-            try { this.bgmDuckTween.kill(); } catch {}
+            try {
+                this.bgmDuckTween.kill();
+            } catch {}
             this.bgmDuckTween = undefined;
         }
         if (this.bgmRestoreTween) {
-            try { this.bgmRestoreTween.kill(); } catch {}
+            try {
+                this.bgmRestoreTween.kill();
+            } catch {}
             this.bgmRestoreTween = undefined;
         }
     }
@@ -287,7 +284,7 @@ export class FreeSpinWinBanner extends Container {
         this.bgmDuckTween = gsap.to(music, {
             volume: bgm.getVolume() * 0.3,
             duration: 0.2,
-            ease: "linear",
+            ease: 'linear',
             onComplete: () => {
                 this.bgmDuckTween = undefined;
             },
@@ -304,7 +301,7 @@ export class FreeSpinWinBanner extends Container {
         this.bgmRestoreTween = gsap.to(music, {
             volume: bgm.getVolume(),
             duration: 0.1,
-            ease: "linear",
+            ease: 'linear',
             onComplete: () => {
                 this.bgmRestoreTween = undefined;
             },
@@ -344,7 +341,7 @@ export class FreeSpinWinBanner extends Container {
         this.glowA = undefined;
         this.glowB = undefined;
 
-        const glowTexture = Texture.from("glow");
+        const glowTexture = Texture.from('glow');
 
         const makeGlow = () => {
             const s = new Sprite(glowTexture);
@@ -402,7 +399,7 @@ export class FreeSpinWinBanner extends Container {
         this.glowEntranceTween = gsap.to([gA, gB], {
             alpha: 0.85,
             duration: 0.25,
-            ease: "power2.out",
+            ease: 'power2.out',
             onComplete: () => {
                 this.glowEntranceTween = undefined;
                 this.animateGlowIdle();
@@ -431,9 +428,9 @@ export class FreeSpinWinBanner extends Container {
             const d3 = totalDuration * 0.33;
 
             const tl = gsap.timeline({ repeat: -1 });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: "sine.inOut" });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: 'sine.inOut' });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: 'sine.inOut' });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: 'sine.inOut' });
             return tl;
         };
 
@@ -455,7 +452,7 @@ export class FreeSpinWinBanner extends Container {
                 duration: 1.8,
                 repeat: -1,
                 yoyo: true,
-                ease: "sine.inOut",
+                ease: 'sine.inOut',
                 onUpdate: function () {
                     const t = (this.targets()[0] as any).t as number;
                     gA.alpha = A_MAX + (A_MIN - A_MAX) * t;
@@ -470,7 +467,7 @@ export class FreeSpinWinBanner extends Container {
             duration: 2.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
 
         gsap.to(gB.scale, {
@@ -479,7 +476,7 @@ export class FreeSpinWinBanner extends Container {
             duration: 2.6,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
@@ -505,7 +502,7 @@ export class FreeSpinWinBanner extends Container {
 
         this.topText = new Text(topLabel, {
             ...this.createWoodLabelStyle(42),
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             letterSpacing: 3,
         });
         this.topText.anchor.set(0.5);
@@ -513,7 +510,7 @@ export class FreeSpinWinBanner extends Container {
 
         this.bottomText = new Text(bottomLabel, {
             ...this.createWoodLabelStyle(44),
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             letterSpacing: 3,
         });
         this.bottomText.anchor.set(0.5);
@@ -525,9 +522,9 @@ export class FreeSpinWinBanner extends Container {
     private createCenterNumber() {
         this.spinsText?.destroy();
 
-        this.spinsText = new Text("0", {
+        this.spinsText = new Text('0', {
             ...this.createCenterNumberStyle(150),
-            fontFamily: "Pirata One",
+            fontFamily: 'Pirata One',
             letterSpacing: 2,
         });
         this.spinsText.anchor.set(0.5);
@@ -539,9 +536,9 @@ export class FreeSpinWinBanner extends Container {
     private createContinueText() {
         this.continueText?.destroy();
 
-        this.continueText = new Text("PRESS ANYWHERE TO CONTINUE", {
+        this.continueText = new Text('PRESS ANYWHERE TO CONTINUE', {
             ...this.createWoodLabelStyle(36),
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             letterSpacing: 2,
         });
 
@@ -556,17 +553,17 @@ export class FreeSpinWinBanner extends Container {
     // TEXT STYLES
     // ==================================================
     private createWoodLabelStyle(fontSize: number): Partial<TextStyle> {
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 256;
 
-        const ctx = canvas.getContext("2d")!;
+        const ctx = canvas.getContext('2d')!;
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
-        gradient.addColorStop(0.0, "#FFF3A0");
-        gradient.addColorStop(0.35, "#FDD44F");
-        gradient.addColorStop(0.7, "#D79600");
-        gradient.addColorStop(1.0, "#FF7A00");
+        gradient.addColorStop(0.0, '#FFF3A0');
+        gradient.addColorStop(0.35, '#FDD44F');
+        gradient.addColorStop(0.7, '#D79600');
+        gradient.addColorStop(1.0, '#FF7A00');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -577,24 +574,24 @@ export class FreeSpinWinBanner extends Container {
 
         return {
             fontSize,
-            align: "center",
+            align: 'center',
             fill: { texture, matrix: mat } as any,
             stroke: { color: 0x3b1c00, width: 6 },
         };
     }
 
     private createCenterNumberStyle(fontSize: number): Partial<TextStyle> {
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 256;
 
-        const ctx = canvas.getContext("2d")!;
+        const ctx = canvas.getContext('2d')!;
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
-        gradient.addColorStop(0.0, "#FFF39C");
-        gradient.addColorStop(0.25, "#FFFFFF");
-        gradient.addColorStop(0.55, "#FDD44F");
-        gradient.addColorStop(1.0, "#D79600");
+        gradient.addColorStop(0.0, '#FFF39C');
+        gradient.addColorStop(0.25, '#FFFFFF');
+        gradient.addColorStop(0.55, '#FDD44F');
+        gradient.addColorStop(1.0, '#D79600');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -605,7 +602,7 @@ export class FreeSpinWinBanner extends Container {
 
         return {
             fontSize,
-            align: "center",
+            align: 'center',
             fill: { texture, matrix: mat } as any,
             stroke: { color: 0x4c1b05, width: 10 },
         };
@@ -618,7 +615,7 @@ export class FreeSpinWinBanner extends Container {
         // ✅ play sfx and keep instance so we can stop it
         this.forceStopAllBannerAudio();
         try {
-            this.sfxFreeSpinWin = sfx.play("common/sfx-freespin-win.wav");
+            this.sfxFreeSpinWin = sfx.play('common/sfx-freespin-win.wav');
         } catch {}
 
         const startOffset = -900;
@@ -635,9 +632,7 @@ export class FreeSpinWinBanner extends Container {
                 this.bg,
             ].filter(Boolean),
         );
-        gsap.killTweensOf(
-            [this.topText?.scale, this.bottomText?.scale, this.continueText?.scale].filter(Boolean),
-        );
+        gsap.killTweensOf([this.topText?.scale, this.bottomText?.scale, this.continueText?.scale].filter(Boolean));
         this.killNumberTweenOnly();
 
         if (this.glowEntranceTween) {
@@ -683,7 +678,7 @@ export class FreeSpinWinBanner extends Container {
                 y: i.y - startOffset,
                 duration: 0.7,
                 delay: idx * 0.05,
-                ease: "bounce.out",
+                ease: 'bounce.out',
                 onUpdate: () => {
                     if (i === this.banner || i === this.topText || i === this.spinsText) {
                         this.syncGlowToBanner();
@@ -708,7 +703,7 @@ export class FreeSpinWinBanner extends Container {
             duration: 1.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
@@ -720,7 +715,7 @@ export class FreeSpinWinBanner extends Container {
         this.numberTween = gsap.to(this, {
             currentDisplayValue: this.spins,
             duration: 0.9,
-            ease: "power2.out",
+            ease: 'power2.out',
             onUpdate: () => {
                 this.spinsText.text = String(Math.floor(this.currentDisplayValue));
             },
@@ -730,7 +725,7 @@ export class FreeSpinWinBanner extends Container {
                 gsap.fromTo(
                     this.spinsText.scale,
                     { x: 0.85, y: 0.85 },
-                    { x: 1, y: 1, duration: 0.6, ease: "elastic.out(1, 0.6)" },
+                    { x: 1, y: 1, duration: 0.6, ease: 'elastic.out(1, 0.6)' },
                 );
             },
         });
@@ -738,7 +733,9 @@ export class FreeSpinWinBanner extends Container {
 
     private killNumberTweenOnly() {
         if (this.numberTween) {
-            try { this.numberTween.kill(); } catch {}
+            try {
+                this.numberTween.kill();
+            } catch {}
             this.numberTween = undefined;
         }
         // the number tween targets "this"
@@ -791,15 +788,15 @@ export class FreeSpinWinBanner extends Container {
         this.canClickAnywhere = false;
 
         // detach handlers
-        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.removeEventListener("blur", this.onWindowBlurBound);
+        document.removeEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.removeEventListener('blur', this.onWindowBlurBound);
 
         // clear auto-close
         this.clearAutoCloseTimer();
 
         // remove keyboard listener
-        if (this.keyListenerAdded && typeof window !== "undefined") {
-            window.removeEventListener("keydown", this.keyDownHandler);
+        if (this.keyListenerAdded && typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.keyDownHandler);
             this.keyListenerAdded = false;
         }
 
@@ -839,7 +836,9 @@ export class FreeSpinWinBanner extends Container {
             FreeSpinWinBanner.currentInstance = null;
 
             // ✅ IMPORTANT: dismiss first, then onClosed (prevents “next popup got dismissed”)
-            try { await navigation.dismissPopup(); } catch {}
+            try {
+                await navigation.dismissPopup();
+            } catch {}
             this.restoreBgmVolume();
             this.fireClosedOnce();
             return;
@@ -850,7 +849,9 @@ export class FreeSpinWinBanner extends Container {
         FreeSpinWinBanner.currentInstance = null;
 
         // ✅ IMPORTANT: dismiss first, then onClosed (same reasoning)
-        try { await navigation.dismissPopup(); } catch {}
+        try {
+            await navigation.dismissPopup();
+        } catch {}
         this.restoreBgmVolume();
         this.fireClosedOnce();
     }
@@ -858,11 +859,11 @@ export class FreeSpinWinBanner extends Container {
     public override destroy(options?: any) {
         this.clearAutoCloseTimer();
 
-        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.removeEventListener("blur", this.onWindowBlurBound);
+        document.removeEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.removeEventListener('blur', this.onWindowBlurBound);
 
-        if (this.keyListenerAdded && typeof window !== "undefined") {
-            window.removeEventListener("keydown", this.keyDownHandler);
+        if (this.keyListenerAdded && typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.keyDownHandler);
             this.keyListenerAdded = false;
         }
 

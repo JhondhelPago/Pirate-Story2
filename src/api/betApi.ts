@@ -1,14 +1,15 @@
 // Define the URL of your Express server endpoint
-const url = 'http://192.168.68.131:3000/spin';
+const url = 'http://192.168.68.112:3000/spin';
 export class BetAPI {
     /**
      * Calls the backend API to perform a spin operation.
      * @param type - The type of spin ('n' for new, 'r' for refill, 'f' for free).
      * @returns {Promise<{reels: number[][]}>} A promise that resolves with the reels data.
      */
-    static async spin(type: 'n' | 'r' | 'f'): Promise<{ reels: number[][], multiplierReels: number[][], bonusReels: number[][] }> {
+    static async spin(
+        type: 'n' | 'r' | 'f',
+    ): Promise<{ reels: number[][]; multiplierReels: number[][]; bonusReels: number[][] }> {
         try {
-
             // Make a GET request to the Express server
             const response = await fetch(url, {
                 method: 'GET',
@@ -17,14 +18,15 @@ export class BetAPI {
                 },
             });
 
-            // Check if the network request was successful  
+            // Check if the network request was successful
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Server error occurred during spin');
             }
 
             // Parse the JSON response body
-            const data: { reels: number[][], multiplierReels: number[][], bonusReels: number[][] } = await response.json();
+            const data: { reels: number[][]; multiplierReels: number[][]; bonusReels: number[][] } =
+                await response.json();
 
             return data;
         } catch (error: any) {

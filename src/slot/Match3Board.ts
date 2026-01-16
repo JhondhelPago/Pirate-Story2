@@ -1,17 +1,12 @@
-import { Container, Graphics, Ticker } from "pixi.js";
-import gsap from "gsap";
-import { Match3 } from "./Match3";
-import { Match3Config, slotGetBlocks } from "./Match3Config";
-import { SlotSymbol } from "./SlotSymbol";
-import {
-    gridRandomTypeReset,
-    initGrid,
-    forEachCell,
-    SCATTERBONUS,
-} from "./SlotUtility";
-import { userSettings, config, FreeSpinSetting, SpinModeEnum, features } from "../utils/userSettings";
-import { ConfigAPI } from "../api/configApi";
-import { sfx } from "../utils/audio";
+import { Container, Graphics, Ticker } from 'pixi.js';
+import gsap from 'gsap';
+import { Match3 } from './Match3';
+import { Match3Config, slotGetBlocks } from './Match3Config';
+import { SlotSymbol } from './SlotSymbol';
+import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from './SlotUtility';
+import { userSettings, config, FreeSpinSetting, SpinModeEnum, features } from '../utils/userSettings';
+import { ConfigAPI } from '../api/configApi';
+import { sfx } from '../utils/audio';
 
 interface ReelColumn {
     container: Container;
@@ -57,13 +52,11 @@ export class Match3Board {
 
     private readonly BLUR_EXTRA = 3;
 
-
-
     private get symbolScale(): number {
         const anySym = SlotSymbol as any;
         const v =
-            (typeof anySym?.VISUAL_SCALE === "number" && anySym.VISUAL_SCALE) ||
-            (typeof anySym?.SCALE === "number" && anySym.SCALE) ||
+            (typeof anySym?.VISUAL_SCALE === 'number' && anySym.VISUAL_SCALE) ||
+            (typeof anySym?.SCALE === 'number' && anySym.SCALE) ||
             1;
 
         // guard against invalid values
@@ -207,8 +200,8 @@ export class Match3Board {
         this.piecesContainer.addChild(this.realLayer);
         this.piecesContainer.addChild(this.wildLayer);
 
-        window.addEventListener("keydown", (e) => {
-            if (e.key.toLowerCase() === "i") {
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'i') {
                 this.interruptSpin();
             }
         });
@@ -261,25 +254,23 @@ export class Match3Board {
     }
 
     private refreshMask() {
-    const w = this.columns * this.tile;
-    const h = this.rows * this.tile;
-    const offsetX = w / 2;
-    const offsetY = h / 2;
+        const w = this.columns * this.tile;
+        const h = this.rows * this.tile;
+        const offsetX = w / 2;
+        const offsetY = h / 2;
 
-    this.piecesMask.clear();
-    this.piecesMask.beginFill(0xffffff, 1);
+        this.piecesMask.clear();
+        this.piecesMask.beginFill(0xffffff, 1);
 
-    // keep the mask shape centered
-    this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
-    this.piecesMask.endFill();
+        // keep the mask shape centered
+        this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
+        this.piecesMask.endFill();
 
-    // ✅ move BOTH the masked content and the mask together
-    const BOARD_Y_OFFSET = 5; // small value (try 6~20)
-    this.piecesContainer.y = BOARD_Y_OFFSET;
-    this.piecesMask.y = BOARD_Y_OFFSET;
-}
-
-
+        // ✅ move BOTH the masked content and the mask together
+        const BOARD_Y_OFFSET = 5; // small value (try 6~20)
+        this.piecesContainer.y = BOARD_Y_OFFSET;
+        this.piecesMask.y = BOARD_Y_OFFSET;
+    }
 
     public setup(config: Match3Config) {
         this.rows = config.rows;
@@ -298,8 +289,7 @@ export class Match3Board {
             this.initialMultipliers = initGrid(this.rows, this.columns, 0);
 
             forEachCell(this.rows, this.columns, (r, c) => {
-                this.initialReels[r][c] =
-                    types[Math.floor(Math.random() * types.length)];
+                this.initialReels[r][c] = types[Math.floor(Math.random() * types.length)];
                 this.initialMultipliers[r][c] = 0;
             });
         }
@@ -369,10 +359,7 @@ export class Match3Board {
         this.ensureWildLayerOnTop();
     }
 
-    private getDisplayedRealSymbol(
-        row: number,
-        column: number
-    ): SlotSymbol | null {
+    private getDisplayedRealSymbol(row: number, column: number): SlotSymbol | null {
         const reel = this.realReels[column];
         if (!reel) return null;
 
@@ -387,10 +374,7 @@ export class Match3Board {
     }
 
     // fetch the currently displayed wild symbol (if any) at row/col
-    private getDisplayedWildSymbol(
-        row: number,
-        column: number
-    ): SlotSymbol | null {
+    private getDisplayedWildSymbol(row: number, column: number): SlotSymbol | null {
         const reel = this.wildReels[column] as any;
         if (!reel) return null;
 
@@ -412,14 +396,10 @@ export class Match3Board {
             for (let r = 0; r < this.rows; r++) {
                 const cell = this.getDisplayedRealSymbol(r, c);
                 if (cell) {
-                    types[r][c] =
-                        (cell as any).type ??
-                        this.initialReels?.[r]?.[c] ??
-                        this.randomType();
+                    types[r][c] = (cell as any).type ?? this.initialReels?.[r]?.[c] ?? this.randomType();
                     mults[r][c] = (cell as any).multiplier ?? 0;
                 } else {
-                    types[r][c] =
-                        this.initialReels?.[r]?.[c] ?? this.randomType();
+                    types[r][c] = this.initialReels?.[r]?.[c] ?? this.randomType();
                     mults[r][c] = 0;
                 }
             }
@@ -434,10 +414,7 @@ export class Match3Board {
         return r0.symbols.length >= this.blurCount + this.rows;
     }
 
-    private buildSpinStripIntoCurrentLayer(
-        leadTypes: number[][],
-        leadMults: number[][]
-    ) {
+    private buildSpinStripIntoCurrentLayer(leadTypes: number[][], leadMults: number[][]) {
         if (this.hasSpinStripBuilt()) return;
 
         const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
@@ -473,7 +450,6 @@ export class Match3Board {
         //     this.setBlurVisibleForColumn(c, true);
         // }
     }
-
 
     private setBlurVisibleForColumn(column: number, visible: boolean) {
         const reel = this.realReels[column];
@@ -539,147 +515,136 @@ export class Match3Board {
 
         this.ticker = new Ticker();
         this.ticker.add((arg: any) => {
-            const delta =
-                typeof arg === "number"
-                    ? arg
-                    : arg?.deltaTime ?? arg?.deltaMS ?? 1;
+            const delta = typeof arg === 'number' ? arg : (arg?.deltaTime ?? arg?.deltaMS ?? 1);
             this.updateSpin(delta);
         });
         this.ticker.start();
     }
 
-    
-/**
- * NORMAL start: wave + lift + HOLD at peak + drop-back-to-lead
- * ✅ Blur stays hidden during lift (no peek)
- * ✅ Blur starts immediately per-column right after that column finishes drop (less delay)
- */
-private async startSpinSeamlessSequential(): Promise<void> {
+    /**
+     * NORMAL start: wave + lift + HOLD at peak + drop-back-to-lead
+     * ✅ Blur stays hidden during lift (no peek)
+     * ✅ Blur starts immediately per-column right after that column finishes drop (less delay)
+     */
+    private async startSpinSeamlessSequential(): Promise<void> {
+        const seq = ++this._startSeqId;
 
-    const seq = ++this._startSeqId;
+        const { offsetY } = this.getOffsets();
+        const yLead = -offsetY;
+        const yBlur = -offsetY + this.rows * this.tile;
 
-    const { offsetY } = this.getOffsets();
-    const yLead = -offsetY;
-    const yBlur = -offsetY + this.rows * this.tile;
+        this.colActive = new Array(this.columns).fill(false);
+        this._allColumnsSpinning = false;
 
-    this.colActive = new Array(this.columns).fill(false);
-    this._allColumnsSpinning = false;
+        // reset columns to lead and keep blur hidden
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
 
-    // reset columns to lead and keep blur hidden
-    for (let c = 0; c < this.columns; c++) {
-        const col = this.realReels[c]?.container;
-        if (!col) continue;
+            gsap.killTweensOf(col);
+            col.y = yLead;
 
-        gsap.killTweensOf(col);
-        col.y = yLead;
+            this.setBlurVisibleForColumn(c, false);
+            this.colActive[c] = false;
 
-        this.setBlurVisibleForColumn(c, false);
-        this.colActive[c] = false;
+            const reel = this.realReels[c];
+            if (reel) reel.position = 0;
+        }
 
-        const reel = this.realReels[c];
-        if (reel) reel.position = 0;
-    }
+        const WAVE_STAGGER = 0.06;
+        const LIFT_PX = 25;
+        const LIFT_DUR = 0.15;
 
-    const WAVE_STAGGER = 0.06;
-    const LIFT_PX = 25;
-    const LIFT_DUR = 0.15;
+        const HOLD_DUR = 0.05;
+        const DROP_DUR = 0.1;
 
-    const HOLD_DUR = 0.05; 
-    const DROP_DUR = 0.1;
+        // Build blur strip early (still hidden)
+        if (!this.hasSpinStripBuilt()) {
+            const snap = this.getCurrentGridSnapshot();
+            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+        }
 
-    // Build blur strip early (still hidden)
-    if (!this.hasSpinStripBuilt()) {
-        const snap = this.getCurrentGridSnapshot();
-        this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
-    }
+        const tl = gsap.timeline();
 
-    const tl = gsap.timeline();
+        // --- LIFT wave (blur remains hidden) ---
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
 
-    // --- LIFT wave (blur remains hidden) ---
-    for (let c = 0; c < this.columns; c++) {
-        const col = this.realReels[c]?.container;
-        if (!col) continue;
-
-        tl.to(
-            col,
-            {
-                y: yLead - LIFT_PX,
-                duration: LIFT_DUR,
-                ease: "power1.out",
-            },
-            c * WAVE_STAGGER
-        );
-    }
-
-    
-
-
-    // --- DROP wave back to yLead ---
-    // ✅ when each column finishes dropping, immediately enter blur-view for THAT column
-    for (let c = 0; c < this.columns; c++) {
-        const col = this.realReels[c]?.container;
-        if (!col) continue;
-
-        tl.to(
-            col,
-            {
-                y: yLead,
-                duration: DROP_DUR,
-                ease: "none",
-                onComplete: () => {
-                    if (seq !== this._startSeqId) return;
-
-                    // snap this column into blur-view immediately
-                    this.enterBlurViewForColumn(c, yBlur);
-
-                    // force a layout update so there is no "gap frame"
-                    this.updateSpin(0);
-
-                    // if this was the last column to enter blur, mark all spinning
-                    let all = true;
-                    for (let i = 0; i < this.columns; i++) {
-                        if (!this.colActive[i]) {
-                            all = false;
-                            break;
-                        }
-                    }
-                    if (all) {
-                        this._allColumnsSpinning = true;
-
-                        // handle pending interrupt once blur-view is actually active
-                        if (this._interruptPending && this._hasBackendResult) {
-                            this._interruptPending = false;
-                            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
-                        }
-                    }
+            tl.to(
+                col,
+                {
+                    y: yLead - LIFT_PX,
+                    duration: LIFT_DUR,
+                    ease: 'power1.out',
                 },
-            },
-            // ✅ SHIFTED BY HOLD_DUR: column stays at peak before its drop starts
-            (this.columns * WAVE_STAGGER) + HOLD_DUR + c * WAVE_STAGGER
-        );
-    }
+                c * WAVE_STAGGER,
+            );
+        }
 
-    await tl.then();
-    if (seq !== this._startSeqId) return;
+        // --- DROP wave back to yLead ---
+        // ✅ when each column finishes dropping, immediately enter blur-view for THAT column
+        for (let c = 0; c < this.columns; c++) {
+            const col = this.realReels[c]?.container;
+            if (!col) continue;
 
-    // Safety: ensure any still-not-active column enters blur
-    for (let c = 0; c < this.columns; c++) {
-        if (!this.colActive[c]) {
-            this.enterBlurViewForColumn(c, yBlur);
+            tl.to(
+                col,
+                {
+                    y: yLead,
+                    duration: DROP_DUR,
+                    ease: 'none',
+                    onComplete: () => {
+                        if (seq !== this._startSeqId) return;
+
+                        // snap this column into blur-view immediately
+                        this.enterBlurViewForColumn(c, yBlur);
+
+                        // force a layout update so there is no "gap frame"
+                        this.updateSpin(0);
+
+                        // if this was the last column to enter blur, mark all spinning
+                        let all = true;
+                        for (let i = 0; i < this.columns; i++) {
+                            if (!this.colActive[i]) {
+                                all = false;
+                                break;
+                            }
+                        }
+                        if (all) {
+                            this._allColumnsSpinning = true;
+
+                            // handle pending interrupt once blur-view is actually active
+                            if (this._interruptPending && this._hasBackendResult) {
+                                this._interruptPending = false;
+                                this._spinSpeed = Math.max(this._spinSpeed, 1.8);
+                            }
+                        }
+                    },
+                },
+                // ✅ SHIFTED BY HOLD_DUR: column stays at peak before its drop starts
+                this.columns * WAVE_STAGGER + HOLD_DUR + c * WAVE_STAGGER,
+            );
+        }
+
+        await tl.then();
+        if (seq !== this._startSeqId) return;
+
+        // Safety: ensure any still-not-active column enters blur
+        for (let c = 0; c < this.columns; c++) {
+            if (!this.colActive[c]) {
+                this.enterBlurViewForColumn(c, yBlur);
+            }
+        }
+
+        this.updateSpin(0);
+        this._allColumnsSpinning = true;
+
+        if (this._interruptPending && this._hasBackendResult) {
+            this._interruptPending = false;
+            this._spinSpeed = Math.max(this._spinSpeed, 1.8);
         }
     }
-
-    this.updateSpin(0);
-    this._allColumnsSpinning = true;
-
-    if (this._interruptPending && this._hasBackendResult) {
-        this._interruptPending = false;
-        this._spinSpeed = Math.max(this._spinSpeed, 1.8);
-    }
-}
-
-
-
 
     /**
      * QUICK start: no lift, no stagger.
@@ -715,8 +680,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
         if (seq !== this._startSeqId) return;
     }
 
-
-
     private forceAllColumnsToBlurViewAndActive() {
         this.cancelStartSequence();
 
@@ -741,17 +704,12 @@ private async startSpinSeamlessSequential(): Promise<void> {
         this._allColumnsSpinning = true;
     }
 
-
     public applyBackendResults(reels: number[][], multipliers: number[][]) {
         this.backendReels = reels;
         this.backendMultipliers = multipliers;
         this._hasBackendResult = Array.isArray(reels) && reels.length > 0;
 
-        if (
-            this._spinInProgress &&
-            this._interruptRequested &&
-            this._allColumnsSpinning
-        ) {
+        if (this._spinInProgress && this._interruptRequested && this._allColumnsSpinning) {
             this._spinSpeed = Math.max(this._spinSpeed, 1.8);
         }
     }
@@ -796,7 +754,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
         const spinMode = userSettings.getSpinMode();
 
         if (spinMode === SpinModeEnum.Turbo) {
-
             this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
 
             this._spinSpeed = this._defaultSpinSpeed;
@@ -950,10 +907,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
 
         const dropLayer = new Container();
         this.realLayer.addChild(dropLayer);
-        this.realLayer.setChildIndex(
-            dropLayer,
-            this.realLayer.children.length - 1
-        );
+        this.realLayer.setChildIndex(dropLayer, this.realLayer.children.length - 1);
 
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container as any;
@@ -971,9 +925,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
             const col = reel?.container as any;
             if (!reel || !col || col?.destroyed) continue;
 
-            const localSlide = this._accelerateLandingRequested
-                ? 0.05
-                : SLIDE_DUR;
+            const localSlide = this._accelerateLandingRequested ? 0.05 : SLIDE_DUR;
 
             this.colActive[c] = true;
             col.y = yBlur;
@@ -1001,14 +953,14 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 const t = gsap.to(dropCol, {
                     y: yLead,
                     duration: localSlide,
-                    ease: "none",
+                    ease: 'none',
                 });
                 this._landingTween = t;
                 if (this._accelerateLandingRequested) t.timeScale(30);
-                t.eventCallback("onComplete", () => resolve());
+                t.eventCallback('onComplete', () => resolve());
             });
 
-            sfx.play("common/sfx-reel-col-stop.wav", {volume: 0.6});
+            sfx.play('common/sfx-reel-col-stop.wav', { volume: 0.6 });
 
             if (!col || col?.destroyed) {
                 dropCol.removeChildren();
@@ -1047,11 +999,11 @@ private async startSpinSeamlessSequential(): Promise<void> {
                     tl.to(col, {
                         y: yLead + BOUNCE_PX,
                         duration: BOUNCE_DOWN_DUR,
-                        ease: "power1.out",
+                        ease: 'power1.out',
                     }).to(col, {
                         y: yLead,
                         duration: BOUNCE_UP_DUR,
-                        ease: "power1.in",
+                        ease: 'power1.in',
                     });
 
                     this._landingTween = tl;
@@ -1059,9 +1011,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
             }
 
             if (c < this.columns - 1 && BETWEEN > 0) {
-                await new Promise<void>((resolve) =>
-                    gsap.delayedCall(BETWEEN, () => resolve())
-                );
+                await new Promise<void>((resolve) => gsap.delayedCall(BETWEEN, () => resolve()));
             }
         }
 
@@ -1080,19 +1030,11 @@ private async startSpinSeamlessSequential(): Promise<void> {
     }): Promise<void> {
         const baseSlide = opts?.slideDur ?? 0.26;
 
-        const SLIDE_DUR = this._accelerateLandingRequested
-            ? Math.min(0.08, baseSlide)
-            : baseSlide;
+        const SLIDE_DUR = this._accelerateLandingRequested ? Math.min(0.08, baseSlide) : baseSlide;
 
-        const BOUNCE_PX = this._accelerateLandingRequested
-            ? 0
-            : opts?.bouncePx ?? 12;
-        const BOUNCE_DOWN_DUR = this._accelerateLandingRequested
-            ? 0
-            : opts?.bounceDownDur ?? 0.06;
-        const BOUNCE_UP_DUR = this._accelerateLandingRequested
-            ? 0
-            : opts?.bounceUpDur ?? 0.08;
+        const BOUNCE_PX = this._accelerateLandingRequested ? 0 : (opts?.bouncePx ?? 12);
+        const BOUNCE_DOWN_DUR = this._accelerateLandingRequested ? 0 : (opts?.bounceDownDur ?? 0.06);
+        const BOUNCE_UP_DUR = this._accelerateLandingRequested ? 0 : (opts?.bounceUpDur ?? 0.08);
 
         const { offsetY } = this.getOffsets();
         const yLead = -offsetY;
@@ -1101,10 +1043,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
 
         const dropLayer = new Container();
         this.realLayer.addChild(dropLayer);
-        this.realLayer.setChildIndex(
-            dropLayer,
-            this.realLayer.children.length - 1
-        );
+        this.realLayer.setChildIndex(dropLayer, this.realLayer.children.length - 1);
 
         for (let c = 0; c < this.columns; c++) {
             const col = this.realReels[c]?.container as any;
@@ -1152,14 +1091,14 @@ private async startSpinSeamlessSequential(): Promise<void> {
             const t = gsap.to(dropCols, {
                 y: yLead,
                 duration: SLIDE_DUR,
-                ease: "none",
+                ease: 'none',
             });
             this._landingTween = t;
             if (this._accelerateLandingRequested) t.timeScale(30);
-            t.eventCallback("onComplete", () => resolve());
+            t.eventCallback('onComplete', () => resolve());
         });
 
-        sfx.play("common/sfx-reel-col-stop.wav", {volume: 0.6});
+        sfx.play('common/sfx-reel-col-stop.wav', { volume: 0.6 });
 
         for (let c = 0; c < this.columns; c++) {
             const reel = this.realReels[c];
@@ -1189,9 +1128,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
         this._landingTween = undefined;
 
         if (BOUNCE_PX > 0 && (BOUNCE_DOWN_DUR > 0 || BOUNCE_UP_DUR > 0)) {
-            const cols = this.realReels
-                .map((r) => r.container)
-                .filter(Boolean) as any[];
+            const cols = this.realReels.map((r) => r.container).filter(Boolean) as any[];
 
             await new Promise<void>((resolve) => {
                 const tl = gsap.timeline({
@@ -1206,11 +1143,11 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 tl.to(cols, {
                     y: yLead + BOUNCE_PX,
                     duration: BOUNCE_DOWN_DUR,
-                    ease: "power1.out",
+                    ease: 'power1.out',
                 }).to(cols, {
                     y: yLead,
                     duration: BOUNCE_UP_DUR,
-                    ease: "power1.in",
+                    ease: 'power1.in',
                 });
 
                 this._landingTween = tl;
@@ -1224,7 +1161,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
     private enterBlurViewForColumn(column: number, yBlur: number) {
         const reel = this.realReels[column];
         const col = reel?.container;
-        if (!reel || !col) return;       
+        if (!reel || !col) return;
         reel.position = 0;
 
         this.colActive[column] = true;
@@ -1246,7 +1183,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this._spinSpeed = Math.max(this._spinSpeed, 1.8);
         }
     }
-   
+
     public async finishSpin(): Promise<void> {
         if (this._startSequencePromise) {
             await this._startSequencePromise;
@@ -1286,7 +1223,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
         } finally {
             this._landingInProgress = false;
         }
-
 
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
@@ -1347,8 +1283,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this._landingInProgress = false;
         }
 
-
-
         this.stopSpinLoop();
         this.stopAndDestroyTicker();
 
@@ -1361,7 +1295,6 @@ private async startSpinSeamlessSequential(): Promise<void> {
         const wins = this.match3.process.getWinningPositions() ?? [];
         this.animateWinsWithWildPriority(wins, this.getBonusPositions());
     }
-
 
     // =========================================================================
     // LOOP-BY-REPLAY HELPERS (infinite until next spin trigger)
@@ -1395,22 +1328,15 @@ private async startSpinSeamlessSequential(): Promise<void> {
         } catch {}
 
         try {
-            const spine: any =
-                (sym as any).spine ??
-                (sym as any)._spine ??
-                (sym as any).skeletonAnimation;
+            const spine: any = (sym as any).spine ?? (sym as any)._spine ?? (sym as any).skeletonAnimation;
             spine?.state?.clearTracks?.();
         } catch {}
 
         sym.animatePlay(false);
     }
 
-   
-    private startReplayLoop(
-        getSymbols: () => SlotSymbol[],
-        which: "win" | "wild"
-    ) {
-        if (which === "win") this.winLoopTween?.kill();
+    private startReplayLoop(getSymbols: () => SlotSymbol[], which: 'win' | 'wild') {
+        if (which === 'win') this.winLoopTween?.kill();
         else this.wildLoopTween?.kill();
 
         this.openAnimationGate();
@@ -1447,7 +1373,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 tick();
             });
 
-            if (which === "win") this.winLoopTween = t;
+            if (which === 'win') this.winLoopTween = t;
             else this.wildLoopTween = t;
         };
 
@@ -1462,12 +1388,12 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 if (symbol) list.push(symbol);
             }
             return list;
-        }, "win");
+        }, 'win');
     }
 
     public animateWinsWithWildPriority(
         wins: { row: number; column: number }[],
-        bonusPositions?: { row: number; column: number }[]
+        bonusPositions?: { row: number; column: number }[],
     ) {
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
@@ -1490,9 +1416,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
 
         // ✅ only include bonusPositions if currently using FreeSpinProcess with ,isIntialFreeSpin == true, and none free spin feature
         const isFreeSpin = this.match3?.process === this.match3?.freeSpinProcess;
-        const isInitialSpin = isFreeSpin
-            ? this.match3?.freeSpinProcess.getIsInitialFreeSpin()
-            : false;
+        const isInitialSpin = isFreeSpin ? this.match3?.freeSpinProcess.getIsInitialFreeSpin() : false;
 
         if (!isFreeSpin || (isFreeSpin && isInitialSpin)) {
             const freeSpins = config.settings.features;
@@ -1545,7 +1469,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 if (s) list.push(s);
             }
             return list;
-        }, "wild");
+        }, 'wild');
 
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];
@@ -1554,18 +1478,15 @@ private async startSpinSeamlessSequential(): Promise<void> {
                 if (s) list.push(s);
             }
             return list;
-        }, "win");
+        }, 'win');
     }
 
     public initialPieceMutliplier(symbolType: number) {
         if (symbolType !== 12) return 0;
 
         const multiplierOptions = [2, 3, 5];
-        return multiplierOptions[
-            Math.floor(Math.random() * multiplierOptions.length)
-        ];
+        return multiplierOptions[Math.floor(Math.random() * multiplierOptions.length)];
     }
-
 
     public getTurboSpin() {
         return this.isTubroSpin;
@@ -1573,20 +1494,15 @@ private async startSpinSeamlessSequential(): Promise<void> {
 
     private ensureWildLayerOnTop() {
         if (!this.wildLayer.parent) this.piecesContainer.addChild(this.wildLayer);
-        this.piecesContainer.setChildIndex(
-            this.wildLayer,
-            this.piecesContainer.children.length - 1
-        );
+        this.piecesContainer.setChildIndex(this.wildLayer, this.piecesContainer.children.length - 1);
     }
 
     private rebuildWildLayerStructureIfNeeded() {
-        if (this.wildReels.length !== this.columns)
-            return this.rebuildWildLayerStructure();
+        if (this.wildReels.length !== this.columns) return this.rebuildWildLayerStructure();
 
         for (let c = 0; c < this.columns; c++) {
             const reel = this.wildReels[c];
-            if (!reel || reel.symbols.length !== this.rows)
-                return this.rebuildWildLayerStructure();
+            if (!reel || reel.symbols.length !== this.rows) return this.rebuildWildLayerStructure();
         }
     }
 
@@ -1722,7 +1638,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
     public rebuildReelsAndAnimatePositions(
         reels5x5: number[][],
         bonus5x5: number[][],
-        positions: { row: number; column: number }[]
+        positions: { row: number; column: number }[],
     ) {
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
@@ -1732,10 +1648,7 @@ private async startSpinSeamlessSequential(): Promise<void> {
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                safeTypes[r][c] =
-                    reels5x5?.[r]?.[c] ??
-                    this.initialReels?.[r]?.[c] ??
-                    this.randomType();
+                safeTypes[r][c] = reels5x5?.[r]?.[c] ?? this.initialReels?.[r]?.[c] ?? this.randomType();
 
                 safeMults[r][c] = bonus5x5?.[r]?.[c] ?? 0;
             }
@@ -1818,6 +1731,4 @@ private async startSpinSeamlessSequential(): Promise<void> {
             this.killLoops();
         }
     }
-
-
 }

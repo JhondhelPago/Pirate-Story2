@@ -31,7 +31,7 @@ export class PreviewScreen extends Container {
 
     constructor() {
         super();
-        
+
         this.barrelBoard = new BarrelBoard('Barrel-Board');
         this.barrelBoard.scale.set(0.8);
         this.addChild(this.barrelBoard);
@@ -68,7 +68,7 @@ export class PreviewScreen extends Container {
         this.addChild(this.goldRoger);
 
         this.playButton = new PlayButton();
-        this.playButton.scale.set(.9);
+        this.playButton.scale.set(0.9);
         this.addChild(this.playButton);
         this.playButton.onClick(() => navigation.showScreen(GameScreen));
 
@@ -123,66 +123,66 @@ export class PreviewScreen extends Container {
 
     /** RESIZE WITH IMPROVED MOBILE LAYOUT */
     public resize(width: number, height: number) {
-    const isMobile = width < height;
+        const isMobile = width < height;
 
-    if (!isMobile) {
-        // ---------- DESKTOP LANDSCAPE ----------
-        this.goldRoger.visible = false;
+        if (!isMobile) {
+            // ---------- DESKTOP LANDSCAPE ----------
+            this.goldRoger.visible = false;
 
-        // FIX: Reduce preview size for desktop
-        this.slotPreview.scale.set(0.8);
-        this.slotPreview.x = width * 0.35;
-        this.slotPreview.y = height * 0.35;
+            // FIX: Reduce preview size for desktop
+            this.slotPreview.scale.set(0.8);
+            this.slotPreview.x = width * 0.35;
+            this.slotPreview.y = height * 0.35;
 
-        this.barrelBoard.scale.set(0.8);
-        this.barrelBoard.x = width * 0.35;
-        this.barrelBoard.y = height * 0.35;
-        
-        this.playButton.x = width * 0.82;
-        this.playButton.y = height * 0.6;
-        
-        this.gameLogo.scale.set(.85);
-        this.gameLogo.x = width * 0.82;
-        this.gameLogo.y = height * 0.2;
-        
-        this.message.x = width * 0.35;
-        this.message.y = this.barrelBoard.y + 350;
+            this.barrelBoard.scale.set(0.8);
+            this.barrelBoard.x = width * 0.35;
+            this.barrelBoard.y = height * 0.35;
 
-        this.messagePagination.x = width * 0.35;
-        this.messagePagination.y = this.message.y + 70;
-        return;
+            this.playButton.x = width * 0.82;
+            this.playButton.y = height * 0.6;
+
+            this.gameLogo.scale.set(0.85);
+            this.gameLogo.x = width * 0.82;
+            this.gameLogo.y = height * 0.2;
+
+            this.message.x = width * 0.35;
+            this.message.y = this.barrelBoard.y + 350;
+
+            this.messagePagination.x = width * 0.35;
+            this.messagePagination.y = this.message.y + 70;
+            return;
+        }
+
+        // ---------- MOBILE PORTRAIT ----------
+        this.goldRoger.visible = true;
+
+        // FIX: Increase preview size for mobile
+        this.slotPreview.scale.set(0.85);
+
+        this.slotPreview.x = width * 0.5;
+        this.slotPreview.y = height * 0.34;
+
+        this.barrelBoard.scale.set(0.85);
+        this.barrelBoard.x = width * 0.5;
+        this.barrelBoard.y = height * 0.34;
+
+        this.message.scale.set(1.5);
+        this.message.x = width * 0.5;
+        this.message.y = height * 0.55;
+
+        this.playButton.scale.set(1.4);
+        this.playButton.x = width * 0.5;
+        this.playButton.y = height * 0.8;
+
+        this.goldRoger.x = width * 0.85;
+        this.goldRoger.y = height * 0.8;
+
+        this.gameLogo.x = width * 0.5;
+        this.gameLogo.y = height * 0.1;
+
+        this.messagePagination.x = width * 0.5;
+        this.messagePagination.y = this.message.y + 150;
     }
-
-    // ---------- MOBILE PORTRAIT ----------
-    this.goldRoger.visible = true;
-
-    // FIX: Increase preview size for mobile
-    this.slotPreview.scale.set(0.85);
-
-    this.slotPreview.x = width * 0.5;
-    this.slotPreview.y = height * 0.34;
-
-    this.barrelBoard.scale.set(0.85);
-    this.barrelBoard.x = width * 0.5;
-    this.barrelBoard.y = height * 0.34;
-
-    this.message.scale.set(1.5)
-    this.message.x = width * 0.5;
-    this.message.y = height * .55;
-
-    this.playButton.scale.set(1.4)
-    this.playButton.x = width * 0.5;
-    this.playButton.y = height * 0.80;
-
-    this.goldRoger.x = width * 0.85;
-    this.goldRoger.y = height * 0.80;
-
-    this.gameLogo.x = width * 0.5;
-    this.gameLogo.y = height * 0.10;
-
-    this.messagePagination.x = width * 0.5;
-    this.messagePagination.y = this.message.y + 150;
-}
 
     public async show() {
         bgm.play('common/bgm-main.mp3', { volume: 0.3 });

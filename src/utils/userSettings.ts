@@ -3,7 +3,6 @@ import { AuthServices, GameServices } from '../api/services';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 
-
 export const loginResponse = await AuthServices.login();
 
 //PIRATE STORY GAME CONFIG
@@ -12,7 +11,7 @@ const response = await GameServices.getGameConfig();
 export const config = response.data;
 
 const collectResponse = await GameServices.collect();
-console.log("collect response: ", collectResponse);
+console.log('collect response: ', collectResponse);
 
 // interface for the extraFreeSpins
 export interface FreeSpinSetting {
@@ -39,18 +38,15 @@ export interface PaytableLedger {
     patterns: PatternSettings[];
 }
 
-
-
-
 // Keys for saved items in storage
 const KEY_VOLUME_MASTER = 'volume-master';
 const KEY_VOLUME_BGM = 'volume-bgm';
 const KEY_VOLUME_SFX = 'volume-sfx';
 
 export enum SpinModeEnum {
-    Normal = "normal-spin",
-    Quick = "quick-spin",
-    Turbo = "turbo-spin",
+    Normal = 'normal-spin',
+    Quick = 'quick-spin',
+    Turbo = 'turbo-spin',
 }
 
 type SpinMode = SpinModeEnum.Normal | SpinModeEnum.Quick | SpinModeEnum.Turbo;
@@ -81,7 +77,7 @@ class UserSettings {
         this.betOptions = config.bettingLimit.MONEY_OPTION;
         this.betIndex = 0;
 
-        this.spinIndex = -1
+        this.spinIndex = -1;
         this.balance = 0;
 
         setMasterVolume(this.getMasterVolume());
@@ -169,18 +165,17 @@ class UserSettings {
         return this.spinIndex;
     }
 
-    public incrementSpinIndex(){
+    public incrementSpinIndex() {
         this.spinIndex++;
-        return this.spinIndex
+        return this.spinIndex;
     }
 
-    public async setupCollect(){
+    public async setupCollect() {
         //
         const collectResponse = await GameServices.collect();
         this.spinIndex = collectResponse.index;
         this.balance = collectResponse.balance;
     }
-
 }
 
 /** Shared user settings instance */

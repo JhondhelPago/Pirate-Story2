@@ -18,23 +18,19 @@ const defaultBuyFeatureBetMultiplier: number = 100;
 //     // { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
 // ];
 
-const bonusBlocks: Block[] = [
-    { type: 11,  symbol: 'symbol-coin', name: 'Coin' },
-]
+const bonusBlocks: Block[] = [{ type: 11, symbol: 'symbol-coin', name: 'Coin' }];
 
-const wildBlocks: Block[] = [
-    { type: 12, symbol: 'symbol-treasure', name: 'Treasure' },
-]
+const wildBlocks: Block[] = [{ type: 12, symbol: 'symbol-treasure', name: 'Treasure' }];
 
-const defaultBlocks = [1, 2,3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const defaultBlocks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const specialBlocks = [11, 12];
 
 const defaultPaytable: Paytable[] = [
     {
         type: 1,
         patterns: [
-            { min: 5, max: 6, multiplier: .25 },
-            { min: 7, max: 8, multiplier: .5 },
+            { min: 5, max: 6, multiplier: 0.25 },
+            { min: 7, max: 8, multiplier: 0.5 },
             { min: 9, max: 11, multiplier: 1 },
             { min: 12, max: 14, multiplier: 1.75 },
             { min: 15, max: 19, multiplier: 2.5 },
@@ -44,8 +40,8 @@ const defaultPaytable: Paytable[] = [
     {
         type: 2,
         patterns: [
-            { min: 5, max: 6, multiplier: .25 },
-            { min: 7, max: 8, multiplier: .5 },
+            { min: 5, max: 6, multiplier: 0.25 },
+            { min: 7, max: 8, multiplier: 0.5 },
             { min: 9, max: 11, multiplier: 1 },
             { min: 12, max: 14, multiplier: 1.5 },
             { min: 15, max: 19, multiplier: 2.5 },
@@ -55,8 +51,8 @@ const defaultPaytable: Paytable[] = [
     {
         type: 3,
         patterns: [
-            { min: 5, max: 6, multiplier: .5 },
-            { min: 7, max: 8, multiplier: .75 },
+            { min: 5, max: 6, multiplier: 0.5 },
+            { min: 7, max: 8, multiplier: 0.75 },
             { min: 9, max: 11, multiplier: 1.5 },
             { min: 12, max: 14, multiplier: 2.25 },
             { min: 15, max: 19, multiplier: 3 },
@@ -66,8 +62,8 @@ const defaultPaytable: Paytable[] = [
     {
         type: 4,
         patterns: [
-            { min: 5, max: 6, multiplier: .5 },
-            { min: 7, max: 8, multiplier: .75 },
+            { min: 5, max: 6, multiplier: 0.5 },
+            { min: 7, max: 8, multiplier: 0.75 },
             { min: 9, max: 11, multiplier: 1.5 },
             { min: 12, max: 14, multiplier: 2.25 },
             { min: 15, max: 19, multiplier: 3 },
@@ -77,7 +73,7 @@ const defaultPaytable: Paytable[] = [
     {
         type: 5,
         patterns: [
-            { min: 5, max: 6, multiplier: .75 },
+            { min: 5, max: 6, multiplier: 0.75 },
             { min: 7, max: 8, multiplier: 1 },
             { min: 9, max: 11, multiplier: 2 },
             { min: 12, max: 14, multiplier: 3 },
@@ -162,7 +158,7 @@ class GameConfig {
         this.blocks = blocks;
     }
 
-    setSpecialBlocks(blocks: number[]){
+    setSpecialBlocks(blocks: number[]) {
         this.specialBlocks = blocks;
     }
 

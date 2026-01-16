@@ -1,5 +1,5 @@
-import { Container, Text } from "pixi.js";
-import { MatchPattern } from "./MatchPattern";
+import { Container, Text } from 'pixi.js';
+import { MatchPattern } from './MatchPattern';
 
 export interface WinMatchPattern {
     times: number;
@@ -67,11 +67,11 @@ export class MessagePanel extends Container {
            TITLE TEXT
         =============================== */
         this.titleText = new Text({
-            text: "",
+            text: '',
             style: {
                 fontSize: 64,
                 fill: this.TEXT_COLOR,
-                fontWeight: "bold",
+                fontWeight: 'bold',
             },
         });
         this.titleText.anchor.set(0.5, 0.75);
@@ -87,11 +87,11 @@ export class MessagePanel extends Container {
            MESSAGE TEXT
         =============================== */
         this.messageText = new Text({
-            text: "",
+            text: '',
             style: {
                 fontSize: 64,
                 fill: this.TEXT_COLOR,
-                fontWeight: "bold",
+                fontWeight: 'bold',
                 letterSpacing: 1,
             },
         });
@@ -126,8 +126,7 @@ export class MessagePanel extends Container {
         this.messageText.y = localH * 0.5;
 
         this.matchPattern.x = localW * 0.5 - this.matchPattern.width * 0.5;
-        this.matchPattern.y =
-            localH - this.matchPattern.height - 20 + this.matchMessageYOffset;
+        this.matchPattern.y = localH - this.matchPattern.height - 20 + this.matchMessageYOffset;
 
         this.applyFontSizes();
         this.applyTextColors();
@@ -154,7 +153,7 @@ export class MessagePanel extends Container {
     }
 
     public clearTitle() {
-        this.titleText.text = "";
+        this.titleText.text = '';
         this.titleText.visible = false;
     }
 
@@ -172,7 +171,7 @@ export class MessagePanel extends Container {
     }
 
     public clearMessage() {
-        this.messageText.text = "";
+        this.messageText.text = '';
         this.messageText.visible = false;
     }
 
@@ -202,16 +201,10 @@ export class MessagePanel extends Container {
         for (const pattern of this.winMatchPatterns) {
             if (this.shouldStopMatches) break;
 
-            this.matchPattern.setup(
-                pattern.times,
-                `symbol-${pattern.type}`,
-                pattern.amount,
-                pattern.currency
-            );
+            this.matchPattern.setup(pattern.times, `symbol-${pattern.type}`, pattern.amount, pattern.currency);
 
             this.matchPattern.x = localW * 0.5 - this.matchPattern.width * 0.5;
-            this.matchPattern.y =
-                localH - this.matchPattern.height - 20 + this.matchMessageYOffset;
+            this.matchPattern.y = localH - this.matchPattern.height - 20 + this.matchMessageYOffset;
 
             this.messageText.alpha = 0;
 
@@ -226,7 +219,6 @@ export class MessagePanel extends Container {
         this.winMatchPatterns = [];
         this.shouldStopMatches = false;
     }
-
 
     public stopMatchMessages() {
         this.shouldStopMatches = true;

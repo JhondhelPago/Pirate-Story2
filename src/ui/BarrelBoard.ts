@@ -61,7 +61,7 @@ export class BarrelBoard extends Container {
 
         // If texture exists → scale sprite
         if (this.bgSprite) {
-            this.bgSprite.width = width + 560;  // padding
+            this.bgSprite.width = width + 560; // padding
             this.bgSprite.height = height + 110;
             this.bgSprite.visible = true;
         } else {

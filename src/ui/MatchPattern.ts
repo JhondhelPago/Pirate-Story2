@@ -41,7 +41,7 @@ export class MatchPattern extends Container {
         this.layout.addChild(this.xTimes);
 
         this.image = Sprite.from(opts.image);
-        this.image.scale.set(0.30);
+        this.image.scale.set(0.3);
         this.image.anchor.y = 0;
         this.layout.addChild(this.image);
 

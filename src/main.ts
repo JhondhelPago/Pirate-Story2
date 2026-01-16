@@ -82,7 +82,6 @@ function visibilityChange() {
     }
 }
 
-
 async function setupUserSettings() {
     await userSettings.setupCollect();
 }
@@ -90,7 +89,7 @@ async function setupUserSettings() {
 // async function loadGameConfig() {
 
 //     await setupUserSettings();
-    
+
 //     // const result = await ConfigAPI.config();
 
 //     // Game configuration from server
@@ -108,18 +107,13 @@ async function preloadFonts() {
     const docFonts = (document as any).fonts;
 
     // Load fonts explicitly
-    await Promise.all([
-        docFonts.load('18px "Nunito"'),
-        docFonts.load('18px "Bangers"'),
-    ]);
+    await Promise.all([docFonts.load('18px "Nunito"'), docFonts.load('18px "Bangers"')]);
 
     // Wait until ALL fonts are fully ready
     await docFonts.ready;
 
     console.log('Fonts fully loaded (Nunito + Bangers)');
 }
-
-
 
 /** Setup app and initialise assets */
 async function init() {
@@ -135,7 +129,6 @@ async function init() {
     } else {
         document.documentElement.id = 'isDesktop';
     }
-
 
     // Initialize app
     await app.init({

@@ -11,7 +11,7 @@ interface AppScreen extends Container {
     hide?(): Promise<void>;
     /** Pause the screen */
     pause?(): Promise<void>;
-    /** Resume the screen */ 
+    /** Resume the screen */
     resume?(): Promise<void>;
     /** Prepare screen, before showing */
     prepare?(data?: any): void;

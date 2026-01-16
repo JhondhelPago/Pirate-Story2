@@ -21,9 +21,9 @@ export type Match3GlobalPosition = { x: number; y: number };
 /** Orientation for match checks */
 export type Match3Orientation = 'horizontal' | 'vertical';
 
-// multiplier 
+// multiplier
 export const multiplierValues = [2, 3, 5];
-export type MultipliersValues = typeof multiplierValues[number];
+export type MultipliersValues = (typeof multiplierValues)[number];
 
 export type RoundResult = {
     type: number;
@@ -120,7 +120,6 @@ export function match3GetRandomType(types: Match3Type[], exclude?: Match3Type[])
     return list[index];
 }
 
-
 /**
  * Set the piece type in the grid, by position
  * @param grid The grid to be changed
@@ -166,8 +165,6 @@ export function match3ForEach(grid: Match3Grid, fn: (position: Match3Position, t
     }
 }
 
-
-
 /**
  * Convert grid to a visual string representation, useful for debugging
  * @param grid The grid to be converted
@@ -181,7 +178,6 @@ export function match3GridToString(grid: Match3Grid) {
     }
     return lines.join('\n');
 }
-
 
 /**
  * Filter out repeated positions from position list
@@ -223,10 +219,9 @@ export function match3StringToPosition(str: string) {
 }
 
 export function getRandomMultiplier(): MultipliersValues {
-  const index = Math.floor(Math.random() * multiplierValues.length);
-  return multiplierValues[index];
+    const index = Math.floor(Math.random() * multiplierValues.length);
+    return multiplierValues[index];
 }
-
 
 // ======================================================
 //  PIRATE STORY PATTERN RECOGNITION + MULTIPLIER SYSTEM
@@ -242,7 +237,7 @@ export const SCATTERBONUS = 11;
 type ClusterWinResult = {
     type: number;
     count: number;
-    multiplier: number;  
+    multiplier: number;
     positions: Match3Position[];
 };
 
@@ -256,9 +251,8 @@ function floodFillCluster(
     grid: Match3Grid,
     start: Match3Position,
     baseType: number,
-    localVisited: boolean[][]
+    localVisited: boolean[][],
 ): Match3Position[] {
-
     const stack = [start];
     const region: Match3Position[] = [];
 
@@ -283,8 +277,7 @@ function floodFillCluster(
             const nr = row + d.r;
             const nc = column + d.c;
 
-            if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid[0].length)
-                continue;
+            if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid[0].length) continue;
 
             const nt = grid[nr][nc];
 
@@ -303,12 +296,11 @@ function floodFillCluster(
  * Detect all clusters ≥5 based on connectivity
  */
 export function slotGetClusters(grid: Match3Grid) {
-    const processed: boolean[][] = grid.map(r => r.map(() => false));
+    const processed: boolean[][] = grid.map((r) => r.map(() => false));
     const clusters: { type: number; positions: Match3Position[] }[] = [];
 
     for (let r = 0; r < grid.length; r++) {
         for (let c = 0; c < grid[r].length; c++) {
-
             if (processed[r][c]) continue;
 
             const baseType = grid[r][c];
@@ -319,14 +311,9 @@ export function slotGetClusters(grid: Match3Grid) {
                 continue;
             }
 
-            const localVisited = grid.map(row => row.map(() => false));
+            const localVisited = grid.map((row) => row.map(() => false));
 
-            const region = floodFillCluster(
-                grid,
-                { row: r, column: c },
-                baseType,
-                localVisited
-            );
+            const region = floodFillCluster(grid, { row: r, column: c }, baseType, localVisited);
 
             let real = 0;
             let wild = 0;
@@ -356,10 +343,7 @@ export function slotGetClusters(grid: Match3Grid) {
 /**
  * Evaluate wins INCLUDING wild multipliers.
  */
-export function slotEvaluateClusterWins(
-    grid: Match3Grid,
-    bonusGrid: number[][]
-) {
+export function slotEvaluateClusterWins(grid: Match3Grid, bonusGrid: number[][]) {
     console.log(bonusGrid);
 
     const clusters = slotGetClusters(grid);
@@ -369,14 +353,12 @@ export function slotEvaluateClusterWins(
     const results: ClusterWinResult[] = [];
 
     for (const cluster of clusters) {
-        const entry = paytable.find(p => p.type === cluster.type);
+        const entry = paytable.find((p) => p.type === cluster.type);
         if (!entry) continue;
 
         const count = cluster.positions.length;
 
-        const pattern = entry.patterns.find(
-            p => count >= p.min && count <= p.max
-        );
+        const pattern = entry.patterns.find((p) => count >= p.min && count <= p.max);
         if (!pattern) continue;
 
         let wildBonus = 0;
@@ -404,27 +386,21 @@ export function slotEvaluateClusterWins(
     return results;
 }
 
-
-export function calculateTotalWin(
-    results: ClusterWinResult[],
-    betAmount: number
-): number {
+export function calculateTotalWin(results: ClusterWinResult[], betAmount: number): number {
     const paytable: PaytableLedger[] = config.settings.paytables;
     let totalWin = 0;
-    
-    results.forEach(r => {
-        const payLedger = paytable.find(p => p.type === r.type);
+
+    results.forEach((r) => {
+        const payLedger = paytable.find((p) => p.type === r.type);
         if (!payLedger) return;
-        
-        const payMatrix = payLedger.patterns.find(
-            p => r.count >= p.min && r.count <= p.max
-        );
+
+        const payMatrix = payLedger.patterns.find((p) => r.count >= p.min && r.count <= p.max);
         if (!payMatrix) return;
-        
-        const singleWin = (betAmount * payMatrix.multiplier) * r.multiplier; // (bet * equivalent multiplier) * TotalWildMultiplier
+
+        const singleWin = betAmount * payMatrix.multiplier * r.multiplier; // (bet * equivalent multiplier) * TotalWildMultiplier
         totalWin += singleWin;
     });
-    
+
     return totalWin;
 }
 
@@ -433,9 +409,7 @@ export type ScatterResult = {
     positions: Match3Position[];
 };
 
-export function countScatterBonus(
-    grid: number[][]
-): ScatterResult {
+export function countScatterBonus(grid: number[][]): ScatterResult {
     let count = 0;
     const positions: Match3Position[] = [];
 
@@ -453,19 +427,17 @@ export function countScatterBonus(
 
 /**
  * Flattens cluster win results into a single list of unique positions.
- * 
+ *
  * @param clusters Array of cluster result objects with `positions`
  * @returns Array<{ row: number, column: number }>
  */
-export function flattenClusterPositions(
-    clusters: { positions: { row: number, column: number }[] }[]
-) {
+export function flattenClusterPositions(clusters: { positions: { row: number; column: number }[] }[]) {
     const seen = new Set<string>();
-    const result: { row: number, column: number }[] = [];
+    const result: { row: number; column: number }[] = [];
 
     for (const cluster of clusters) {
         for (const pos of cluster.positions) {
-            const key = pos.row + "-" + pos.column;
+            const key = pos.row + '-' + pos.column;
 
             if (!seen.has(key)) {
                 seen.add(key);
@@ -477,42 +449,37 @@ export function flattenClusterPositions(
     return result;
 }
 
-
 //  PIRATE GRID UTILITIES
 export function mergeNonZero(current: number[][], incoming: number[][]): number[][] {
-  const rows = Math.max(current.length, incoming.length);
-  const result: number[][] = [];
+    const rows = Math.max(current.length, incoming.length);
+    const result: number[][] = [];
 
-  for (let r = 0; r < rows; r++) {
-    const curRow = current[r] ?? [];
-    const inRow = incoming[r] ?? [];
+    for (let r = 0; r < rows; r++) {
+        const curRow = current[r] ?? [];
+        const inRow = incoming[r] ?? [];
 
-    const cols = Math.max(curRow.length, inRow.length);
-    const newRow: number[] = [];
+        const cols = Math.max(curRow.length, inRow.length);
+        const newRow: number[] = [];
 
-    for (let c = 0; c < cols; c++) {
-      const cur = curRow[c] ?? 0;
-      const inc = inRow[c] ?? 0;
+        for (let c = 0; c < cols; c++) {
+            const cur = curRow[c] ?? 0;
+            const inc = inRow[c] ?? 0;
 
-      // ✅ treat 1 like "empty" so we can overwrite it
-      if ((cur === 0 || cur === 1) && inc !== 0) {
-        newRow[c] = inc;
-      } else {
-        newRow[c] = cur;
-      }
+            // ✅ treat 1 like "empty" so we can overwrite it
+            if ((cur === 0 || cur === 1) && inc !== 0) {
+                newRow[c] = inc;
+            } else {
+                newRow[c] = cur;
+            }
+        }
+
+        result[r] = newRow;
     }
 
-    result[r] = newRow;
-  }
-
-  return result;
+    return result;
 }
 
-
-export function mergeWildType(
-    current: number[][],
-    incoming: number[][]
-): number[][] {
+export function mergeWildType(current: number[][], incoming: number[][]): number[][] {
     const rows = Math.max(current.length, incoming.length);
     const result: number[][] = [];
 
@@ -546,10 +513,7 @@ export function mergeWildType(
     return result;
 }
 
-export function mergeReels(
-    current: number[][],
-    incoming: number[][]
-): number[][] {
+export function mergeReels(current: number[][], incoming: number[][]): number[][] {
     const rows = Math.max(current.length, incoming.length);
     const result: number[][] = [];
 
@@ -578,60 +542,49 @@ export function mergeReels(
     return result;
 }
 
-export function gridZeroReset(){
+export function gridZeroReset() {
     return Array.from({ length: 5 }, () => Array(5).fill(0));
 }
 
-export function gridRandomTypeReset(){
-    return Array.from({ length: 5 }, () =>
-        Array.from({ length: 5 }, () => Math.floor(Math.random() * 10) + 1)
-    );
+export function gridRandomTypeReset() {
+    return Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => Math.floor(Math.random() * 10) + 1));
 }
-
 
 export function initGrid<T>(rows: number, cols: number, fill: T): T[][] {
     return Array.from({ length: rows }, () => Array(cols).fill(fill));
 }
 
-export function forEachCell(
-    rows: number,
-    cols: number,
-    fn: (r: number, c: number) => void
-) {
+export function forEachCell(rows: number, cols: number, fn: (r: number, c: number) => void) {
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) fn(r, c);
     }
 }
 
 export function sleep(ms: number) {
-    return new Promise<void>(resolve => setTimeout(resolve, ms));
+    return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-export function isMaxWin(win: number) { // boolean checker for max win
-    const bet  = userSettings.getBet();
+export function isMaxWin(win: number) {
+    // boolean checker for max win
+    const bet = userSettings.getBet();
     const limit = bet * config.settings.maxBaseMultiplier;
     return win >= limit ? true : false;
 }
 
-export function getmaxWin(){
-    const bet  = userSettings.getBet();
+export function getmaxWin() {
+    const bet = userSettings.getBet();
     return bet * config.settings.maxBaseMultiplier;
 }
 
-export function getPatternByCount(
-    type: number,
-    count: number
-): PatternSettings {
+export function getPatternByCount(type: number, count: number): PatternSettings {
     const paytables: PaytableLedger[] = config.settings.paytables;
 
-    const ledger = paytables.find(pt => pt.type === type);
+    const ledger = paytables.find((pt) => pt.type === type);
     if (!ledger) {
         throw new Error(`Paytable type ${type} not found`);
     }
 
-    const pattern = ledger.patterns.find(
-        p => count >= p.min && count <= p.max
-    );
+    const pattern = ledger.patterns.find((p) => count >= p.min && count <= p.max);
 
     if (!pattern) {
         throw new Error(`No pattern found for count ${count}`);
@@ -639,4 +592,3 @@ export function getPatternByCount(
 
     return pattern;
 }
-

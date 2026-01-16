@@ -37,7 +37,6 @@ export class LoadScreen extends Container {
             sfx.setVolume(1);
             navigation.showScreen(PreviewScreen);
         });
-        
 
         this.noButton = new IconButton({
             icon: 'cancel-button',

@@ -5,8 +5,8 @@ import { navigation } from '../utils/navigation';
 import { BuyFreeSpinPopup } from '../popups/BuyFreeSpinPopup';
 
 export class BuyFreeSpin extends Container {
-    private floatWrapper: Container;   // NEW LAYER
-    private container: Container;      // Your original container
+    private floatWrapper: Container; // NEW LAYER
+    private container: Container; // Your original container
     private button: Sprite;
 
     private floatTimeline?: gsap.core.Timeline;
@@ -49,8 +49,8 @@ export class BuyFreeSpin extends Container {
 
             navigation.presentPopup(BuyFreeSpinPopup, {
                 onSelect: (value: number) => {
-                    console.log("Selected Buy Free Spins:", value);
-                }
+                    console.log('Selected Buy Free Spins:', value);
+                },
             });
         });
     }
@@ -144,7 +144,7 @@ export class BuyFreeSpin extends Container {
         this.floatTimeline.to(this.floatWrapper, {
             y: -10,
             duration: 1.6,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 

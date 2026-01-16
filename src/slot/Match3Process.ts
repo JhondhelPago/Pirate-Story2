@@ -1,8 +1,8 @@
-import { BetAPI } from "../api/betApi";
-import { AsyncQueue } from "../utils/asyncUtils";
-import { Match3 } from "./Match3";
-import { userSettings, config, FreeSpinSetting, features } from "../utils/userSettings";
-import { ConfigAPI } from "../api/configApi";
+import { BetAPI } from '../api/betApi';
+import { AsyncQueue } from '../utils/asyncUtils';
+import { Match3 } from './Match3';
+import { userSettings, config, FreeSpinSetting, features } from '../utils/userSettings';
+import { ConfigAPI } from '../api/configApi';
 import {
     RoundResult,
     slotEvaluateClusterWins,
@@ -14,9 +14,9 @@ import {
     gridZeroReset,
     countScatterBonus,
     getmaxWin,
-} from "./SlotUtility";
-import { userStats } from "../utils/userStats";
-import { GameServices } from "../api/services";
+} from './SlotUtility';
+import { userStats } from '../utils/userStats';
+import { GameServices } from '../api/services';
 
 export interface BackendSpinResult {
     reels: number[][];
@@ -68,7 +68,7 @@ export class Match3Process {
     }
 
     protected async fetchBackendSpin(): Promise<BackendSpinResult> {
-        return BetAPI.spin("n");
+        return BetAPI.spin('n');
     }
 
     public isProcessing() {
@@ -186,13 +186,13 @@ export class Match3Process {
             betweenNoWinMs: 2300,
         };
 
-        if (mode === "quick-spin") {
+        if (mode === 'quick-spin') {
             delays = {
                 minSpinMs: 600,
                 betweenWinMs: 3500,
                 betweenNoWinMs: 2000,
             };
-        } else if (mode === "turbo-spin") {
+        } else if (mode === 'turbo-spin') {
             delays = {
                 minSpinMs: 400,
                 betweenWinMs: 1500,
@@ -241,7 +241,7 @@ export class Match3Process {
     public async start() {
         if (this.processing) return;
 
-        console.log("current code: ", this.featureCode);
+        console.log('current code: ', this.featureCode);
 
         //update the user balance here to sync with the credit value of the control panel
         userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
@@ -263,8 +263,7 @@ export class Match3Process {
 
         // Fetch backend + dynamic delay based on spinMode
         const backendPromise = this.fetchBackendSpin();
-        const delayPromise =
-            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+        const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         const result = await backendPromise;
 
@@ -298,7 +297,7 @@ export class Match3Process {
         this.match3.board.clearWildLayerAndMultipliers();
 
         // Turbo post-spin delay (only turbo does this in your base)
-        if (mode === "turbo-spin") {
+        if (mode === 'turbo-spin') {
             const afterMs = this.roundWin > 0 ? betweenWinMs : betweenNoWinMs;
             if (afterMs > 0) {
                 await this.pauseAwareDelay(afterMs, token);
@@ -313,7 +312,6 @@ export class Match3Process {
         await this.match3.onProcessComplete?.();
     }
 
-   
     public async runProcessRound(): Promise<void> {
         this.round++;
 
@@ -338,12 +336,13 @@ export class Match3Process {
         this.bonusReels = gridZeroReset();
     }
 
-    public rewardBonusCheckpoint() { 
+    public rewardBonusCheckpoint() {
         const freeSpins = config.settings.features;
         const minBonusCount = Math.min(...freeSpins.map((item: features) => item.scatters));
-        if (this.bonus >= minBonusCount){ // will get 2x bet reward if there is valid bonus appearance
-            const bonusReward =  userSettings.getBet() * 2;
-            console.log("check bonusReward in rewardBonusCheckpoint: ", bonusReward);
+        if (this.bonus >= minBonusCount) {
+            // will get 2x bet reward if there is valid bonus appearance
+            const bonusReward = userSettings.getBet() * 2;
+            console.log('check bonusReward in rewardBonusCheckpoint: ', bonusReward);
             return bonusReward;
         }
 
@@ -387,7 +386,7 @@ export class Match3Process {
 
     public setRoundWin() {
         const bet = userSettings.getBet();
-        const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint();  // express as total wins + reward if there is
+        const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint(); // express as total wins + reward if there is
         this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
         userSettings.setBalance(userSettings.getBalance() + this.roundWin);
     }
@@ -414,8 +413,7 @@ export class Match3Process {
         return spins;
     }
 
-    public setFeatureCode(code: number){
+    public setFeatureCode(code: number) {
         this.featureCode = code;
     }
-
 }

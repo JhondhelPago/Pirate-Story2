@@ -1,19 +1,12 @@
-import {
-    Container,
-    Sprite,
-    Texture,
-    Text,
-    Matrix,
-    type TextStyle,
-} from "pixi.js";
-import gsap from "gsap";
-import { navigation } from "../utils/navigation";
-import { bgm, sfx } from "../utils/audio";
+import { Container, Sprite, Texture, Text, Matrix, type TextStyle } from 'pixi.js';
+import gsap from 'gsap';
+import { navigation } from '../utils/navigation';
+import { bgm, sfx } from '../utils/audio';
 
 export class TotalWinBanner extends Container {
     public static currentInstance: TotalWinBanner | null = null;
 
-    private static readonly BANNER_BOARD_TEX = "freeSpinTotalWinBoard";
+    private static readonly BANNER_BOARD_TEX = 'freeSpinTotalWinBoard';
 
     private bg: Sprite;
     private panel: Container;
@@ -98,17 +91,17 @@ export class TotalWinBanner extends Container {
 
         TotalWinBanner.currentInstance = this;
 
-        this.eventMode = "static";
+        this.eventMode = 'static';
         this.interactiveChildren = true;
 
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
-        this.bg.eventMode = "static";
+        this.bg.eventMode = 'static';
         this.addChild(this.bg);
 
         // Close when clicking anywhere
-        this.on("pointertap", () => {
+        this.on('pointertap', () => {
             if (!this.canClickAnywhere) return;
             void this.hide();
         });
@@ -171,7 +164,7 @@ export class TotalWinBanner extends Container {
         this.killBgmTweensOnly();
 
         // capture close callback
-        const userOnClosed = typeof anyData?.onClosed === "function" ? anyData.onClosed : undefined;
+        const userOnClosed = typeof anyData?.onClosed === 'function' ? anyData.onClosed : undefined;
 
         // wrap onClosed to always restore bgm like SpinRoundBanner
         this.onClosed = async () => {
@@ -180,32 +173,32 @@ export class TotalWinBanner extends Container {
             try {
                 await userOnClosed?.();
             } catch (e) {
-                console.warn("[TotalWinBanner] onClosed error:", e);
+                console.warn('[TotalWinBanner] onClosed error:', e);
             }
         };
         this.closedOnce = false;
 
-        const win = typeof anyData?.win === "number" ? anyData.win : 0;
-        const spins = typeof anyData?.spins === "number" ? anyData.spins : 0;
+        const win = typeof anyData?.win === 'number' ? anyData.win : 0;
+        const spins = typeof anyData?.spins === 'number' ? anyData.spins : 0;
         this.freeSpins = spins;
         this.targetDisplayValue = win;
 
         // auto-close options
-        this.autoClose = typeof anyData?.autoClose === "boolean" ? anyData.autoClose : false;
-        this.autoCloseDuration = typeof anyData?.duration === "number" ? anyData.duration : 0;
+        this.autoClose = typeof anyData?.autoClose === 'boolean' ? anyData.autoClose : false;
+        this.autoCloseDuration = typeof anyData?.duration === 'number' ? anyData.duration : 0;
 
         // reset interaction gate
         this.canClickAnywhere = false;
 
         // Ensure fonts are loaded before measuring Text heights
-        await this.waitForFonts(["Bangers", "Pirata One"]);
+        await this.waitForFonts(['Bangers', 'Pirata One']);
 
         // ✅ duck BGM while banner audio plays
         this.duckBgmVolume();
 
         // ✅ attach window/tab listeners while banner alive
-        document.addEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.addEventListener("blur", this.onWindowBlurBound);
+        document.addEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.addEventListener('blur', this.onWindowBlurBound);
 
         this.createBanner();
         this.createGlow();
@@ -220,8 +213,8 @@ export class TotalWinBanner extends Container {
         setTimeout(() => this.animateAmount(), 500);
 
         // attach keyboard listener once
-        if (!this.keyListenerAdded && typeof window !== "undefined") {
-            window.addEventListener("keydown", this.keyDownHandler);
+        if (!this.keyListenerAdded && typeof window !== 'undefined') {
+            window.addEventListener('keydown', this.keyDownHandler);
             this.keyListenerAdded = true;
         }
 
@@ -251,11 +244,15 @@ export class TotalWinBanner extends Container {
     // ==================================================
     private killBgmTweensOnly() {
         if (this.bgmDuckTween) {
-            try { this.bgmDuckTween.kill(); } catch {}
+            try {
+                this.bgmDuckTween.kill();
+            } catch {}
             this.bgmDuckTween = undefined;
         }
         if (this.bgmRestoreTween) {
-            try { this.bgmRestoreTween.kill(); } catch {}
+            try {
+                this.bgmRestoreTween.kill();
+            } catch {}
             this.bgmRestoreTween = undefined;
         }
     }
@@ -270,7 +267,7 @@ export class TotalWinBanner extends Container {
         this.bgmDuckTween = gsap.to(music, {
             volume: bgm.getVolume() * 0.3,
             duration: 0.2,
-            ease: "linear",
+            ease: 'linear',
             onComplete: () => {
                 this.bgmDuckTween = undefined;
             },
@@ -287,7 +284,7 @@ export class TotalWinBanner extends Container {
         this.bgmRestoreTween = gsap.to(music, {
             volume: bgm.getVolume(),
             duration: 0.1,
-            ease: "linear",
+            ease: 'linear',
             onComplete: () => {
                 this.bgmRestoreTween = undefined;
             },
@@ -327,7 +324,7 @@ export class TotalWinBanner extends Container {
         this.glowA = undefined;
         this.glowB = undefined;
 
-        const glowTexture = Texture.from("glow");
+        const glowTexture = Texture.from('glow');
 
         const makeGlow = () => {
             const s = new Sprite(glowTexture);
@@ -388,7 +385,7 @@ export class TotalWinBanner extends Container {
         this.glowEntranceTween = gsap.to([gA, gB], {
             alpha: 0.85,
             duration: 0.25,
-            ease: "power2.out",
+            ease: 'power2.out',
             onComplete: () => {
                 this.glowEntranceTween = undefined;
                 this.animateGlowIdle();
@@ -417,9 +414,9 @@ export class TotalWinBanner extends Container {
             const d3 = totalDuration * 0.33;
 
             const tl = gsap.timeline({ repeat: -1 });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: "sine.inOut" });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: 'sine.inOut' });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: 'sine.inOut' });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: 'sine.inOut' });
             return tl;
         };
 
@@ -441,7 +438,7 @@ export class TotalWinBanner extends Container {
                 duration: 1.8,
                 repeat: -1,
                 yoyo: true,
-                ease: "sine.inOut",
+                ease: 'sine.inOut',
                 onUpdate: function () {
                     const t = (this.targets()[0] as any).t as number;
                     gA.alpha = A_MAX + (A_MIN - A_MAX) * t;
@@ -456,7 +453,7 @@ export class TotalWinBanner extends Container {
             duration: 2.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
 
         gsap.to(gB.scale, {
@@ -465,7 +462,7 @@ export class TotalWinBanner extends Container {
             duration: 2.6,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
@@ -495,16 +492,16 @@ export class TotalWinBanner extends Container {
         if (this.headerLine1) this.headerLine1.destroy();
         if (this.headerLine2) this.headerLine2.destroy();
 
-        this.headerLine1 = new Text("CONGRATULATIONS!", {
+        this.headerLine1 = new Text('CONGRATULATIONS!', {
             ...this.createHeaderGradientStyle(110),
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             letterSpacing: 6,
         });
         this.headerLine1.anchor.set(0.5);
 
-        this.headerLine2 = new Text("YOU HAVE WON", {
+        this.headerLine2 = new Text('YOU HAVE WON', {
             ...this.createSubHeaderGradientStyle(64),
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             letterSpacing: 4,
         });
         this.headerLine2.anchor.set(0.5);
@@ -529,11 +526,7 @@ export class TotalWinBanner extends Container {
         const gap = this.HEADER_LINE_GAP;
 
         this.headerLine2.x = 0;
-        this.headerLine2.y =
-            this.headerLine1.height * 0.5 +
-            gap +
-            this.headerLine2.height * 0.5 -
-            20;
+        this.headerLine2.y = this.headerLine1.height * 0.5 + gap + this.headerLine2.height * 0.5 - 20;
     }
 
     // ==================================================
@@ -545,7 +538,7 @@ export class TotalWinBanner extends Container {
             this.amountText.destroy();
         }
 
-        this.amountText = new Text("$0.00", this.createAmountGradientStyle(150));
+        this.amountText = new Text('$0.00', this.createAmountGradientStyle(150));
         this.amountText.anchor.set(0.5);
         this.amountText.x = 0;
         this.amountText.y = this.AMOUNT_OFFSET_Y;
@@ -562,11 +555,11 @@ export class TotalWinBanner extends Container {
             this.spinsText.destroy();
         }
 
-        const text = this.freeSpins > 0 ? `IN ${this.freeSpins} FREE SPINS` : "";
+        const text = this.freeSpins > 0 ? `IN ${this.freeSpins} FREE SPINS` : '';
 
         this.spinsText = new Text(text, {
             ...this.createSubHeaderGradientStyle(64),
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             letterSpacing: 4,
         });
         this.spinsText.anchor.set(0.5);
@@ -585,9 +578,9 @@ export class TotalWinBanner extends Container {
             this.continueText.destroy();
         }
 
-        this.continueText = new Text("PRESS ANYWHERE TO CONTINUE", {
+        this.continueText = new Text('PRESS ANYWHERE TO CONTINUE', {
             ...this.createSubHeaderGradientStyle(48),
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             letterSpacing: 4,
         });
         this.continueText.anchor.set(0.5);
@@ -601,19 +594,19 @@ export class TotalWinBanner extends Container {
     // GRADIENT STYLES
     // ==================================================
     private createHeaderGradientStyle(fontSize: number): Partial<TextStyle> {
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 256;
 
-        const ctx = canvas.getContext("2d")!;
+        const ctx = canvas.getContext('2d')!;
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
-        gradient.addColorStop(0.0, "#ECAC18");
-        gradient.addColorStop(0.19, "#FFFFFF");
-        gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.4, "#FDD44F");
-        gradient.addColorStop(0.51, "#D79600");
-        gradient.addColorStop(1.0, "#FF7700");
+        gradient.addColorStop(0.0, '#ECAC18');
+        gradient.addColorStop(0.19, '#FFFFFF');
+        gradient.addColorStop(0.34, '#FDD44F');
+        gradient.addColorStop(0.4, '#FDD44F');
+        gradient.addColorStop(0.51, '#D79600');
+        gradient.addColorStop(1.0, '#FF7700');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -623,28 +616,28 @@ export class TotalWinBanner extends Container {
         mat.scale(1 / canvas.width, 1 / canvas.height);
 
         return {
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             fontSize,
-            align: "center",
+            align: 'center',
             fill: { texture, matrix: mat } as any,
             stroke: { color: 0x0b1d3a, width: 6 },
         };
     }
 
     private createSubHeaderGradientStyle(fontSize: number): Partial<TextStyle> {
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 256;
 
-        const ctx = canvas.getContext("2d")!;
+        const ctx = canvas.getContext('2d')!;
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
-        gradient.addColorStop(0.0, "#ECAC18");
-        gradient.addColorStop(0.19, "#FFFFFF");
-        gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.4, "#FDD44F");
-        gradient.addColorStop(0.51, "#D79600");
-        gradient.addColorStop(1.0, "#FF7700");
+        gradient.addColorStop(0.0, '#ECAC18');
+        gradient.addColorStop(0.19, '#FFFFFF');
+        gradient.addColorStop(0.34, '#FDD44F');
+        gradient.addColorStop(0.4, '#FDD44F');
+        gradient.addColorStop(0.51, '#D79600');
+        gradient.addColorStop(1.0, '#FF7700');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -654,28 +647,28 @@ export class TotalWinBanner extends Container {
         mat.scale(1 / canvas.width, 1 / canvas.height);
 
         return {
-            fontFamily: "Bangers",
+            fontFamily: 'Bangers',
             fontSize,
-            align: "center",
+            align: 'center',
             fill: { texture, matrix: mat } as any,
             stroke: { color: 0x3b1c00, width: 5 },
         };
     }
 
     private createAmountGradientStyle(fontSize: number): Partial<TextStyle> {
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 256;
 
-        const ctx = canvas.getContext("2d")!;
+        const ctx = canvas.getContext('2d')!;
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
 
-        gradient.addColorStop(0.0, "#FFF39C");
-        gradient.addColorStop(0.19, "#FFF39C");
-        gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.4, "#FDD44F");
-        gradient.addColorStop(0.51, "#FDD44F");
-        gradient.addColorStop(1.0, "#D79600");
+        gradient.addColorStop(0.0, '#FFF39C');
+        gradient.addColorStop(0.19, '#FFF39C');
+        gradient.addColorStop(0.34, '#FDD44F');
+        gradient.addColorStop(0.4, '#FDD44F');
+        gradient.addColorStop(0.51, '#FDD44F');
+        gradient.addColorStop(1.0, '#D79600');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -685,9 +678,9 @@ export class TotalWinBanner extends Container {
         mat.scale(1 / canvas.width, 1 / canvas.height);
 
         return {
-            fontFamily: "Pirata One",
+            fontFamily: 'Pirata One',
             fontSize,
-            align: "center",
+            align: 'center',
             fill: { texture, matrix: mat } as any,
             stroke: { color: 0x4c1b05, width: 6 },
         };
@@ -711,7 +704,7 @@ export class TotalWinBanner extends Container {
             duration: 1.2,
             repeat: -1,
             yoyo: true,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
 
         if (this.spinsText) {
@@ -721,7 +714,7 @@ export class TotalWinBanner extends Container {
                 duration: 1.2,
                 repeat: -1,
                 yoyo: true,
-                ease: "sine.inOut",
+                ease: 'sine.inOut',
             });
         }
 
@@ -732,7 +725,7 @@ export class TotalWinBanner extends Container {
                 duration: 1.2,
                 repeat: -1,
                 yoyo: true,
-                ease: "sine.inOut",
+                ease: 'sine.inOut',
             });
         }
     }
@@ -743,21 +736,22 @@ export class TotalWinBanner extends Container {
 
         this.currentDisplayValue = 0;
 
-        console.log("expected total win from this.targetDisplayValue: ", this.targetDisplayValue);
+        console.log('expected total win from this.targetDisplayValue: ', this.targetDisplayValue);
 
         // ✅ play banner sfx and keep instance
         this.forceStopAllBannerAudio();
         try {
-            this.sfxTotalWin = sfx.play("common/sfx-total-win.wav");
+            this.sfxTotalWin = sfx.play('common/sfx-total-win.wav');
             // this.sfxWinRise = sfx.playSegment("common/sfx-win-rise.wav", 0, 2);
-            this.sfxWinRise = this.targetDisplayValue > 0 ? sfx.playSegment("common/sfx-win-rise.wav", 0, 2, {volume: 0.5}) : null;
+            this.sfxWinRise =
+                this.targetDisplayValue > 0 ? sfx.playSegment('common/sfx-win-rise.wav', 0, 2, { volume: 0.5 }) : null;
         } catch {}
 
         // ✅ store tween reference, so it can be killed on blur/hidden/hide()
         this.amountTween = gsap.to(this, {
             currentDisplayValue: this.targetDisplayValue,
             duration: 2,
-            ease: "power2.out",
+            ease: 'power2.out',
             onUpdate: () => {
                 this.amountText.text = this.formatCurrency(this.currentDisplayValue);
             },
@@ -771,7 +765,7 @@ export class TotalWinBanner extends Container {
                         x: 1,
                         y: 1,
                         duration: 1,
-                        ease: "elastic.out(1, 0.6)",
+                        ease: 'elastic.out(1, 0.6)',
                         onComplete: () => this.animateAmountPulse(),
                     },
                 );
@@ -810,7 +804,7 @@ export class TotalWinBanner extends Container {
             duration: 1.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
@@ -873,7 +867,7 @@ export class TotalWinBanner extends Container {
             alpha: 1,
             y: bannerY,
             duration: 0.7,
-            ease: "bounce.out",
+            ease: 'bounce.out',
             onUpdate: () => {
                 this.syncGlowToBanner();
             },
@@ -888,7 +882,7 @@ export class TotalWinBanner extends Container {
             y: headerY,
             duration: 0.7,
             delay: 0.05,
-            ease: "bounce.out",
+            ease: 'bounce.out',
         });
 
         gsap.to(this.amountText, {
@@ -896,7 +890,7 @@ export class TotalWinBanner extends Container {
             y: amountY,
             duration: 0.7,
             delay: 0.1,
-            ease: "bounce.out",
+            ease: 'bounce.out',
         });
 
         if (this.spinsText) {
@@ -905,7 +899,7 @@ export class TotalWinBanner extends Container {
                 y: spinsY,
                 duration: 0.7,
                 delay: 0.125,
-                ease: "bounce.out",
+                ease: 'bounce.out',
             });
         }
 
@@ -914,12 +908,12 @@ export class TotalWinBanner extends Container {
             y: continueY,
             duration: 0.7,
             delay: 0.15,
-            ease: "bounce.out",
+            ease: 'bounce.out',
         });
     }
 
     private formatCurrency(value: number): string {
-        return "$" + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return '$' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
     public resize(width: number, height: number) {
@@ -967,7 +961,7 @@ export class TotalWinBanner extends Container {
         try {
             await cb?.();
         } catch (e) {
-            console.warn("[TotalWinBanner] onClosed error:", e);
+            console.warn('[TotalWinBanner] onClosed error:', e);
         }
     }
 
@@ -975,14 +969,14 @@ export class TotalWinBanner extends Container {
         this.canClickAnywhere = false;
 
         // ✅ detach handlers
-        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.removeEventListener("blur", this.onWindowBlurBound);
+        document.removeEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.removeEventListener('blur', this.onWindowBlurBound);
 
         // always clear auto-close timer on hide
         this.clearAutoCloseTimer();
 
-        if (this.keyListenerAdded && typeof window !== "undefined") {
-            window.removeEventListener("keydown", this.keyDownHandler);
+        if (this.keyListenerAdded && typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.keyDownHandler);
             this.keyListenerAdded = false;
         }
 
@@ -1023,7 +1017,9 @@ export class TotalWinBanner extends Container {
             TotalWinBanner.currentInstance = null;
 
             // ✅ IMPORTANT ORDER: dismiss popup first, then onClosed (prevents dismissing next popup)
-            try { await navigation.dismissPopup(); } catch {}
+            try {
+                await navigation.dismissPopup();
+            } catch {}
             this.restoreBgmVolume();
             await this.fireClosedOnce();
             return;
@@ -1037,7 +1033,9 @@ export class TotalWinBanner extends Container {
         TotalWinBanner.currentInstance = null;
 
         // ✅ IMPORTANT ORDER: dismiss popup first, then onClosed
-        try { await navigation.dismissPopup(); } catch {}
+        try {
+            await navigation.dismissPopup();
+        } catch {}
         this.restoreBgmVolume();
         await this.fireClosedOnce();
     }
@@ -1045,11 +1043,11 @@ export class TotalWinBanner extends Container {
     public override destroy(options?: any) {
         this.clearAutoCloseTimer();
 
-        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.removeEventListener("blur", this.onWindowBlurBound);
+        document.removeEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.removeEventListener('blur', this.onWindowBlurBound);
 
-        if (this.keyListenerAdded && typeof window !== "undefined") {
-            window.removeEventListener("keydown", this.keyDownHandler);
+        if (this.keyListenerAdded && typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.keyDownHandler);
             this.keyListenerAdded = false;
         }
 

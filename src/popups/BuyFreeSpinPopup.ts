@@ -1,34 +1,30 @@
-import { Container, Sprite, Texture } from "pixi.js";
-import gsap from "gsap";
-import { navigation } from "../utils/navigation";
-import { ConfirmationBuyFreeSpinPopup } from "./BuyFreeConfirmationPopup";
-import { GameScreen } from "../screens/GameScreen";
+import { Container, Sprite, Texture } from 'pixi.js';
+import gsap from 'gsap';
+import { navigation } from '../utils/navigation';
+import { ConfirmationBuyFreeSpinPopup } from './BuyFreeConfirmationPopup';
+import { GameScreen } from '../screens/GameScreen';
 
 // ✅ use already-loaded config from userSettings.ts
-import { userSettings, config as loadedConfig } from "../utils/userSettings";
+import { userSettings, config as loadedConfig } from '../utils/userSettings';
 
 // ✅ updated imports (letter type + definition)
-import {
-    BuyFreeSpinOptionBanner,
-    type BuyFreeTypeLetter,
-    type BuyFreeTypeDefinition,
-} from "../ui/FeatureBanner";
+import { BuyFreeSpinOptionBanner, type BuyFreeTypeLetter, type BuyFreeTypeDefinition } from '../ui/FeatureBanner';
 
 /* ===============================
    Currency helpers
 ================================ */
-export type CurrencyType = "US" | "KRW" | "PHP";
+export type CurrencyType = 'US' | 'KRW' | 'PHP';
 
 function getCurrencySymbol(type: CurrencyType): string {
     switch (type) {
-        case "US":
-            return "$";
-        case "KRW":
-            return "₩";
-        case "PHP":
-            return "₱";
+        case 'US':
+            return '$';
+        case 'KRW':
+            return '₩';
+        case 'PHP':
+            return '₱';
         default:
-            return "$";
+            return '$';
     }
 }
 
@@ -37,7 +33,6 @@ type BuyFeature = {
     scatters: number;
     buyFeatureBetMultiplier: number;
 };
-
 
 export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
@@ -62,56 +57,55 @@ export class BuyFreeSpinPopup extends Container {
     private currencyType!: CurrencyType;
     private currencySymbol!: string;
 
-    private static readonly PLACEHOLDER_TYPE_MAP: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition> =
-        {
-            A: { bannerTextureKey: "green-spin-banner", spins: 0, scatters: 0 },
-            B: { bannerTextureKey: "red-spin-banner", spins: 0, scatters: 0 },
-            C: { bannerTextureKey: "blue-spin-banner", spins: 0, scatters: 0 },
-        };
+    private static readonly PLACEHOLDER_TYPE_MAP: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition> = {
+        A: { bannerTextureKey: 'green-spin-banner', spins: 0, scatters: 0 },
+        B: { bannerTextureKey: 'red-spin-banner', spins: 0, scatters: 0 },
+        C: { bannerTextureKey: 'blue-spin-banner', spins: 0, scatters: 0 },
+    };
 
     constructor() {
         super();
-        this.eventMode = "static";
+        this.eventMode = 'static';
         this.interactiveChildren = true;
 
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
-        this.bg.eventMode = "static";
+        this.bg.eventMode = 'static';
         this.addChild(this.bg);
 
         this.panel = new Container();
         this.addChild(this.panel);
 
-        this.buyLabel = Sprite.from("buy-free-spin-label");
+        this.buyLabel = Sprite.from('buy-free-spin-label');
         this.buyLabel.anchor.set(0.5);
         this.panel.addChild(this.buyLabel);
 
         this.featureA = new BuyFreeSpinOptionBanner({
-            typeLetter: "A",
+            typeLetter: 'A',
             typeMap: BuyFreeSpinPopup.PLACEHOLDER_TYPE_MAP,
             amount: 0,
-            currencySymbol: "$",
+            currencySymbol: '$',
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
         });
 
         this.featureB = new BuyFreeSpinOptionBanner({
-            typeLetter: "B",
+            typeLetter: 'B',
             typeMap: BuyFreeSpinPopup.PLACEHOLDER_TYPE_MAP,
             amount: 0,
-            currencySymbol: "$",
+            currencySymbol: '$',
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
         });
 
         this.featureC = new BuyFreeSpinOptionBanner({
-            typeLetter: "C",
+            typeLetter: 'C',
             typeMap: BuyFreeSpinPopup.PLACEHOLDER_TYPE_MAP,
             amount: 0,
-            currencySymbol: "$",
+            currencySymbol: '$',
             decimals: 0,
             amountFontSize: 76,
             spinsFontSize: 140,
@@ -119,34 +113,34 @@ export class BuyFreeSpinPopup extends Container {
 
         const optionList = [this.featureA, this.featureB, this.featureC];
         for (const opt of optionList) {
-            opt.visible = false; 
+            opt.visible = false;
             this.panel.addChild(opt);
         }
 
         // ✅ ARRAY-BASED taps
-        this.featureA.setOnTap(() => this.onFeatureTap(0, "A"));
-        this.featureB.setOnTap(() => this.onFeatureTap(1, "B"));
-        this.featureC.setOnTap(() => this.onFeatureTap(2, "C"));
+        this.featureA.setOnTap(() => this.onFeatureTap(0, 'A'));
+        this.featureB.setOnTap(() => this.onFeatureTap(1, 'B'));
+        this.featureC.setOnTap(() => this.onFeatureTap(2, 'C'));
 
-        this.bg.on("pointertap", () => {
+        this.bg.on('pointertap', () => {
             if (!this.canClickAnywhere) return;
             this.hide();
         });
 
-        this.exitButton = Sprite.from("cancel-button");
+        this.exitButton = Sprite.from('cancel-button');
         this.exitButton.anchor.set(0.5);
         this.exitButton.scale.set(1.3);
-        this.exitButton.eventMode = "static";
-        this.exitButton.cursor = "pointer";
+        this.exitButton.eventMode = 'static';
+        this.exitButton.cursor = 'pointer';
         this.addChild(this.exitButton);
 
-        this.exitButton.on("pointerover", () => {
+        this.exitButton.on('pointerover', () => {
             gsap.to(this.exitButton.scale, { x: 1.1, y: 1.1, duration: 0.15 });
         });
-        this.exitButton.on("pointerout", () => {
+        this.exitButton.on('pointerout', () => {
             gsap.to(this.exitButton.scale, { x: 1, y: 1, duration: 0.15 });
         });
-        this.exitButton.on("pointertap", () => {
+        this.exitButton.on('pointertap', () => {
             gsap.to(this.exitButton.scale, {
                 x: 1.2,
                 y: 1.2,
@@ -173,22 +167,17 @@ export class BuyFreeSpinPopup extends Container {
         this.openConfirm(letter, amount, feature.spins, featureCode);
     }
 
-    private openConfirm(
-        typeLetter: BuyFreeTypeLetter,
-        amount: number,
-        spinCount: number,
-        featureCode: number
-    ) {
+    private openConfirm(typeLetter: BuyFreeTypeLetter, amount: number, spinCount: number, featureCode: number) {
         this.onSelect?.(typeLetter);
 
         navigation.presentPopup(ConfirmationBuyFreeSpinPopup, {
-            confirmationBoard: "buy-spin-confirm-board",
+            confirmationBoard: 'buy-spin-confirm-board',
             spins: spinCount,
             amount,
             currencySymbol: this.currencySymbol,
             decimals: 0,
-            confirmButton: "confirm-button",
-            cancelButton: "cancel-button",
+            confirmButton: 'confirm-button',
+            cancelButton: 'cancel-button',
             onConfirm: () => {
                 userSettings.setBalance(userSettings.getBalance() - amount);
 
@@ -207,7 +196,7 @@ export class BuyFreeSpinPopup extends Container {
             duration: 1.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
@@ -231,7 +220,7 @@ export class BuyFreeSpinPopup extends Container {
                 y: finalY,
                 duration: 0.7,
                 delay: index * 0.12,
-                ease: "bounce.out",
+                ease: 'bounce.out',
             });
         });
     }
@@ -251,24 +240,24 @@ export class BuyFreeSpinPopup extends Container {
             return;
         }
 
-        this.currencyType = (this.config.currency as CurrencyType) ?? "US";
+        this.currencyType = (this.config.currency as CurrencyType) ?? 'US';
         this.currencySymbol = getCurrencySymbol(this.currencyType);
 
         const features = this.config?.settings.features;
 
         const realTypeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition> = {
             A: {
-                bannerTextureKey: "green-spin-banner",
+                bannerTextureKey: 'green-spin-banner',
                 spins: features?.[0]?.spins ?? 0,
                 scatters: features?.[0]?.scatters ?? 0,
             },
             B: {
-                bannerTextureKey: "red-spin-banner",
+                bannerTextureKey: 'red-spin-banner',
                 spins: features?.[1]?.spins ?? 0,
                 scatters: features?.[1]?.scatters ?? 0,
             },
             C: {
-                bannerTextureKey: "blue-spin-banner",
+                bannerTextureKey: 'blue-spin-banner',
                 spins: features?.[2]?.spins ?? 0,
                 scatters: features?.[2]?.scatters ?? 0,
             },
@@ -298,11 +287,7 @@ export class BuyFreeSpinPopup extends Container {
         features.forEach((feature, index) => {
             const banner = banners[index];
 
-            banner.setAmount(
-                feature.buyFeatureBetMultiplier * bet,
-                this.currencySymbol,
-                0
-            );
+            banner.setAmount(feature.buyFeatureBetMultiplier * bet, this.currencySymbol, 0);
 
             banner.relayout();
             banner.visible = true;
@@ -322,8 +307,7 @@ export class BuyFreeSpinPopup extends Container {
             this.exitButton.x = width * 0.88;
 
             const panelGlobalY = this.panel.y;
-            const labelScreenY =
-                panelGlobalY + this.buyLabel.y * this.panel.scale.y;
+            const labelScreenY = panelGlobalY + this.buyLabel.y * this.panel.scale.y;
 
             this.exitButton.y = labelScreenY - 320;
             this.exitButton.scale.set(1.5);

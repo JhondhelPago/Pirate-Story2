@@ -26,12 +26,12 @@ export class Match3Actions {
         await this.match3.freeSpinProcess.freeSpinStart();
     }
 
-    public async actionAutoSpin(spins: number){
+    public async actionAutoSpin(spins: number) {
         this.match3.useAutoSpinProcess();
         this.match3.autoSpinProcess.setSpins(spins);
-        await this.match3.autoSpinProcess.autoSpinStart();        
+        await this.match3.autoSpinProcess.autoSpinStart();
     }
-    
+
     public setup(config: { isFreeSpin: boolean }) {
         this.freeMoves = config.isFreeSpin;
     }

@@ -1,11 +1,6 @@
 import { Container, Texture, AnimatedSprite, Text, Sprite } from 'pixi.js';
 import gsap from 'gsap';
-import {
-    resolveAndKillTweens,
-    registerCustomEase,
-    pauseTweens,
-    resumeTweens,
-} from '../utils/animation';
+import { resolveAndKillTweens, registerCustomEase, pauseTweens, resumeTweens } from '../utils/animation';
 import { Physics, Spine } from '@esotericsoftware/spine-pixi-v8';
 
 /** Default piece options */
@@ -77,7 +72,6 @@ export class SlotSymbol extends Container {
 
     public static readonly VISUAL_SCALE = 1.18; // or 1.1 etc
 
-
     constructor() {
         super();
 
@@ -107,7 +101,7 @@ export class SlotSymbol extends Container {
                 fontWeight: '800',
             },
         });
-        this.textLabel.visible = true
+        this.textLabel.visible = true;
         this.addChild(this.textLabel);
     }
 
@@ -163,7 +157,6 @@ export class SlotSymbol extends Container {
             atlas: `game/symbol-${opts.type}.atlas`,
         });
 
-
         this.spine.x = 0;
         this.spine.y = 0;
         this.spine.pivot.set(0.5);
@@ -217,12 +210,7 @@ export class SlotSymbol extends Container {
     }
 
     /** Fall to position animation */
-    public async animateFall(
-        x: number,
-        y: number,
-        onStart?: () => void,
-        onComplete?: () => void,
-    ) {
+    public async animateFall(x: number, y: number, onStart?: () => void, onComplete?: () => void) {
         this.lock();
         resolveAndKillTweens(this.position);
         const duration = 0.5;
@@ -238,11 +226,7 @@ export class SlotSymbol extends Container {
     }
 
     /** Reel spin animation — smooth scrolling with random temporary symbols */
-    public async animateColumnSpin(
-        finalX: number,
-        finalY: number,
-        spinIndex: number,
-    ): Promise<void> {
+    public async animateColumnSpin(finalX: number, finalY: number, spinIndex: number): Promise<void> {
         this.lock();
         resolveAndKillTweens(this.position);
 
@@ -330,8 +314,7 @@ export class SlotSymbol extends Container {
     /** Play animation */
     public animatePlay(loop: boolean = false): Promise<void> {
         return new Promise((resolve) => {
-            const process = (((this.parent as any)?.parent) as any)
-                ?.__match3ProcessRef;
+            const process = ((this.parent as any)?.parent as any)?.__match3ProcessRef;
 
             // Prevent infinite invalid loops
             if (loop && this._isLooping) {
@@ -615,12 +598,14 @@ export class SlotSymbol extends Container {
         // Pick correct asset based on multiplier value
         const assetName =
             this.multiplier === 2
-                ? '2XMutliplier'
+                ? '2XMultiplier'
                 : this.multiplier === 3
-                  ? '3XMutliplier'
+                  ? '3XMultiplier'
                   : this.multiplier === 5
-                    ? '5XMutliplier'
-                    : null;
+                    ? '5XMultiplier'
+                    : this.multiplier === 10
+                      ? '10XMultiplier'
+                      : null;
 
         if (!assetName) return;
 
@@ -710,11 +695,7 @@ export class SlotSymbol extends Container {
         const landShakeRepeats = 6;
 
         const isTargetAlive = () => {
-            return (
-                !!this.multiplierSprite &&
-                this.multiplierSprite === target &&
-                !target.destroyed
-            );
+            return !!this.multiplierSprite && this.multiplierSprite === target && !target.destroyed;
         };
 
         const startAirShake = () => {
@@ -761,11 +742,7 @@ export class SlotSymbol extends Container {
                     if (!isTargetAlive()) return;
                     airShakeTween = startAirShake();
                 })
-                .to(
-                    target,
-                    { y: baseY - jumpUpPx, duration: 0.18, ease: 'power2.out' },
-                    0,
-                )
+                .to(target, { y: baseY - jumpUpPx, duration: 0.18, ease: 'power2.out' }, 0)
                 .to(target, { y: baseY, duration: 0.22, ease: 'power2.in' })
                 .add(() => {
                     if (airShakeTween) {
@@ -859,7 +836,6 @@ export class SlotSymbol extends Container {
         this.type = type;
     }
 
-
     public setBonusFlag(value: boolean) {
         this.bonus = value;
         this.updateBonusSprite();
@@ -907,92 +883,91 @@ export class SlotSymbol extends Container {
         this.applyBonusEffect();
     }
 
-/** Slower zoom in/out, shake on zoom-in, with rest after zoom-out */
-private applyBonusEffect() {
-    const target = this.bonusSprite;
-    if (!target) return;
-    if (this.paused) return;
+    /** Slower zoom in/out, shake on zoom-in, with rest after zoom-out */
+    private applyBonusEffect() {
+        const target = this.bonusSprite;
+        if (!target) return;
+        if (this.paused) return;
 
-    if (this.bonusTween) {
-        this.bonusTween.kill();
-        this.bonusTween = undefined;
+        if (this.bonusTween) {
+            this.bonusTween.kill();
+            this.bonusTween = undefined;
+        }
+
+        const baseScale = 0.45;
+        const bigScale = 0.62;
+        const smallScale = 0.4;
+
+        const baseX = target.x;
+        const baseRot = target.rotation;
+
+        // Clean start
+        gsap.killTweensOf(target);
+        gsap.killTweensOf(target.scale);
+        target.scale.set(baseScale);
+        target.x = baseX;
+        target.rotation = baseRot;
+
+        const tl = gsap.timeline({ repeat: -1 });
+
+        // ─────────────────────────────────────────────
+        // ZOOM IN (slower) + SHAKE DURING ZOOM-IN
+        // ─────────────────────────────────────────────
+        tl.to(
+            target.scale,
+            {
+                x: bigScale,
+                y: bigScale,
+                duration: 0.28, // ⬅ slower zoom-in
+                ease: 'back.out(1.8)',
+            },
+            0,
+        ).to(
+            target,
+            {
+                x: baseX + 3,
+                rotation: baseRot + 0.08,
+                duration: 0.06, // ⬅ slower shake steps
+                ease: 'sine.inOut',
+                yoyo: true,
+                repeat: 4,
+            },
+            0,
+        );
+
+        // ─────────────────────────────────────────────
+        // ZOOM OUT (slower, calm)
+        // ─────────────────────────────────────────────
+        tl.to(target.scale, {
+            x: smallScale,
+            y: smallScale,
+            duration: 0.24,
+            ease: 'power2.inOut',
+        });
+
+        // Reset transforms
+        tl.to(target, {
+            x: baseX,
+            rotation: baseRot,
+            duration: 0.12,
+            ease: 'power2.out',
+        });
+
+        // Return to base size
+        tl.to(target.scale, {
+            x: baseScale,
+            y: baseScale,
+            duration: 0.16,
+            ease: 'power2.out',
+        });
+
+        // ─────────────────────────────────────────────
+        // REST / IDLE PAUSE (important!)
+        // ─────────────────────────────────────────────
+        tl.to({}, { duration: 0.6 }); // ⬅ rest time before looping again
+
+        this.bonusTween = tl;
     }
-
-    const baseScale = 0.45;
-    const bigScale = 0.62;
-    const smallScale = 0.40;
-
-    const baseX = target.x;
-    const baseRot = target.rotation;
-
-    // Clean start
-    gsap.killTweensOf(target);
-    gsap.killTweensOf(target.scale);
-    target.scale.set(baseScale);
-    target.x = baseX;
-    target.rotation = baseRot;
-
-    const tl = gsap.timeline({ repeat: -1 });
-
-    // ─────────────────────────────────────────────
-    // ZOOM IN (slower) + SHAKE DURING ZOOM-IN
-    // ─────────────────────────────────────────────
-    tl.to(
-        target.scale,
-        {
-            x: bigScale,
-            y: bigScale,
-            duration: 0.28, // ⬅ slower zoom-in
-            ease: 'back.out(1.8)',
-        },
-        0,
-    ).to(
-        target,
-        {
-            x: baseX + 3,
-            rotation: baseRot + 0.08,
-            duration: 0.06, // ⬅ slower shake steps
-            ease: 'sine.inOut',
-            yoyo: true,
-            repeat: 4,
-        },
-        0,
-    );
-
-    // ─────────────────────────────────────────────
-    // ZOOM OUT (slower, calm)
-    // ─────────────────────────────────────────────
-    tl.to(target.scale, {
-        x: smallScale,
-        y: smallScale,
-        duration: 0.24,
-        ease: 'power2.inOut',
-    });
-
-    // Reset transforms
-    tl.to(target, {
-        x: baseX,
-        rotation: baseRot,
-        duration: 0.12,
-        ease: 'power2.out',
-    });
-
-    // Return to base size
-    tl.to(target.scale, {
-        x: baseScale,
-        y: baseScale,
-        duration: 0.16,
-        ease: 'power2.out',
-    });
-
-    // ─────────────────────────────────────────────
-    // REST / IDLE PAUSE (important!)
-    // ─────────────────────────────────────────────
-    tl.to({}, { duration: 0.6 }); // ⬅ rest time before looping again
-
-    this.bonusTween = tl;
-}
-
 
     // =========================================================
 }

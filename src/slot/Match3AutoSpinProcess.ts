@@ -1,7 +1,8 @@
-import { userSettings } from "../utils/userSettings";
-import { Match3 } from "./Match3";
-import { Match3Process } from "./Match3Process";
-import { calculateTotalWin, gridZeroReset } from "./SlotUtility";
+import { GameServices } from '../api/services';
+import { userSettings } from '../utils/userSettings';
+import { Match3 } from './Match3';
+import { Match3Process } from './Match3Process';
+import { calculateTotalWin, gridZeroReset } from './SlotUtility';
 
 export class Match3AutoSpinProcess extends Match3Process {
     constructor(match3: Match3) {
@@ -47,7 +48,7 @@ export class Match3AutoSpinProcess extends Match3Process {
     public async start() {
         if (this.processing) return;
 
-        console.log("current code: ", this.featureCode);
+        console.log('current code: ', this.featureCode);
 
         //update the user balance here to sync with the credit value of the control panel
         userSettings.setBalance(userSettings.getBalance() - userSettings.getBet());
@@ -64,9 +65,10 @@ export class Match3AutoSpinProcess extends Match3Process {
         await this.waitIfPaused();
         await this.match3.board.startSpin();
 
+        const PirateApiResponse = await GameServices.spin(this.featureCode);
+
         const backendPromise = this.fetchBackendSpin();
-        const delayPromise =
-            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+        const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         const result = await backendPromise;
 
@@ -81,11 +83,15 @@ export class Match3AutoSpinProcess extends Match3Process {
             return;
         }
 
-        this.reels = result.reels;
-        this.multiplierReels = result.multiplierReels;
-        this.bonusReels = result.bonusReels;
+        // this.reels = result.reels;
+        // this.multiplierReels = result.multiplierReels;
+        // this.bonusReels = result.bonusReels;
 
-        this.match3.board.applyBackendResults(result.reels, result.multiplierReels);
+        this.reels = PirateApiResponse.data.reels;
+        this.multiplierReels = PirateApiResponse.data.multiplierReels;
+        this.bonusReels = PirateApiResponse.data.bonusReels;
+
+        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
         await this.runProcessRound();
 

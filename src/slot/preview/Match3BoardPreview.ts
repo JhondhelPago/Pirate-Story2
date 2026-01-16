@@ -9,7 +9,7 @@ import {
     match3ForEach,
     Match3Grid,
     Match3Type,
-    getRandomMultiplier
+    getRandomMultiplier,
 } from '../SlotUtility';
 import { SlotSymbol } from '../SlotSymbol';
 import { SlotPreview } from './SlotPreview';
@@ -79,9 +79,7 @@ export class Match3BoardPreview {
         this.grid = match3CreateGrid(this.rows, this.columns, this.commonTypes);
 
         match3ForEach(this.grid, (pos, type) => {
-            const multiplier = (type === 11 || type === 12)
-                ? getRandomMultiplier()
-                : 0;
+            const multiplier = type === 11 || type === 12 ? getRandomMultiplier() : 0;
 
             this.createPiece(pos, type, multiplier);
         });
@@ -109,11 +107,7 @@ export class Match3BoardPreview {
         this.pieces.length = 0;
     }
 
-    public createPiece(
-        position: Match3Position,
-        pieceType: Match3Type,
-        pieceMultiplier = 0
-    ) {
+    public createPiece(position: Match3Position, pieceType: Match3Type, pieceMultiplier = 0) {
         const name = this.typesMap[pieceType];
         const piece = pool.get(SlotSymbol);
         const viewPos = this.getViewPositionByGridPosition(position);
@@ -122,7 +116,7 @@ export class Match3BoardPreview {
             type: pieceType,
             size: this.tileSize,
             interactive: true,
-            multiplier: pieceMultiplier
+            multiplier: pieceMultiplier,
         });
 
         piece.row = position.row;

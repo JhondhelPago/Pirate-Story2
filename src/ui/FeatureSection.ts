@@ -26,8 +26,8 @@ export class FeatureSection extends Container {
                 fill: 0xffffff,
                 fontSize: 18,
                 fontWeight: '200',
-                wordWrap: true, 
-                align: 'center', 
+                wordWrap: true,
+                align: 'center',
                 wordWrapWidth: 1000,
                 lineHeight: 24,
             },
@@ -38,13 +38,11 @@ export class FeatureSection extends Container {
         this.symbolsContainer = new List({ type: 'horizontal', elementsMargin: 10 });
         this.mainLayout.addChild(this.symbolsContainer);
 
-        
         const jackpotSprite = Sprite.from(`symbol-${wildType}`);
         jackpotSprite.anchor.y = 0.5;
         jackpotSprite.scale.set(1);
         this.symbolsContainer.addChild(jackpotSprite);
         this.symbols.push(jackpotSprite);
-        
 
         this.symbolsContainer.pivot.x = this.symbolsContainer.width / 2;
 

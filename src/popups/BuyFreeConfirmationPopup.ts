@@ -1,6 +1,6 @@
-import { Container, Sprite, Texture, Graphics, Text, Matrix } from "pixi.js";
-import gsap from "gsap";
-import { navigation } from "../utils/navigation";
+import { Container, Sprite, Texture, Graphics, Text, Matrix } from 'pixi.js';
+import gsap from 'gsap';
+import { navigation } from '../utils/navigation';
 
 export interface BuyConfirmData {
     confirmationBoard: string;
@@ -44,7 +44,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     private onConfirm?: () => void;
 
     // formatting prefs
-    private currencySymbol = "$";
+    private currencySymbol = '$';
     private decimals = 2;
 
     // ✅ shared gradient for label + amount (same look)
@@ -53,7 +53,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
 
     constructor() {
         super();
-        this.eventMode = "static";
+        this.eventMode = 'static';
         this.interactiveChildren = true;
     }
 
@@ -61,16 +61,16 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         const d = data as BuyConfirmData;
         this.onConfirm = d.onConfirm;
 
-        this.currencySymbol = d.currencySymbol ?? "$";
+        this.currencySymbol = d.currencySymbol ?? '$';
         this.decimals = d.decimals ?? 2;
 
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
-        this.bg.eventMode = "static";
+        this.bg.eventMode = 'static';
         this.addChild(this.bg);
 
-        this.bg.on("pointertap", () => this.hide());
+        this.bg.on('pointertap', () => this.hide());
 
         this.panel = new Container();
         this.addChild(this.panel);
@@ -91,20 +91,20 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
 
         this.btnConfirm = Sprite.from(d.confirmButton);
         this.btnConfirm.anchor.set(0.5);
-        this.btnConfirm.eventMode = "static";
-        this.btnConfirm.cursor = "pointer";
+        this.btnConfirm.eventMode = 'static';
+        this.btnConfirm.cursor = 'pointer';
         this.board.addChild(this.btnConfirm);
-        this.btnConfirm.on("pointertap", () => {
+        this.btnConfirm.on('pointertap', () => {
             this.onConfirm?.();
             this.hide();
         });
 
         this.btnCancel = Sprite.from(d.cancelButton);
         this.btnCancel.anchor.set(0.5);
-        this.btnCancel.eventMode = "static";
-        this.btnCancel.cursor = "pointer";
+        this.btnCancel.eventMode = 'static';
+        this.btnCancel.cursor = 'pointer';
         this.board.addChild(this.btnCancel);
-        this.btnCancel.on("pointertap", () => this.hide());
+        this.btnCancel.on('pointertap', () => this.hide());
 
         this.dropIn();
         this.startAmountPulse();
@@ -128,7 +128,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     private formatAmount(amount: number): string {
         const n = Number.isFinite(amount) ? amount : 0;
 
-        const formatted = new Intl.NumberFormat("en-US", {
+        const formatted = new Intl.NumberFormat('en-US', {
             minimumFractionDigits: this.decimals,
             maximumFractionDigits: this.decimals,
         }).format(n);
@@ -141,26 +141,23 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     // -------------------------
 
     private ensureLabelGradient() {
-        if (
-            ConfirmationBuyFreeSpinPopup.labelGradientTexture &&
-            ConfirmationBuyFreeSpinPopup.labelGradientMatrix
-        ) {
+        if (ConfirmationBuyFreeSpinPopup.labelGradientTexture && ConfirmationBuyFreeSpinPopup.labelGradientMatrix) {
             return;
         }
 
-        const gradientCanvas = document.createElement("canvas");
+        const gradientCanvas = document.createElement('canvas');
         gradientCanvas.width = 512;
         gradientCanvas.height = 256;
 
-        const ctx = gradientCanvas.getContext("2d")!;
+        const ctx = gradientCanvas.getContext('2d')!;
         const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.height);
 
         // same palette you already use
-        gradient.addColorStop(0.0, "#FFF39C");
-        gradient.addColorStop(0.19, "#FFF39C");
-        gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.51, "#FDD44F");
-        gradient.addColorStop(1.0, "#D79600");
+        gradient.addColorStop(0.0, '#FFF39C');
+        gradient.addColorStop(0.19, '#FFF39C');
+        gradient.addColorStop(0.34, '#FDD44F');
+        gradient.addColorStop(0.51, '#FDD44F');
+        gradient.addColorStop(1.0, '#D79600');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
@@ -188,35 +185,35 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         const mat = ConfirmationBuyFreeSpinPopup.labelGradientMatrix!;
 
         const container = new Container();
-        container.eventMode = "none";
+        container.eventMode = 'none';
 
         const stroke = { color: 0x4c1b05, width: 6 };
 
         // You can tweak this if the board is tight
         const fontSize = 92;
 
-        const prefix = new Text("BUY ", {
-            fontFamily: "Pirata One",
+        const prefix = new Text('BUY ', {
+            fontFamily: 'Pirata One',
             fontSize,
-            align: "center",
+            align: 'center',
             fill: { texture: tex, matrix: mat },
             stroke,
         });
         prefix.anchor.set(0, 0.5);
 
         const number = new Text(String(spins), {
-            fontFamily: "Pirata One",
+            fontFamily: 'Pirata One',
             fontSize,
-            align: "center",
+            align: 'center',
             fill: 0xffffff, // ✅ plain white, no gradient
             stroke,
         });
         number.anchor.set(0, 0.5);
 
-        const suffix = new Text(" FREE SPINS", {
-            fontFamily: "Pirata One",
+        const suffix = new Text(' FREE SPINS', {
+            fontFamily: 'Pirata One',
             fontSize,
-            align: "center",
+            align: 'center',
             fill: { texture: tex, matrix: mat },
             stroke,
         });
@@ -260,9 +257,9 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         const mat = ConfirmationBuyFreeSpinPopup.labelGradientMatrix!;
 
         this.valueText = new Text(initialText, {
-            fontFamily: "Pirata One",
+            fontFamily: 'Pirata One',
             fontSize: 150,
-            align: "center",
+            align: 'center',
             fill: {
                 texture: gradientTexture,
                 matrix: mat,
@@ -313,7 +310,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
             alpha: 1,
             y: oy,
             duration: 0.35,
-            ease: "back.out(1.4)",
+            ease: 'back.out(1.4)',
         });
     }
 
@@ -369,7 +366,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
             duration: 1.4,
             repeat: -1,
             yoyo: true,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 

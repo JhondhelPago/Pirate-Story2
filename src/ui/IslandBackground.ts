@@ -1,5 +1,5 @@
-import { Container, Sprite } from "pixi.js";
-import { app } from "../main";
+import { Container, Sprite } from 'pixi.js';
+import { app } from '../main';
 
 /**
  * Simple full-screen background that auto-scales to cover the screen.
@@ -16,7 +16,7 @@ export class IslandBackground extends Container {
     /** Create background sprite */
     private init() {
         // 👉 Replace "island_bg" with your actual name
-        this.bg = Sprite.from("Background");
+        this.bg = Sprite.from('Background');
         this.bg.anchor.set(0.5); // center
 
         this.addChild(this.bg);

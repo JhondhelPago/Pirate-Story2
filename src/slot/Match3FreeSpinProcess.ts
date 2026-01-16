@@ -1,7 +1,7 @@
-import { userSettings } from "../utils/userSettings";
-import { Match3 } from "./Match3";
-import { Match3Process } from "./Match3Process";
-import { config, FreeSpinSetting } from "../utils/userSettings";
+import { userSettings } from '../utils/userSettings';
+import { Match3 } from './Match3';
+import { Match3Process } from './Match3Process';
+import { config, FreeSpinSetting } from '../utils/userSettings';
 import {
     calculateTotalWin,
     countScatterBonus,
@@ -9,9 +9,9 @@ import {
     gridZeroReset,
     isMaxWin,
     slotEvaluateClusterWins,
-} from "./SlotUtility";
-import { userStats } from "../utils/userStats";
-import { GameServices } from "../api/services";
+} from './SlotUtility';
+import { userStats } from '../utils/userStats';
+import { GameServices } from '../api/services';
 
 export class Match3FreeSpinProcess extends Match3Process {
     constructor(match3: Match3) {
@@ -41,7 +41,7 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         const { minSpinMs } = this.getSpinModeDelays();
 
-        console.log("initial bonus spin trigger from free spin process");
+        console.log('initial bonus spin trigger from free spin process');
 
         await this.waitIfPaused();
         await this.match3.board.startSpin();
@@ -49,8 +49,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         const PirateApiResponse = await GameServices.spin(this.featureCode);
 
         const backendPromise = this.fetchBackendSpin();
-        const delayPromise =
-            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+        const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         const result = await backendPromise;
 
@@ -90,14 +89,15 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.waitIfPaused();
 
         await this.queue.add(async () => this.checkBonus(this.reels), false);
-        await this.queue.add(async () => { // in this block give intial win for the user, doubling the bet
+        await this.queue.add(async () => {
+            // in this block give intial win for the user, doubling the bet
             console.log(this.bonusReels);
             this.accumulatedWin = userSettings.getBet() * 2;
         }, false);
 
         await this.queue.add(async () => {
             const checked_result = countScatterBonus(this.reels);
-            console.log("checking bonus positions:", checked_result.positions);
+            console.log('checking bonus positions:', checked_result.positions);
             this.match3.board.setBonusPositions(checked_result.positions);
             this.bonusReels = gridZeroReset();
         }, false);
@@ -108,10 +108,11 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public processCheckpoint() {
-        if (isMaxWin(this.accumulatedWin)) {// utility function here the return boolean value, evaluating the the max win
-            console.log("free spin process forfitied.");
+        if (isMaxWin(this.accumulatedWin)) {
+            // utility function here the return boolean value, evaluating the the max win
+            console.log('free spin process forfitied.');
             return false;
-        } else if (this.remainingSpins > 0){ 
+        } else if (this.remainingSpins > 0) {
             this.remainingSpins--;
             this.currentSpin++;
             return true;
@@ -150,7 +151,7 @@ export class Match3FreeSpinProcess extends Match3Process {
     public async start() {
         if (this.processing) return;
 
-        console.log("current code: ", this.featureCode);
+        console.log('current code: ', this.featureCode);
 
         this.processing = true;
 
@@ -167,8 +168,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         const PirateApiResponse = await GameServices.spin(this.featureCode);
 
         const backendPromise = this.fetchBackendSpin();
-        const delayPromise =
-            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+        const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         const result = await backendPromise;
 
@@ -192,10 +192,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.bonusReels = PirateApiResponse.data.bonusReels;
 
         this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
-        this.multiplierTraversed = this.mergeMultipliers(
-            this.multiplierTraversed,
-            this.multiplierReels
-        );
+        this.multiplierTraversed = this.mergeMultipliers(this.multiplierTraversed, this.multiplierReels);
 
         this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
@@ -219,11 +216,9 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         await this.waitIfPaused();
 
-        await this.queue.add(async () =>
-            this.setMergeStickyWilds(
-                this.match3.board.getWildReels(),
-                this.match3.board.getBackendReels()
-            ), false
+        await this.queue.add(
+            async () => this.setMergeStickyWilds(this.match3.board.getWildReels(), this.match3.board.getBackendReels()),
+            false,
         );
 
         await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
@@ -231,7 +226,6 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.queue.add(async () => this.setRoundWin(), false);
         await this.queue.add(async () => this.addRoundWin(), false);
         await this.queue.add(async () => this.setWinningPositions(), false);
-
 
         await this.queue.process();
 
@@ -245,12 +239,13 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     // need an specific override for the rewardBonusCheckpoint here in the Match3FreeSpinProcess
-    public rewardBonusCheckpoint() { 
+    public rewardBonusCheckpoint() {
         const freeSpins = config.settings.extraFreeSpins;
         const minBonusCount = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
-        if (this.bonus >= minBonusCount){ // will get 2x bet reward if there is valid bonus appearance
-            const bonusReward =  userSettings.getBet() * 2;
-            console.log("check bonusReward in rewardBonusCheckpoint: ", bonusReward);
+        if (this.bonus >= minBonusCount) {
+            // will get 2x bet reward if there is valid bonus appearance
+            const bonusReward = userSettings.getBet() * 2;
+            console.log('check bonusReward in rewardBonusCheckpoint: ', bonusReward);
             return bonusReward;
         }
 
@@ -259,16 +254,14 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     // override method without setting the balance, specific logic for the free spin process
     public setRoundWin() {
-        const bet = userSettings.getBet(); 
-        const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint();  // express as total wins + reward if there is
+        const bet = userSettings.getBet();
+        const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint(); // express as total wins + reward if there is
         this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
-        console.log("Round Win: " + this.roundWin);
+        console.log('Round Win: ' + this.roundWin);
     }
 
-
-
     public addRoundWin() {
-        if(isMaxWin(this.roundWin)){
+        if (isMaxWin(this.roundWin)) {
             this.accumulatedWin = getmaxWin();
         } else {
             this.accumulatedWin += this.roundWin;
@@ -278,7 +271,7 @@ export class Match3FreeSpinProcess extends Match3Process {
     public async getSpinWon() {
         // exported config from userSettings that fetches slot configuration
         const freeSpinsArray = config.settings.extraFreeSpins;
-        
+
         const freeSpinSettings = freeSpinsArray
             .filter((item: FreeSpinSetting) => item.count <= this.bonus)
             .sort((a: FreeSpinSetting, b: FreeSpinSetting) => b.count - a.count)[0];
@@ -287,7 +280,7 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         this.bonus = 0;
         return spins;
-    }    
+    }
 
     public setSpinRounds(spins: number) {
         this.spins = spins;
@@ -330,7 +323,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.match3.board.rebuildReelsAndAnimatePositions(
             this.reelsTraversed,
             this.multiplierTraversed,
-            this.winningPositions!
+            this.winningPositions!,
         );
 
         this.winningPositions = [];

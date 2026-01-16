@@ -6,81 +6,67 @@ export class ConfigAPI {
             return {
                 rules: 'Symbols pay anywhere on the screen. The total number of the same symbol on the screen at the end of a spin determines the value of the win.',
                 feature: {
-                    A: {spins: 7, scatters: 3, buyFeatureBetMultiplier: 100},
-                    B: {spins: 15, scatters: 4, buyFeatureBetMultiplier: 500},
-                    C: {spins: 20, scatters: 5, buyFeatureBetMultiplier: 1000},
+                    A: { spins: 7, scatters: 3, buyFeatureBetMultiplier: 100 },
+                    B: { spins: 15, scatters: 4, buyFeatureBetMultiplier: 500 },
+                    C: { spins: 20, scatters: 5, buyFeatureBetMultiplier: 1000 },
                 },
-                "langauge": "ko",
-                "currency": "KRW",
-                "bettingLimit": {
-                    "MAX": "100000",
-                    "MIN": "100",
-                    "MONEY_OPTION": [
-                        100,
-                        200,
-                        300,
-                        400,
-                        500,
-                        1000,
-                        2000,
-                        3000,
-                        4000,
-                        5000,
-                        10000,
-                        20000,
-                        30000,
-                        40000,
-                        50000,
-                        100000
-                    ]
+                langauge: 'ko',
+                currency: 'KRW',
+                bettingLimit: {
+                    MAX: '100000',
+                    MIN: '100',
+                    MONEY_OPTION: [
+                        100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000, 50000,
+                        100000,
+                    ],
                 },
                 settings: {
-                    "features": [
-                        {spins: 5, scatters: 3, buyFeatureBetMultiplier: 100},
-                        {spins: 15, scatters: 4, buyFeatureBetMultiplier: 500},
-                        {spins: 20, scatters: 5, buyFeatureBetMultiplier: 1000},
+                    features: [
+                        { spins: 5, scatters: 3, buyFeatureBetMultiplier: 100 },
+                        { spins: 15, scatters: 4, buyFeatureBetMultiplier: 500 },
+                        { spins: 20, scatters: 5, buyFeatureBetMultiplier: 1000 },
                     ],
-                    "buyFeatureBetMultiplier": 100,
-                    "scatterType": 10,
-                    "freeSpins": [
+                    buyFeatureBetMultiplier: 100,
+                    scatterType: 10,
+                    freeSpins: [
                         {
-                            "count": 3,
-                            "spins": 10
+                            count: 3,
+                            spins: 10,
                         },
                         {
-                            "count": 4,
-                            "spins": 15
+                            count: 4,
+                            spins: 15,
                         },
                         {
-                            "count": 5,
-                            "spins": 20
-                        }
+                            count: 5,
+                            spins: 20,
+                        },
                     ],
-                    "extraFreeSpins": [
+                    extraFreeSpins: [
                         {
-                            "count": 2,
-                            "spins": 5
+                            count: 2,
+                            spins: 5,
                         },
                         {
-                            "count": 3,
-                            "spins": 10
+                            count: 3,
+                            spins: 10,
                         },
                         {
-                            "count": 4,
-                            "spins": 20
+                            count: 4,
+                            spins: 20,
                         },
                         {
-                            "count": 5,
-                            "spins": 30
-                        }
+                            count: 5,
+                            spins: 30,
+                        },
                     ],
                 },
-                "paytable": [
+                paytable: [
                     {
                         type: 1,
                         patterns: [
-                            { min: 5, max: 6, multiplier: .25 },
-                            { min: 7, max: 8, multiplier: .5 },
+                            { min: 5, max: 6, multiplier: 0.25 },
+                            { min: 7, max: 8, multiplier: 0.5 },
                             { min: 9, max: 11, multiplier: 1 },
                             { min: 12, max: 14, multiplier: 1.75 },
                             { min: 15, max: 19, multiplier: 2.5 },
@@ -90,8 +76,8 @@ export class ConfigAPI {
                     {
                         type: 2,
                         patterns: [
-                            { min: 5, max: 6, multiplier: .25 },
-                            { min: 7, max: 8, multiplier: .5 },
+                            { min: 5, max: 6, multiplier: 0.25 },
+                            { min: 7, max: 8, multiplier: 0.5 },
                             { min: 9, max: 11, multiplier: 1 },
                             { min: 12, max: 14, multiplier: 1.5 },
                             { min: 15, max: 19, multiplier: 2.5 },
@@ -101,8 +87,8 @@ export class ConfigAPI {
                     {
                         type: 3,
                         patterns: [
-                            { min: 5, max: 6, multiplier: .5 },
-                            { min: 7, max: 8, multiplier: .75 },
+                            { min: 5, max: 6, multiplier: 0.5 },
+                            { min: 7, max: 8, multiplier: 0.75 },
                             { min: 9, max: 11, multiplier: 1.5 },
                             { min: 12, max: 14, multiplier: 2.25 },
                             { min: 15, max: 19, multiplier: 3 },
@@ -112,8 +98,8 @@ export class ConfigAPI {
                     {
                         type: 4,
                         patterns: [
-                            { min: 5, max: 6, multiplier: .5 },
-                            { min: 7, max: 8, multiplier: .75 },
+                            { min: 5, max: 6, multiplier: 0.5 },
+                            { min: 7, max: 8, multiplier: 0.75 },
                             { min: 9, max: 11, multiplier: 1.5 },
                             { min: 12, max: 14, multiplier: 2.25 },
                             { min: 15, max: 19, multiplier: 3 },
@@ -123,7 +109,7 @@ export class ConfigAPI {
                     {
                         type: 5,
                         patterns: [
-                            { min: 5, max: 6, multiplier: .75 },
+                            { min: 5, max: 6, multiplier: 0.75 },
                             { min: 7, max: 8, multiplier: 1 },
                             { min: 9, max: 11, multiplier: 2 },
                             { min: 12, max: 14, multiplier: 3 },
@@ -211,14 +197,9 @@ export class ConfigAPI {
                 //     { type: 12, symbol: 'symbol-treasure', name: 'Treasure' }, //wild
                 // ],
 
-                "blocks": [1, 2,3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                "specialBlocks": [
-                    11,
-                    12
-                ]
+                blocks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                specialBlocks: [11, 12],
             };
-
-
         } catch (error: any) {
             const message = error?.response?.data?.message || 'Failed loading game configuration';
             throw new Error(message);
@@ -226,24 +207,22 @@ export class ConfigAPI {
     }
 
     static async getPirateConfig() {
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwic3ViIjoiMSIsIm5iZiI6MTc2ODE5NTIyNiwiZXhwIjoxNzc0MTk1MjI2LCJpYXQiOjE3NjgxOTUyMjYsImlzcyI6IlNsb3RBcGkifQ.H8sjOCz3bjaz3Hy-krXmac1DrNaVPGSYuiw12jVxXCw";
-        try{
-            const response = await axios.get("api/v3/game/settings?gamecode=piratestory",
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            
-            return response.data;
+        const token =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwic3ViIjoiMSIsIm5iZiI6MTc2ODE5NTIyNiwiZXhwIjoxNzc0MTk1MjI2LCJpYXQiOjE3NjgxOTUyMjYsImlzcyI6IlNsb3RBcGkifQ.H8sjOCz3bjaz3Hy-krXmac1DrNaVPGSYuiw12jVxXCw';
+        try {
+            const response = await axios.get('api/v3/game/settings?gamecode=piratestory', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
+            return response.data;
         } catch (error: any) {
-            
-            console.error("message:", error?.message);
-            console.error("status:", error?.response?.status);
-            console.error("data:", error?.response?.data);
-            console.error("headers:", error?.response?.headers);
-            console.error("config:", error?.config);
+            console.error('message:', error?.message);
+            console.error('status:', error?.response?.status);
+            console.error('data:', error?.response?.data);
+            console.error('headers:', error?.response?.headers);
+            console.error('config:', error?.config);
 
             throw error; // rethrow original error for nowx `
-
         }
     }
 }

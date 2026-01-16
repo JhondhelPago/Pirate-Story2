@@ -1,8 +1,8 @@
-import { AnimatedSprite, Container, Sprite, Texture, Text, Matrix } from "pixi.js";
-import gsap from "gsap";
-import { navigation } from "../utils/navigation";
-import { bgm, sfx } from "../utils/audio";
-import { userSettings } from "../utils/userSettings";
+import { AnimatedSprite, Container, Sprite, Texture, Text, Matrix } from 'pixi.js';
+import gsap from 'gsap';
+import { navigation } from '../utils/navigation';
+import { bgm, sfx } from '../utils/audio';
+import { userSettings } from '../utils/userSettings';
 
 type BannerItem = {
     min: number;
@@ -81,19 +81,19 @@ export class SpinRoundBanner extends Container {
 
         SpinRoundBanner.currentInstance = this;
 
-        this.eventMode = "static";
+        this.eventMode = 'static';
         this.interactiveChildren = true;
 
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
-        this.bg.eventMode = "static";
+        this.bg.eventMode = 'static';
         this.addChild(this.bg);
 
         this.coinContainer = new Container();
         this.addChild(this.coinContainer);
 
-        this.bg.on("pointertap", () => {
+        this.bg.on('pointertap', () => {
             if (!this.canClickAnywhere) return;
             this.hide();
         });
@@ -126,7 +126,7 @@ export class SpinRoundBanner extends Container {
             gsap.to(music, {
                 volume: bgm.getVolume() * 0.3,
                 duration: 0.2,
-                ease: "linear",
+                ease: 'linear',
             });
         }
 
@@ -142,15 +142,15 @@ export class SpinRoundBanner extends Container {
                 gsap.to(m, {
                     volume: bgm.getVolume(),
                     duration: 0.1,
-                    ease: "linear",
+                    ease: 'linear',
                 });
             }
             userOnClosed?.();
         };
 
         // ✅ attach window/tab listeners while the banner is alive
-        document.addEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.addEventListener("blur", this.onWindowBlurBound);
+        document.addEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.addEventListener('blur', this.onWindowBlurBound);
 
         this.createBanner();
         this.createGlow();
@@ -205,15 +205,15 @@ export class SpinRoundBanner extends Container {
 
     private buildCoinTextures() {
         return [
-            Texture.from("coin-01"),
-            Texture.from("coin-02"),
-            Texture.from("coin-03"),
-            Texture.from("coin-04"),
-            Texture.from("coin-05"),
-            Texture.from("coin-06"),
-            Texture.from("coin-07"),
-            Texture.from("coin-08"),
-            Texture.from("coin-09"),
+            Texture.from('coin-01'),
+            Texture.from('coin-02'),
+            Texture.from('coin-03'),
+            Texture.from('coin-04'),
+            Texture.from('coin-05'),
+            Texture.from('coin-06'),
+            Texture.from('coin-07'),
+            Texture.from('coin-08'),
+            Texture.from('coin-09'),
         ];
     }
 
@@ -245,17 +245,17 @@ export class SpinRoundBanner extends Container {
 
         const inwardClamp = W * 0.5;
 
-        const makeCoin = (side: "L" | "R") => {
+        const makeCoin = (side: 'L' | 'R') => {
             const coin = new AnimatedSprite(coinTextures);
             coin.anchor.set(0.5);
             coin.animationSpeed = this.rand(0.25, 0.45);
             coin.scale.set(this.rand(0.5, 1.05));
             coin.rotation = this.rand(-Math.PI, Math.PI);
 
-            coin.x = side === "L" ? leftSpawnX : rightSpawnX;
+            coin.x = side === 'L' ? leftSpawnX : rightSpawnX;
             coin.y = baseY - this.rand(0, yJitter);
 
-            let vx = side === "L" ? this.rand(13, 24) : -this.rand(13, 24);
+            let vx = side === 'L' ? this.rand(13, 24) : -this.rand(13, 24);
             let vy = -this.rand(16, 30);
 
             const gravity = this.rand(0.85, 1.25);
@@ -266,7 +266,7 @@ export class SpinRoundBanner extends Container {
 
             const tween = gsap.to(coin, {
                 duration: 999999,
-                ease: "none",
+                ease: 'none',
                 delay: this.rand(0, 0.9),
                 onStart: () => coin.play(),
                 onUpdate: () => {
@@ -276,13 +276,13 @@ export class SpinRoundBanner extends Container {
                     coin.x += vx + sway;
                     coin.y += vy;
 
-                    coin.rotation += (side === "L" ? 1 : -1) * this.rand(0.02, 0.06);
+                    coin.rotation += (side === 'L' ? 1 : -1) * this.rand(0.02, 0.06);
 
-                    if (side === "L" && coin.x > inwardClamp - 70) {
+                    if (side === 'L' && coin.x > inwardClamp - 70) {
                         coin.x = inwardClamp - 70;
                         vx *= 0.35;
                     }
-                    if (side === "R" && coin.x < inwardClamp + 70) {
+                    if (side === 'R' && coin.x < inwardClamp + 70) {
                         coin.x = inwardClamp + 70;
                         vx *= 0.35;
                     }
@@ -291,10 +291,10 @@ export class SpinRoundBanner extends Container {
                         coin.scale.set(this.rand(0.5, 1.05));
                         coin.rotation = this.rand(-Math.PI, Math.PI);
 
-                        coin.x = side === "L" ? leftSpawnX : rightSpawnX;
+                        coin.x = side === 'L' ? leftSpawnX : rightSpawnX;
                         coin.y = baseY - this.rand(0, yJitter);
 
-                        vx = side === "L" ? this.rand(13, 24) : -this.rand(13, 24);
+                        vx = side === 'L' ? this.rand(13, 24) : -this.rand(13, 24);
                         vy = -this.rand(16, 30);
                     }
                 },
@@ -307,8 +307,8 @@ export class SpinRoundBanner extends Container {
         const LEFT_COUNT = 30;
         const RIGHT_COUNT = 30;
 
-        for (let i = 0; i < LEFT_COUNT; i++) makeCoin("L");
-        for (let i = 0; i < RIGHT_COUNT; i++) makeCoin("R");
+        for (let i = 0; i < LEFT_COUNT; i++) makeCoin('L');
+        for (let i = 0; i < RIGHT_COUNT; i++) makeCoin('R');
     }
 
     private startCoinBlastPortrait(W: number, H: number, coinTextures: Texture[]) {
@@ -339,7 +339,7 @@ export class SpinRoundBanner extends Container {
 
             const tween = gsap.to(coin, {
                 duration: 999999,
-                ease: "none",
+                ease: 'none',
                 delay: this.rand(0, 0.8),
                 onStart: () => coin.play(),
                 onUpdate: () => {
@@ -400,7 +400,7 @@ export class SpinRoundBanner extends Container {
         this.glowA = undefined;
         this.glowB = undefined;
 
-        const glowTexture = Texture.from("glow");
+        const glowTexture = Texture.from('glow');
 
         const makeGlow = () => {
             const s = new Sprite(glowTexture);
@@ -483,7 +483,7 @@ export class SpinRoundBanner extends Container {
             duration: 1.2,
             repeat: -1,
             yoyo: true,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
@@ -493,19 +493,19 @@ export class SpinRoundBanner extends Container {
             this.valueText.destroy();
         }
 
-        const gradientCanvas = document.createElement("canvas");
+        const gradientCanvas = document.createElement('canvas');
         gradientCanvas.width = 512;
         gradientCanvas.height = 256;
-        const ctx = gradientCanvas.getContext("2d")!;
+        const ctx = gradientCanvas.getContext('2d')!;
 
         const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.height);
 
-        gradient.addColorStop(0.0, "#FFF39C");
-        gradient.addColorStop(0.19, "#FFF39C");
-        gradient.addColorStop(0.34, "#FDD44F");
-        gradient.addColorStop(0.4, "#FDD44F");
-        gradient.addColorStop(0.51, "#FDD44F");
-        gradient.addColorStop(1.0, "#D79600");
+        gradient.addColorStop(0.0, '#FFF39C');
+        gradient.addColorStop(0.19, '#FFF39C');
+        gradient.addColorStop(0.34, '#FDD44F');
+        gradient.addColorStop(0.4, '#FDD44F');
+        gradient.addColorStop(0.51, '#FDD44F');
+        gradient.addColorStop(1.0, '#D79600');
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
@@ -515,10 +515,10 @@ export class SpinRoundBanner extends Container {
         const mat = new Matrix();
         mat.scale(1 / gradientCanvas.width, 1 / gradientCanvas.height);
 
-        this.valueText = new Text("$0.00", {
-            fontFamily: "Pirata One",
+        this.valueText = new Text('$0.00', {
+            fontFamily: 'Pirata One',
             fontSize: 150,
-            align: "center",
+            align: 'center',
             fill: { texture: gradientTexture, matrix: mat },
             stroke: { color: 0x4c1b05, width: 6 },
         });
@@ -534,14 +534,13 @@ export class SpinRoundBanner extends Container {
         const bet = userSettings.getBet();
 
         const bannerDict: BannerItem[] = [
-            { min: bet * 10, board: "red-banner-board",  text: "red-banner-text",  sfx: "common/sfx-avast.wav" },
-            { min: bet * 5, board: "blue-banner-board", text: "blue-banner-text", sfx: "common/sfx-avast.wav" },
-            { min: bet * 3, board: "green-banner-board",text: "green-banner-text",sfx: "common/sfx-avast.wav" },
+            { min: bet * 10, board: 'red-banner-board', text: 'red-banner-text', sfx: 'common/sfx-avast.wav' },
+            { min: bet * 5, board: 'blue-banner-board', text: 'blue-banner-text', sfx: 'common/sfx-avast.wav' },
+            { min: bet * 3, board: 'green-banner-board', text: 'green-banner-text', sfx: 'common/sfx-avast.wav' },
         ];
 
-        return bannerDict.find(x => win >= x.min)!;
+        return bannerDict.find((x) => win >= x.min)!;
     }
-
 
     private animateEntrance() {
         const tex = this.getBannerTexture(this.winValue);
@@ -589,7 +588,7 @@ export class SpinRoundBanner extends Container {
             alpha: 1,
             y: finalBannerY,
             duration: 0.7,
-            ease: "bounce.out",
+            ease: 'bounce.out',
             onUpdate: () => {
                 this.syncGlowToBanner();
             },
@@ -604,7 +603,7 @@ export class SpinRoundBanner extends Container {
             alpha: 1,
             y: finalHeaderY,
             duration: 0.7,
-            ease: "bounce.out",
+            ease: 'bounce.out',
             delay: 0.05,
         });
 
@@ -612,7 +611,7 @@ export class SpinRoundBanner extends Container {
             alpha: 1,
             y: finalValueY,
             duration: 0.7,
-            ease: "bounce.out",
+            ease: 'bounce.out',
             delay: 0.1,
         });
     }
@@ -621,9 +620,9 @@ export class SpinRoundBanner extends Container {
         try {
             sfx.play(sfxKey, { volume: 0.5 });
             // this.sfxCoinBlast = sfx.play("common/sfx-coin-fall.wav");
-            this.sfxCoinBlast = sfx.playLoopTimes("common/sfx-coin-fall.wav", 2, );
+            this.sfxCoinBlast = sfx.playLoopTimes('common/sfx-coin-fall.wav', 2);
         } catch (e) {
-            console.warn("Failed to play banner SFX:", sfxKey, e);
+            console.warn('Failed to play banner SFX:', sfxKey, e);
         }
     }
 
@@ -646,7 +645,7 @@ export class SpinRoundBanner extends Container {
         this.glowEntranceTween = gsap.to([gA, gB], {
             alpha: 0.85,
             duration: 0.25,
-            ease: "power2.out",
+            ease: 'power2.out',
             onComplete: () => {
                 this.glowEntranceTween = undefined;
                 this.animateGlowIdle();
@@ -675,9 +674,9 @@ export class SpinRoundBanner extends Container {
             const d3 = totalDuration * 0.33;
 
             const tl = gsap.timeline({ repeat: -1 });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: "sine.inOut" });
-            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: "sine.inOut" });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d1, ease: 'sine.inOut' });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d2, ease: 'sine.inOut' });
+            tl.to(target, { rotation: `+=${direction * step}`, duration: d3, ease: 'sine.inOut' });
             return tl;
         };
 
@@ -699,7 +698,7 @@ export class SpinRoundBanner extends Container {
                 duration: 1.8,
                 repeat: -1,
                 yoyo: true,
-                ease: "sine.inOut",
+                ease: 'sine.inOut',
                 onUpdate: function () {
                     const t = (this.targets()[0] as any).t as number;
                     gA.alpha = A_MAX + (A_MIN - A_MAX) * t;
@@ -714,7 +713,7 @@ export class SpinRoundBanner extends Container {
             duration: 2.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
 
         gsap.to(gB.scale, {
@@ -723,7 +722,7 @@ export class SpinRoundBanner extends Container {
             duration: 2.6,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
@@ -735,13 +734,13 @@ export class SpinRoundBanner extends Container {
         this.currentDisplayValue = 0;
 
         // ✅ pixi sound volumes are typically 0..1 (avoid 3)
-        this.sfxCollectWin = sfx.playSegment("common/sfx-win-rise.wav", 0, 2, {volume: 0.5});
+        this.sfxCollectWin = sfx.playSegment('common/sfx-win-rise.wav', 0, 2, { volume: 0.5 });
 
         // ✅ store tween reference, so it can be killed on blur/hidden/hide()
         this.valueTween = gsap.to(this, {
             currentDisplayValue: this.targetDisplayValue,
             duration: 2,
-            ease: "power2.out",
+            ease: 'power2.out',
             onUpdate: () => {
                 this.valueText.text = this.formatCurrency(this.currentDisplayValue);
             },
@@ -757,7 +756,7 @@ export class SpinRoundBanner extends Container {
                         x: 1,
                         y: 1,
                         duration: 0.6,
-                        ease: "elastic.out(1, 0.6)",
+                        ease: 'elastic.out(1, 0.6)',
                         onComplete: () => this.animateValuePulse(),
                     },
                 );
@@ -797,12 +796,12 @@ export class SpinRoundBanner extends Container {
             duration: 1.2,
             yoyo: true,
             repeat: -1,
-            ease: "sine.inOut",
+            ease: 'sine.inOut',
         });
     }
 
     private formatCurrency(value: number): string {
-        return "$" + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return '$' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
     public resize(width: number, height: number) {
@@ -847,8 +846,8 @@ export class SpinRoundBanner extends Container {
         this.canClickAnywhere = false;
 
         // ✅ detach handlers
-        document.removeEventListener("visibilitychange", this.onVisibilityChangeBound);
-        window.removeEventListener("blur", this.onWindowBlurBound);
+        document.removeEventListener('visibilitychange', this.onVisibilityChangeBound);
+        window.removeEventListener('blur', this.onWindowBlurBound);
 
         this.clearTimeouts();
 
@@ -893,13 +892,10 @@ export class SpinRoundBanner extends Container {
             return;
         }
 
-        await gsap.to(
-            [this.banner, this.headerText, this.valueText, this.bg, ...this.getGlows()].filter(Boolean),
-            {
-                alpha: 0,
-                duration: 0.25,
-            },
-        );
+        await gsap.to([this.banner, this.headerText, this.valueText, this.bg, ...this.getGlows()].filter(Boolean), {
+            alpha: 0,
+            duration: 0.25,
+        });
 
         SpinRoundBanner.currentInstance = null;
 

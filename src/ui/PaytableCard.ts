@@ -47,7 +47,6 @@ export class PaytableCard extends Container {
                     fontSize: 10,
                     fontWeight: '100',
                     lineHeight: 14,
-                    
                 },
             );
             this.layoutList.addChild(label);

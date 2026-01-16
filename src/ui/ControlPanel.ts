@@ -146,7 +146,6 @@ export class ControlPanel extends Container {
         this.contentContainer.addChild(this.spinButton);
         this.contentContainer.addChild(this.plusButton);
         this.contentContainer.addChild(this.autoplayButton);
-
     }
 
     /**
@@ -440,17 +439,10 @@ export class ControlPanel extends Container {
         for (const pattern of this.winMatchPatterns) {
             if (this.shouldStopMatches) break;
 
-            this.matchPattern.setup(
-                pattern.times,
-                `symbol-${pattern.type}`,
-                pattern.amount,
-                pattern.currency
-            );
+            this.matchPattern.setup(pattern.times, `symbol-${pattern.type}`, pattern.amount, pattern.currency);
 
-            this.matchPattern.x =
-                this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
-            this.matchPattern.y =
-                this.panelHeight - this.matchPattern.height - 20;
+            this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
+            this.matchPattern.y = this.panelHeight - this.matchPattern.height - 20;
 
             this.messageText.alpha = 0;
             await this.matchPattern.show();
@@ -461,7 +453,6 @@ export class ControlPanel extends Container {
         this.shouldStopMatches = false;
     }
 
-
     public stopMatchMessages() {
         this.shouldStopMatches = true;
         // Kill any ongoing animations
@@ -471,12 +462,7 @@ export class ControlPanel extends Container {
     }
 
     /** Set match pattern result */
-    public async addMatchMessage(
-        times: number,
-        type: number,
-        amount: number,
-        currency: string
-    ) {
+    public async addMatchMessage(times: number, type: number, amount: number, currency: string) {
         // 🚫 No win → do nothing
         if (!amount || amount <= 0 || Number.isNaN(amount)) {
             return;
@@ -489,7 +475,6 @@ export class ControlPanel extends Container {
             currency,
         });
     }
-
 
     /** Disabled betting */
     public disableBetting() {
@@ -563,7 +548,7 @@ export class ControlPanel extends Container {
         this.spacebarHandler = (e: KeyboardEvent) => {
             if (e.code === 'Space' || e.key === ' ') {
                 e.preventDefault();
-            callback();
+                callback();
             }
         };
 

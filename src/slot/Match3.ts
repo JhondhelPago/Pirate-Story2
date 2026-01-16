@@ -159,12 +159,10 @@ export class Match3 extends Container {
      * Prevents switch races from multiple interrupts.
      */
     private runControllerTask(task: () => Promise<void>): Promise<void> {
-        this.controllerChain = this.controllerChain
-            .then(task)
-            .catch((err) => {
-                // Don't break the chain permanently
-                console.error('[Match3 Controller Task Error]', err);
-            });
+        this.controllerChain = this.controllerChain.then(task).catch((err) => {
+            // Don't break the chain permanently
+            console.error('[Match3 Controller Task Error]', err);
+        });
 
         return this.controllerChain;
     }
@@ -251,7 +249,7 @@ export class Match3 extends Container {
             await this.endInterrupt();
         }
     }
-    
+
     public async switchToFreeSpin(spins: number, opts?: { initial?: boolean }) {
         return this.runControllerTask(async () => {
             if (this.controllerBusy) return;
@@ -290,7 +288,6 @@ export class Match3 extends Container {
         });
     }
 
-    
     public async swtichToProcess(process: Match3Process, work: () => Promise<void>) {
         return this.runControllerTask(async () => {
             if (this.controllerBusy) return;
@@ -404,8 +401,7 @@ export class Match3 extends Container {
         this.process.update(_delta);
     }
 
-    public getStackSize(){
+    public getStackSize() {
         return this.processStack.length;
     }
-
 }

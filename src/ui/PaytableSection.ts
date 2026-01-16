@@ -77,7 +77,6 @@ export class PayTableSection extends Container {
             card.x = col * (cardWidth + this.cardSpacing) - gridWidth / 2 + cardWidth / 2;
             card.y = row * (cardHeight + this.cardSpacing);
         });
-
     }
 
     public resize(width: number, height: number) {
@@ -97,7 +96,6 @@ export class PayTableSection extends Container {
 
             this.mainLayout.y = 100;
             yAdjustment = 80;
-
         } else if (isMobile && !isPortrait) {
             this.symbolsDescriptionLabel.y = 100;
             this.symbolsDescriptionLabel.style.fontSize = 28;
@@ -122,11 +120,10 @@ export class PayTableSection extends Container {
 
             this.mainLayout.y = 60;
             yAdjustment = 40;
-
         }
 
         this.layoutCards();
-        
+
         this.symbolsDescriptionLabel.x = width * 0.5;
         this.mainLayout.x = width * 0.5;
         this.mainLayout.elementsMargin = 20;

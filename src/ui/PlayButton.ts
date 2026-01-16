@@ -110,7 +110,7 @@ export class PlayButton extends Container {
 
         // Start infinite spinning
         this.spinTimeline = gsap.to(this.shield, {
-            rotation: "+=" + (Math.PI * 2),
+            rotation: '+=' + Math.PI * 2,
             duration: 1 / this.spinSpeed, // speed multiplier
             ease: 'none',
             repeat: -1,
