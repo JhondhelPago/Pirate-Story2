@@ -276,8 +276,6 @@ export class Match3Board {
         this.columns = config.columns;
         this.tileSize = config.tileSize;
 
-        this.backendMultipliers = initGrid(this.rows, this.columns, 0);
-
         const blocks = slotGetBlocks();
         this.typesMap = {};
         for (const type of blocks) this.typesMap[type] = `symbol-${type}`;
@@ -353,10 +351,19 @@ export class Match3Board {
                 col.addChild(sym);
             }
 
-            this.realReels.push(reel);
+            this.realReels.push(reel); 
         }
 
         this.ensureWildLayerOnTop();
+
+
+        const wins = this.match3.process.getWinningPositions() ?? [];
+        console.log('WINNING POSITIONS', wins);
+        const bonusPositions = this.getBonusPositions();
+        console.log('BONUS POSITIONS', bonusPositions);
+
+        this.animateWinsWithWildPriority(wins, this.getBonusPositions());
+        
     }
 
 
@@ -1398,6 +1405,11 @@ export class Match3Board {
         wins: { row: number; column: number }[],
         bonusPositions?: { row: number; column: number }[],
     ) {
+
+        console.log("wins in aniamateWinsWithWildPriority ",wins);
+        console.log("bonusPositions in aniamateWinsWithWildPriority ",bonusPositions);
+
+
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
 
@@ -1452,6 +1464,7 @@ export class Match3Board {
         }
 
         if (!uniq.length) {
+            console.log("No wins to animate");
             this.killLoops();
             return;
         }

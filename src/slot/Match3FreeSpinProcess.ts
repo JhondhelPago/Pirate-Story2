@@ -206,30 +206,55 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.match3.onFreeSpinRoundComplete?.();
     }
 
-    public getBonusReels() {
-        return this.bonusReels;
+    public async resumeStart() {
+
+        const ResumeData = userSettings.getResumeData();
+        this.reels = ResumeData?.reels;
+        this.multiplierReels = ResumeData?.multiplierReels;
+        this.bonusReels = ResumeData?.bonusReels;
+
+        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
+
+        console.log("from the resumeStart match3freespinprocess ",ResumeData);
+
+        // call the resumeProcessRound()
+        // await this.resumeProcessRound();
+
+
+        await this.waitIfPaused();
     }
 
+    public async resumeProcessRound(): Promise<void> {
+        await this.waitIfPaused();
+
+
+    }
+
+    
     // ✅ override: queue-based, awaited, pause-aware
     public async runProcessRound(): Promise<void> {
         this.round++;
-
+        
         await this.waitIfPaused();
-
+        
         await this.queue.add(
             async () => this.setMergeStickyWilds(this.match3.board.getWildReels(), this.match3.board.getBackendReels()),
             false,
         );
-
+        
         await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
         await this.queue.add(async () => this.setRoundResult(), false);
         await this.queue.add(async () => this.setRoundWin(), false);
         await this.queue.add(async () => this.addRoundWin(), false);
         await this.queue.add(async () => this.setWinningPositions(), false);
-
+        
         await this.queue.process();
-
+        
         await this.waitIfPaused();
+    }
+    
+    public getBonusReels() {
+        return this.bonusReels;
     }
 
     protected setRoundResult() {
@@ -347,7 +372,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         // set the tracked reels
         // set last reels, multipliers, bonus
 
-        
+
 
     }
 }

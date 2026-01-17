@@ -312,6 +312,40 @@ export class Match3Process {
         await this.match3.onProcessComplete?.();
     }
 
+
+    public async resumeStart() { // this method will runs once on the intiail setup of of the mathc3
+        // access the resumed reels here
+        const ResumeData = userSettings.getResumeData();
+        this.reels = ResumeData?.reels;
+        this.multiplierReels = ResumeData?.multiplierReels;
+        this.bonusReels = ResumeData?.bonusReels;
+
+        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
+
+        console.log("from the resumeStart match3process ",ResumeData);
+
+        // call the resumeProcessRound()
+        await this.resumeProcessRound();
+
+        await this.waitIfPaused();
+
+        // reset the process
+
+    }
+
+    public async resumeProcessRound(): Promise<void> {
+        await this.waitIfPaused();
+
+        await this.queue.add(async () => this.checkBonus(this.reels), false);
+        await this.queue.add(async () => this.setRoundResult(), false);
+        await this.queue.add(async () => this.setWinningPositions(), false);
+
+        await this.queue.process();
+
+        await this.waitIfPaused();
+
+    }
+
     public async runProcessRound(): Promise<void> {
         this.round++;
 
@@ -321,7 +355,6 @@ export class Match3Process {
         await this.queue.add(async () => this.checkBonus(this.reels), false);
         await this.queue.add(async () => this.setRoundResult(), false);
         await this.queue.add(async () => this.setRoundWin(), false);
-
         await this.queue.add(async () => this.setWinningPositions(), false);
 
         await this.queue.process();

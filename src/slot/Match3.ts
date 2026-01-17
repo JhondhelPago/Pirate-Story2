@@ -12,7 +12,7 @@ import { gameConfig } from '../utils/gameConfig';
 import { waitFor } from '../utils/asyncUtils';
 import { userSettings } from '../utils/userSettings';
 import { ResultScreen } from '../screens/ResultScreen';
-import { countScatterBonus } from './SlotUtility';
+import { countScatterBonus, flattenClusterPositions, slotEvaluateClusterWins } from './SlotUtility';
 
 // Match3.ts - Holds the state
 export enum SpinState {
@@ -312,7 +312,7 @@ export class Match3 extends Container {
      * Sets up a new match3 game with pieces, rows, columns, duration, etc.
      * @param config The config object in which the game will be based on
      */
-    public setup(config: Match3Config) {
+    public async setup(config: Match3Config) {
         this.config = config;
         this.reset();
 
@@ -321,10 +321,10 @@ export class Match3 extends Container {
 
         //resumeType of not equal 2 is non free spin resume
         if (ResumeData.resumeType != 2){ // setting up the board from resume of NonFreeSpin
-            this.board.applyBackendResults(
-                ResumeData?.reels,
-                ResumeData?.multiplierReels
-            );
+
+            await this.process.resumeStart();
+
+
         } else { // setting up the board from resume of FreeSpin
             
             this.useFreeSpinProcess();
