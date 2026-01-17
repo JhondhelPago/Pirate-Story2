@@ -90,6 +90,7 @@ export class GameScreen extends Container {
         this.match3.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
         this.match3.onFreeSpinRoundComplete = this.onFreeSpinRoundComplete.bind(this);
         this.match3.onFreeSpinInitialBonusScatterComplete = this.onFreeSpinInitialBonusScatterComplete.bind(this);
+        this.match3.onFreeSpinResumeStart = this.onFreeSpinResumeStart.bind(this);
 
         this.match3.onAutoSpinStart = this.onAutoSpinStart.bind(this);
         this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
@@ -533,6 +534,10 @@ export class GameScreen extends Container {
         this.controlPanel.setTitle(`Win ${this.match3.freeSpinProcess.getAccumulatedWin()}`); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
 
         this.syncFeatureAvailability();
+    }
+
+    private async onFreeSpinResumeStart(spins: number) {
+        this.controlPanel.setMessage(`FREE SPIN LEFT ${spins}`);
     }
 
     private async finish() {

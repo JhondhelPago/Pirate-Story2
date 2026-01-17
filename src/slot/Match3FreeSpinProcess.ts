@@ -12,6 +12,7 @@ import {
 } from './SlotUtility';
 import { userStats } from '../utils/userStats';
 import { GameServices } from '../api/services';
+import { waitFor } from '../utils/asyncUtils';
 
 export class Match3FreeSpinProcess extends Match3Process {
     constructor(match3: Match3) {
@@ -108,6 +109,8 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public processCheckpoint() {
+
+        console.log('remainingSpins: ', this.remainingSpins);
         if (isMaxWin(this.accumulatedWin)) {
             // utility function here the return boolean value, evaluating the the max win
             console.log('free spin process forfitied.');
@@ -128,6 +131,8 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         if (!this.processCheckpoint()) {
             this.freeSpinProcessing = false;
+
+            console.log("inside the if block od he !this.processCheckpoint()");
 
             userSettings.setBalance(userSettings.getBalance() + this.accumulatedWin);
 
@@ -167,10 +172,7 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         const PirateApiResponse = await GameServices.spin(this.featureCode);
 
-        const backendPromise = this.fetchBackendSpin();
         const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
-
-        const result = await backendPromise;
 
         if (minSpinMs > 0) {
             await delayPromise;
@@ -207,29 +209,55 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public async resumeStart() {
+        // need to lock the interactions
 
         const ResumeData = userSettings.getResumeData();
-        this.reels = ResumeData?.reels;
-        this.multiplierReels = ResumeData?.multiplierReels;
-        this.bonusReels = ResumeData?.bonusReels;
 
-        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
+        // set the remaining spins
+        this.setSpinRounds(ResumeData.freeSpins);
+        this.setSpins(ResumeData.freeSpins);
+
+
+        // this.reels = ResumeData?.reels;
+        // this.multiplierReels = ResumeData?.multiplierReels;
+        // this.bonusReels = ResumeData?.bonusReels; 
+
+        // this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
+        // this.multiplierTraversed = this.mergeMultipliers(this.multiplierTraversed, this.multiplierReels);
+
+        // this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
         console.log("from the resumeStart match3freespinprocess ",ResumeData);
 
-        // call the resumeProcessRound()
-        // await this.resumeProcessRound();
+        // this.match3.onFreeSpinResumeStart?.(this.remainingSpins);
 
+        await this.resumeProcessRound();
 
         await this.waitIfPaused();
+
     }
+
 
     public async resumeProcessRound(): Promise<void> {
         await this.waitIfPaused();
 
+        await this.queue.add(
+            async () => this.setMergeStickyWilds(this.match3.board.getWildReels(), this.match3.board.getBackendReels()),
+            false,
+        );
 
+        await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
+        await this.queue.add(async () => this.setRoundResult(), false);
+        await this.queue.add(async () => this.setRoundWin(), false);
+        await this.queue.add(async () => this.addRoundWin(), false);
+        await this.queue.add(async () => this.setWinningPositions(), false);
+        
+        await this.queue.process();
+                
+        await this.waitIfPaused();
+
+        this.freeSpinStart();
     }
-
     
     // ✅ override: queue-based, awaited, pause-aware
     public async runProcessRound(): Promise<void> {
@@ -259,7 +287,9 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     protected setRoundResult() {
         const reels = this.reelsTraversed;
+        console.log("reels in setRoundResult: ", reels);
         const multipliers = this.multiplierTraversed;
+        console.log("multipliers in setRoundResult: ", multipliers);
         this.roundResult = slotEvaluateClusterWins(reels, multipliers);
     }
 

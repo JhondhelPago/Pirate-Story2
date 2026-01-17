@@ -306,6 +306,10 @@ export class Match3Board {
     }
 
     private buildIdleGridFromBackendSource() {
+        if (!this.backendReels || this.backendReels.length === 0) {
+            return;
+        }
+
         const { offsetX, offsetY } = this.getOffsets();
 
         // ✅ fast lookup for bonus cells
@@ -316,9 +320,17 @@ export class Match3Board {
             bonusSet.add(`${r}:${c}`);
         }
 
+        // 🔥 HARD RESET — no leftovers
         this.realLayer.removeChildren();
         this.destroyReels(this.realReels);
         this.realReels = [];
+
+        // 🔒 Validate backend reels shape (fail fast)
+        if (this.backendReels.length !== this.rows) {
+            throw new Error(
+                `[buildIdleGridFromBackendSource] backendReels row mismatch`
+            );
+        }
 
         for (let c = 0; c < this.columns; c++) {
             const col = new Container();
@@ -326,45 +338,50 @@ export class Match3Board {
             col.y = -offsetY;
             this.realLayer.addChild(col);
 
-            const reel: ReelColumn = { container: col, symbols: [], position: 0 };
+            const reel: ReelColumn = {
+                container: col,
+                symbols: [],
+                position: 0,
+            };
 
             for (let r = 0; r < this.rows; r++) {
-                const type = this.backendReels?.[r]?.[c];
+                const type = this.backendReels[r][c];
                 const mult = this.backendMultipliers?.[r]?.[c] ?? 0;
 
-                // If you truly guarantee non-empty & valid, you can remove the fallback.
-                const safeType =
-                    typeof type === "number" && this.typesMap?.[type]
-                        ? type
-                        : this.randomType();
+                // ❌ NO FALLBACKS — backend is authoritative
+                if (typeof type !== 'number') {
+                    throw new Error(
+                        `[buildIdleGridFromBackendSource] Invalid reel type at r=${r}, c=${c}: ${type}`
+                    );
+                }
 
-                const sym = this.makeSlotSymbol(safeType, mult);
+                const sym = this.makeSlotSymbol(type, mult);
 
-                // ✅ set bonus flag based on backendBonusPositions, but NEVER for type 11
-                const isBonus = safeType !== 11 && bonusSet.has(`${r}:${c}`);
+                // ✅ set bonus flag based on backendBonusPositions (never for type 11)
+                const isBonus = type !== 11 && bonusSet.has(`${r}:${c}`);
                 sym.setBonusFlag(isBonus);
 
-                sym.y = r * this.tile; // ✅ scale-aware spacing
+                sym.y = r * this.tile;
                 this.showSpine(sym);
 
                 reel.symbols.push(sym);
                 col.addChild(sym);
             }
 
-            this.realReels.push(reel); 
+            this.realReels.push(reel);
         }
 
         this.ensureWildLayerOnTop();
 
-
         const wins = this.match3.process.getWinningPositions() ?? [];
         console.log('WINNING POSITIONS', wins);
+
         const bonusPositions = this.getBonusPositions();
         console.log('BONUS POSITIONS', bonusPositions);
 
-        this.animateWinsWithWildPriority(wins, this.getBonusPositions());
-        
+        this.animateWinsWithWildPriority(wins, bonusPositions);
     }
+
 
 
 

@@ -80,8 +80,8 @@ export class Match3 extends Container {
 
     public onFreeSpinRoundStart?: (current: number, remaining: number) => void;
     public onFreeSpinRoundComplete?: () => void;
-
     public onFreeSpinInitialBonusScatterComplete?: (spins: number) => Promise<void> | void;
+    public onFreeSpinResumeStart?: (spins: number) => void;
 
     public onAutoSpinStart?: (count: number) => void;
     public onAutoSpinComplete?: (current: number, remaining: number) => void;
@@ -323,23 +323,21 @@ export class Match3 extends Container {
         if (ResumeData.resumeType != 2){ // setting up the board from resume of NonFreeSpin
 
             await this.process.resumeStart();
-
+            this.board.setup(config);
 
         } else { // setting up the board from resume of FreeSpin
             
             this.useFreeSpinProcess();
-
             this.board.applyBackendResults(
-                ResumeData?.reels,
-                ResumeData?.multiplierReels,
+                ResumeData.reels,
+                ResumeData.multiplierReels
             );
-   
-            const checked_result = countScatterBonus(ResumeData?.bonusReels);
-            this.board.setBonusPositions(checked_result.positions);
+            this.board.setup(config);
+            await waitFor(2);
+            await this.process.resumeStart();
 
         }
        
-        this.board.setup(config);
     }
 
     /** Fully reset the game */
