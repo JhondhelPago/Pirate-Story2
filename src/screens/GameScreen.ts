@@ -61,6 +61,8 @@ export class GameScreen extends Container {
     /** Track if finish */
     public finished: boolean;
 
+    public isResuming = false;
+
     constructor() {
         super();
 
@@ -203,15 +205,19 @@ export class GameScreen extends Container {
         const freeSpinProcessing = this.getFreeSpinProcessing();
         const autoSpinProcessing = this.getAutoSpinProcessing();
 
-        const canInteract = !normalProcessing && !freeSpinProcessing && !autoSpinProcessing;
+        // ✅ treat "resume" as busy too
+        const canInteract =
+            !this.isResuming &&
+            !normalProcessing &&
+            !freeSpinProcessing &&
+            !autoSpinProcessing;
 
-        // BuyFreeSpin: visible always, enabled only when idle
         this.buyFreeSpin.setEnabled(canInteract);
 
-        // Spin/Betting
         if (canInteract) this.controlPanel.enableBetting();
         else this.controlPanel.disableBetting();
     }
+
 
     /** Hard lock (used while waiting + while popup is showing) */
     private lockInteraction() {
@@ -483,12 +489,14 @@ export class GameScreen extends Container {
         this.controlPanel.setMessage('');
         this.controlPanel.setCredit(userSettings.getBalance());
 
+    
         // ✅ hard lock while banner is open
         this.lockInteraction();
 
         // ✅ show banner and wait close
         await this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
 
+        this.isResuming = false;
         this.syncFeatureAvailability();
     }
 
@@ -537,7 +545,10 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinResumeStart(spins: number) {
-        this.controlPanel.setMessage(`FREE SPIN LEFT ${spins}`);
+        // this.controlPanel.setMessage(`FREE SPIN LEFT ${spins}`);
+        console.log("lock interactions from onFreeSpinResumeStart");
+        this.isResuming = true;
+        this.lockInteraction();
     }
 
     private async finish() {

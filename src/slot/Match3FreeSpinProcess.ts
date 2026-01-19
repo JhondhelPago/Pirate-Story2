@@ -48,11 +48,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.match3.board.startSpin();
 
         const PirateApiResponse = await GameServices.spin(this.featureCode);
-
-        const backendPromise = this.fetchBackendSpin();
         const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
-
-        const result = await backendPromise;
 
         if (minSpinMs > 0) {
             await delayPromise;
@@ -209,7 +205,6 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public async resumeStart() {
-        // need to lock the interactions
 
         const ResumeData = userSettings.getResumeData();
 

@@ -81,7 +81,7 @@ export class Match3 extends Container {
     public onFreeSpinRoundStart?: (current: number, remaining: number) => void;
     public onFreeSpinRoundComplete?: () => void;
     public onFreeSpinInitialBonusScatterComplete?: (spins: number) => Promise<void> | void;
-    public onFreeSpinResumeStart?: (spins: number) => void;
+    public onFreeSpinResumeStart?: (spins: number) => Promise<void>;
 
     public onAutoSpinStart?: (count: number) => void;
     public onAutoSpinComplete?: (current: number, remaining: number) => void;
@@ -326,8 +326,11 @@ export class Match3 extends Container {
             this.board.setup(config);
 
         } else { // setting up the board from resume of FreeSpin
+            // lock interactions here
+            await this.onFreeSpinResumeStart?.(ResumeData.spins);
             
             this.useFreeSpinProcess();
+
             this.board.applyBackendResults(
                 ResumeData.reels,
                 ResumeData.multiplierReels
