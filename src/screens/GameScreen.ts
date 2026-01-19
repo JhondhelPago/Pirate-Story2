@@ -489,7 +489,6 @@ export class GameScreen extends Container {
         this.controlPanel.setMessage('');
         this.controlPanel.setCredit(userSettings.getBalance());
 
-    
         // ✅ hard lock while banner is open
         this.lockInteraction();
 

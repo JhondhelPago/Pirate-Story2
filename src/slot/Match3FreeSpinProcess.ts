@@ -28,6 +28,8 @@ export class Match3FreeSpinProcess extends Match3Process {
     private remainingSpins = 0;
     private currentSpin = 0;
 
+    private benefit = 0;
+
     private reelsTraversed = gridZeroReset();
     private multiplierTraversed = gridZeroReset();
 
@@ -91,6 +93,10 @@ export class Match3FreeSpinProcess extends Match3Process {
             console.log(this.bonusReels);
             this.accumulatedWin = userSettings.getBet() * 2;
         }, false);
+        await this.queue.add(async () => this.setRoundResultInitial(), false);
+        await this.queue.add(async () => this.setRoundWin(), false);
+        await this.queue.add(async () => this.addRoundWin(), false);
+        await this.queue.add(async () => this.setWinningPositions(), false);
 
         await this.queue.add(async () => {
             const checked_result = countScatterBonus(this.reels);
@@ -167,6 +173,9 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.match3.board.startSpin();
 
         const PirateApiResponse = await GameServices.spin(this.featureCode);
+        console.log(PirateApiResponse.data);
+        this.benefit = PirateApiResponse.data.benefitAmount;
+
 
         const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
@@ -280,6 +289,12 @@ export class Match3FreeSpinProcess extends Match3Process {
         return this.bonusReels;
     }
 
+    public setRoundResultInitial() {
+        const reels = this.match3.board.getBackendReels();
+        const multipliers = this.match3.board.getBackendMultipliers();
+        this.roundResult = slotEvaluateClusterWins(reels, multipliers);
+    }
+
     protected setRoundResult() {
         const reels = this.reelsTraversed;
         console.log("reels in setRoundResult: ", reels);
@@ -305,12 +320,13 @@ export class Match3FreeSpinProcess extends Match3Process {
     // override method without setting the balance, specific logic for the free spin process
     public setRoundWin() {
         const bet = userSettings.getBet();
-        const roundWin = calculateTotalWin(this.roundResult, bet) + this.rewardBonusCheckpoint(); // express as total wins + reward if there is
+        const roundWin = calculateTotalWin(this.roundResult, bet)
         this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
         console.log('Round Win: ' + this.roundWin);
+        console.log('Benefit: ' + this.benefit);
     }
 
-    public addRoundWin() {
+    public  addRoundWin() {
         if (isMaxWin(this.roundWin)) {
             this.accumulatedWin = getmaxWin();
         } else {
