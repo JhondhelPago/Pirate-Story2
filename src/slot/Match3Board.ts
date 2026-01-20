@@ -372,19 +372,7 @@ export class Match3Board {
         }
 
         this.ensureWildLayerOnTop();
-
-        const wins = this.match3.process.getWinningPositions() ?? [];
-        console.log('WINNING POSITIONS', wins);
-
-        const bonusPositions = this.getBonusPositions();
-        console.log('BONUS POSITIONS', bonusPositions);
-
-        this.animateWinsWithWildPriority(wins, bonusPositions);
     }
-
-
-
-
 
     private getDisplayedRealSymbol(row: number, column: number): SlotSymbol | null {
         const reel = this.realReels[column];
