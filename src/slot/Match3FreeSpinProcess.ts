@@ -51,7 +51,8 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.match3.board.startSpin();
 
         const PirateApiResponse = await GameServices.spin(this.featureCode);
-        const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+        const delayPromise =
+            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         if (minSpinMs > 0) {
             await delayPromise;
@@ -112,13 +113,13 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public processCheckpoint() {
-
         console.log('remainingSpins: ', this.remainingSpins);
         // if (isMaxWin(this.accumulatedWin)) { // utility function here the return boolean value, evaluating the the max win
         //     console.log('free spin process forfitied.');
         //     return false;
 
-        if (this.forfeited){ // server makes invalid index means to hit the max win and forfetied spins
+        if (this.forfeited) {
+            // server makes invalid index means to hit the max win and forfetied spins
             console.log('free spin process forfitied.');
             return false;
         } else if (this.remainingSpins > 0) {
@@ -129,56 +130,120 @@ export class Match3FreeSpinProcess extends Match3Process {
         return false;
     }
 
+    /**
+     * ✅ Converted from recursion to a while-loop.
+     * Logic is intentionally kept the same:
+     * - Each iteration:
+     *   - waits if paused
+     *   - checks checkpoint / forfeited (end flow)
+     *   - runs one spin via start()
+     *   - delays between spins
+     * - On end (checkpoint fail OR forfeited OR start() throws):
+     *   - credit accumulated win
+     *   - await onFreeSpinComplete
+     *   - reset after UI flow finished
+     */
     public async freeSpinStart() {
         this.isInitialFreeSpin = false;
         this.freeSpinProcessing = true;
 
-        await this.waitIfPaused();
+        while (true) {
+            await this.waitIfPaused();
 
-        if (!this.processCheckpoint()) {
-            this.freeSpinProcessing = false;
+            if (!this.processCheckpoint() || this.forfeited) {
+                this.freeSpinProcessing = false;
 
-            console.log("inside the if block od he !this.processCheckpoint()");
+                console.log('inside the if block of the !this.processCheckpoint()');
 
-            userSettings.setBalance(userSettings.getBalance() + this.accumulatedWin);
+                userSettings.setBalance(userSettings.getBalance() + this.accumulatedWin);
 
-            // CRITICAL FIX:
-            // Await the callback (TotalWinBanner must finish/close)
-            await this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
+                // CRITICAL FIX:
+                // Await the callback (TotalWinBanner must finish/close)
+                await this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
 
-            // Only reset AFTER the UI flow has finished
-            this.reset();
-            return;
+                // Only reset AFTER the UI flow has finished
+                this.reset();
+                return;
+            }
+
+            try {
+                await this.start();
+            } catch (error) {
+                this.freeSpinProcessing = false;
+
+                console.log('inside the if block of the catch error');
+
+                userSettings.setBalance(userSettings.getBalance() + this.accumulatedWin);
+
+                await this.match3.onFreeSpinComplete?.(this.currentSpin, this.remainingSpins);
+
+                // Only reset AFTER the UI flow has finished
+                this.reset();
+                return;
+            }
+
+            await this.delayBetweenSpins();
+
+            // next loop iteration continues the same as the old recursion:
+            // await this.waitIfPaused();
+            // await this.freeSpinStart();
         }
-
-        await this.start();
-
-        await this.delayBetweenSpins();
-
-        await this.waitIfPaused();
-        await this.freeSpinStart();
     }
 
     public async start() {
-        if (this.processing) return;
-
-        this.processing = true;
-
-        const token = { cancelled: false };
-        this.cancelToken = token;
-
-        const { minSpinMs } = this.getSpinModeDelays();
-
-        this.match3.onFreeSpinRoundStart?.(this.currentSpin, this.remainingSpins);
-
-        await this.waitIfPaused();
-        await this.match3.board.startSpin();
-
-        let PirateApiResponse; // ✅ declare in outer scope
-
         try {
-            PirateApiResponse = await GameServices.spin(this.featureCode);
+            if (this.processing) return;
+
+            this.processing = true;
+
+            const token = { cancelled: false };
+            this.cancelToken = token;
+
+            const { minSpinMs } = this.getSpinModeDelays();
+
+            this.match3.onFreeSpinRoundStart?.(this.currentSpin, this.remainingSpins);
+
+            await this.waitIfPaused();
+            await this.match3.board.startSpin();
+
+            const PirateApiResponse = await GameServices.spin(this.featureCode);
             this.benefit = PirateApiResponse.data.benefitAmount;
+
+            const delayPromise =
+                minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+
+            if (minSpinMs > 0) {
+                await delayPromise;
+            }
+
+            await this.waitIfPaused();
+
+            if (!this.processing || token.cancelled) {
+                this.processing = false;
+                return;
+            }
+
+            // ✅ Safe to use now
+            this.reels = PirateApiResponse.data.reels;
+            this.multiplierReels = PirateApiResponse.data.multiplierReels;
+            this.bonusReels = PirateApiResponse.data.bonusReels;
+
+            this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
+            this.multiplierTraversed = this.mergeMultipliers(
+                this.multiplierTraversed,
+                this.multiplierReels
+            );
+
+            this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
+
+            await this.runProcessRound();
+
+            await this.waitIfPaused();
+            await this.match3.board.finishSpin();
+
+            this.processing = false;
+
+            await this.match3.onFreeSpinRoundComplete?.();
         } catch (error) {
             console.error('Spin failed, forfeiting free spins:', error);
 
@@ -188,82 +253,45 @@ export class Match3FreeSpinProcess extends Match3Process {
             // Important: finish the spin visually
             await this.match3.board.finishSpin();
 
-            return; // ✅ stop this spin completely
+            throw error;
         }
-
-        const delayPromise =
-            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
-
-        if (minSpinMs > 0) {
-            await delayPromise;
-        }
-
-        await this.waitIfPaused();
-
-        if (!this.processing || token.cancelled) {
-            this.processing = false;
-            return;
-        }
-
-        // ✅ Safe to use now
-        this.reels = PirateApiResponse.data.reels;
-        this.multiplierReels = PirateApiResponse.data.multiplierReels;
-        this.bonusReels = PirateApiResponse.data.bonusReels;
-
-        this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
-        this.multiplierTraversed = this.mergeMultipliers(
-            this.multiplierTraversed,
-            this.multiplierReels
-        );
-
-        this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
-
-        await this.runProcessRound();
-
-        await this.waitIfPaused();
-        await this.match3.board.finishSpin();
-
-        this.processing = false;
-
-        await this.match3.onFreeSpinRoundComplete?.();
     }
 
-
     public async resumeStart() {
-
         const ResumeData = userSettings.getResumeData();
 
         // set the remaining spins
         this.setSpinRounds(ResumeData.freeSpins);
         this.setSpins(ResumeData.freeSpins);
 
-
         // this.reels = ResumeData?.reels;
         // this.multiplierReels = ResumeData?.multiplierReels;
-        // this.bonusReels = ResumeData?.bonusReels; 
+        // this.bonusReels = ResumeData?.bonusReels;
 
         // this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
         // this.multiplierTraversed = this.mergeMultipliers(this.multiplierTraversed, this.multiplierReels);
 
         // this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
-        console.log("from the resumeStart match3freespinprocess ",ResumeData);
+        console.log('from the resumeStart match3freespinprocess ', ResumeData);
 
         // this.match3.onFreeSpinResumeStart?.(this.remainingSpins);
 
         await this.resumeProcessRound();
 
         await this.waitIfPaused();
-
     }
-
 
     public async resumeProcessRound(): Promise<void> {
         await this.waitIfPaused();
 
         await this.queue.add(
-            async () => this.setMergeStickyWilds(this.match3.board.getWildReels(), this.match3.board.getBackendReels()),
-            false,
+            async () =>
+                this.setMergeStickyWilds(
+                    this.match3.board.getWildReels(),
+                    this.match3.board.getBackendReels()
+                ),
+            false
         );
 
         await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
@@ -271,36 +299,41 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.queue.add(async () => this.setRoundWin(), false);
         await this.queue.add(async () => this.addRoundWin(), false);
         await this.queue.add(async () => this.setWinningPositions(), false);
-        
+
         await this.queue.process();
-                
+
         await this.waitIfPaused();
 
+        // keep original behavior (fire-and-forget)
         this.freeSpinStart();
     }
-    
+
     // ✅ override: queue-based, awaited, pause-aware
     public async runProcessRound(): Promise<void> {
         this.round++;
-        
+
         await this.waitIfPaused();
-        
+
         await this.queue.add(
-            async () => this.setMergeStickyWilds(this.match3.board.getWildReels(), this.match3.board.getBackendReels()),
-            false,
+            async () =>
+                this.setMergeStickyWilds(
+                    this.match3.board.getWildReels(),
+                    this.match3.board.getBackendReels()
+                ),
+            false
         );
-        
+
         await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
         await this.queue.add(async () => this.setRoundResult(), false);
         await this.queue.add(async () => this.setRoundWin(), false);
         await this.queue.add(async () => this.addRoundWin(), false);
         await this.queue.add(async () => this.setWinningPositions(), false);
-        
+
         await this.queue.process();
-        
+
         await this.waitIfPaused();
     }
-    
+
     public getBonusReels() {
         return this.bonusReels;
     }
@@ -313,9 +346,9 @@ export class Match3FreeSpinProcess extends Match3Process {
 
     protected setRoundResult() {
         const reels = this.reelsTraversed;
-        console.log("reels in setRoundResult: ", reels);
+        console.log('reels in setRoundResult: ', reels);
         const multipliers = this.multiplierTraversed;
-        console.log("multipliers in setRoundResult: ", multipliers);
+        console.log('multipliers in setRoundResult: ', multipliers);
         this.roundResult = slotEvaluateClusterWins(reels, multipliers);
     }
 
@@ -336,12 +369,12 @@ export class Match3FreeSpinProcess extends Match3Process {
     // override method without setting the balance, specific logic for the free spin process
     public setRoundWin() {
         const bet = userSettings.getBet();
-        const roundWin = calculateTotalWin(this.roundResult, bet)
-        const totalWin = roundWin + this.accumulatedWin
+        const roundWin = calculateTotalWin(this.roundResult, bet);
+        const totalWin = roundWin + this.accumulatedWin;
         const isHitWinCap = isMaxWin(totalWin);
 
         if (isHitWinCap) {
-            this.roundWin =  getmaxWin() - this.accumulatedWin;
+            this.roundWin = getmaxWin() - this.accumulatedWin;
         } else {
             this.roundWin = roundWin;
         }
@@ -350,8 +383,8 @@ export class Match3FreeSpinProcess extends Match3Process {
     }
 
     public addRoundWin() {
-        const totalWin = this.roundWin + this.accumulatedWin
-        console.log("totalWin: ", totalWin);
+        const totalWin = this.roundWin + this.accumulatedWin;
+        console.log('totalWin: ', totalWin);
         const isHitWinCap = isMaxWin(totalWin);
         if (isHitWinCap) {
             this.forfeited = true;
@@ -416,7 +449,7 @@ export class Match3FreeSpinProcess extends Match3Process {
         this.match3.board.rebuildReelsAndAnimatePositions(
             this.reelsTraversed,
             this.multiplierTraversed,
-            this.winningPositions!,
+            this.winningPositions!
         );
 
         this.winningPositions = [];
@@ -433,14 +466,11 @@ export class Match3FreeSpinProcess extends Match3Process {
         super.reset();
     }
 
-    public setupResume(){
+    public setupResume() {
         // set the userSettings.balance
         // set the userSettings.index for the spin index
 
         // set the tracked reels
         // set last reels, multipliers, bonus
-
-
-
     }
 }

@@ -567,15 +567,13 @@ export function sleep(ms: number) {
 export function isMaxWin(win: number) {
     // boolean checker for max win
     const bet = userSettings.getBet();
-    // const limit = bet * config.settings.maxBaseMultiplier;
-    const limit = bet * 5;
+    const limit = bet * config.settings.maxBaseMultiplier;
     return win >= limit ? true : false;
 }
 
 export function getmaxWin() {
     const bet = userSettings.getBet();
-    // return bet * config.settings.maxBaseMultiplier;
-    return bet * 5;
+    return bet * config.settings.maxBaseMultiplier;
 }
 
 export function getPatternByCount(type: number, count: number): PatternSettings {
