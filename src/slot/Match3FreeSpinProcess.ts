@@ -251,7 +251,9 @@ export class Match3FreeSpinProcess extends Match3Process {
             this.processing = false;
 
             // Important: finish the spin visually
+            this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
             await this.match3.board.finishSpin();
+            console.log("board finsih visually");
 
             throw error;
         }

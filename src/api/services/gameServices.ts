@@ -3,10 +3,14 @@ import axios from 'axios';
 import axiosInstance from '../config/axios';
 
 const Code = 'piratestory';
-
 const gamecode = 'piratestory';
 const bet = 100;
-const index = 11;
+
+/** 
+ * Local spin call counter
+ * Used to force an error on the 4th spin call
+ */
+let spinCallCount = 0;
 
 interface CollectData {
     index: number;
@@ -43,28 +47,48 @@ export const checkResume = async () => {
             params: {
                 gamecode: Code,
             },
-        }).then((res) => res.data.data as any)
+        })
+        .then((res) => res.data.data as any)
         .catch((error) => {
             console.error('[checkResume] failed:', error);
             return null;
         });
-}
+};
 
 export const spin = async (feature: number) => {
+    spinCallCount++;
+
+    // 🔴 Force an error on the 4th spin call
+    if (spinCallCount === 4) {
+        // rollback spin index because this spin "failed"
+        userSettings.decrementSpinIndex();
+
+        const simulatedError = {
+            response: {
+                data: {
+                    code: 500,
+                    message: 'Simulated spin error on 4th call',
+                },
+            },
+            isAxiosError: true,
+        };
+
+        console.error('[spin] failed:', simulatedError.response.data);
+        throw simulatedError;
+    }
 
     try {
         const response = await axiosInstance.post('/game/spin', {
             gamecode: gamecode,
             bet: bet,
             feature: feature,
-            index: userSettings.incrementSpinIndex(), // incremented by 1 to request the next genereted reels result
+            index: userSettings.incrementSpinIndex(), // incremented by 1 to request the next generated reels result
         });
 
-        console.log('spin response: ', response.data);
-
+        console.log('spin response:', response.data);
         return response.data;
     } catch (error: any) {
-        // roll back the spin index here
+        // rollback spin index if real API error happens
         userSettings.decrementSpinIndex();
 
         if (axios.isAxiosError(error)) {
