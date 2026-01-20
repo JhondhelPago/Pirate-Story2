@@ -174,6 +174,11 @@ class UserSettings {
         return this.spinIndex;
     }
 
+    public decrementSpinIndex() {
+        this.spinIndex--;
+        return this.spinIndex;
+    }
+
     public async setupGameConfig() {
         const response = await GameServices.getGameConfig();
         this.gameConfig = response.data;

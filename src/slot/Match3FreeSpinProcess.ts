@@ -27,6 +27,7 @@ export class Match3FreeSpinProcess extends Match3Process {
     private spins = 0;
     private remainingSpins = 0;
     private currentSpin = 0;
+    private forfeited = false;
 
     private benefit = 0;
 
@@ -113,8 +114,11 @@ export class Match3FreeSpinProcess extends Match3Process {
     public processCheckpoint() {
 
         console.log('remainingSpins: ', this.remainingSpins);
-        if (isMaxWin(this.accumulatedWin)) {
-            // utility function here the return boolean value, evaluating the the max win
+        // if (isMaxWin(this.accumulatedWin)) { // utility function here the return boolean value, evaluating the the max win
+        //     console.log('free spin process forfitied.');
+        //     return false;
+
+        if (this.forfeited){ // server makes invalid index means to hit the max win and forfetied spins
             console.log('free spin process forfitied.');
             return false;
         } else if (this.remainingSpins > 0) {
@@ -158,8 +162,6 @@ export class Match3FreeSpinProcess extends Match3Process {
     public async start() {
         if (this.processing) return;
 
-        console.log('current code: ', this.featureCode);
-
         this.processing = true;
 
         const token = { cancelled: false };
@@ -172,12 +174,25 @@ export class Match3FreeSpinProcess extends Match3Process {
         await this.waitIfPaused();
         await this.match3.board.startSpin();
 
-        const PirateApiResponse = await GameServices.spin(this.featureCode);
-        console.log(PirateApiResponse.data);
-        this.benefit = PirateApiResponse.data.benefitAmount;
+        let PirateApiResponse; // ✅ declare in outer scope
 
+        try {
+            PirateApiResponse = await GameServices.spin(this.featureCode);
+            this.benefit = PirateApiResponse.data.benefitAmount;
+        } catch (error) {
+            console.error('Spin failed, forfeiting free spins:', error);
 
-        const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+            this.forfeited = true;
+            this.processing = false;
+
+            // Important: finish the spin visually
+            await this.match3.board.finishSpin();
+
+            return; // ✅ stop this spin completely
+        }
+
+        const delayPromise =
+            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         if (minSpinMs > 0) {
             await delayPromise;
@@ -190,16 +205,16 @@ export class Match3FreeSpinProcess extends Match3Process {
             return;
         }
 
-        // this.reels = result.reels;
-        // this.multiplierReels = result.multiplierReels;
-        // this.bonusReels = result.bonusReels;
-
+        // ✅ Safe to use now
         this.reels = PirateApiResponse.data.reels;
         this.multiplierReels = PirateApiResponse.data.multiplierReels;
         this.bonusReels = PirateApiResponse.data.bonusReels;
 
         this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
-        this.multiplierTraversed = this.mergeMultipliers(this.multiplierTraversed, this.multiplierReels);
+        this.multiplierTraversed = this.mergeMultipliers(
+            this.multiplierTraversed,
+            this.multiplierReels
+        );
 
         this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
@@ -212,6 +227,7 @@ export class Match3FreeSpinProcess extends Match3Process {
 
         await this.match3.onFreeSpinRoundComplete?.();
     }
+
 
     public async resumeStart() {
 
@@ -321,13 +337,24 @@ export class Match3FreeSpinProcess extends Match3Process {
     public setRoundWin() {
         const bet = userSettings.getBet();
         const roundWin = calculateTotalWin(this.roundResult, bet)
-        this.roundWin = roundWin >= getmaxWin() ? getmaxWin() : roundWin;
+        const totalWin = roundWin + this.accumulatedWin
+        const isHitWinCap = isMaxWin(totalWin);
+
+        if (isHitWinCap) {
+            this.roundWin =  getmaxWin() - this.accumulatedWin;
+        } else {
+            this.roundWin = roundWin;
+        }
         console.log('Round Win: ' + this.roundWin);
         console.log('Benefit: ' + this.benefit);
     }
 
-    public  addRoundWin() {
-        if (isMaxWin(this.roundWin)) {
+    public addRoundWin() {
+        const totalWin = this.roundWin + this.accumulatedWin
+        console.log("totalWin: ", totalWin);
+        const isHitWinCap = isMaxWin(totalWin);
+        if (isHitWinCap) {
+            this.forfeited = true;
             this.accumulatedWin = getmaxWin();
         } else {
             this.accumulatedWin += this.roundWin;

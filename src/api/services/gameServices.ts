@@ -1,4 +1,5 @@
 import { userSettings } from '../../utils/userSettings';
+import axios from 'axios';
 import axiosInstance from '../config/axios';
 
 const Code = 'piratestory';
@@ -50,14 +51,27 @@ export const checkResume = async () => {
 }
 
 export const spin = async (feature: number) => {
-    const response = await axiosInstance.post('/game/spin', {
-        gamecode: gamecode,
-        bet: bet,
-        feature: feature,
-        index: userSettings.incrementSpinIndex(), // incremented by 1 to request the next genereted reels result
-    });
 
-    console.log('spin response: ', response.data);
+    try {
+        const response = await axiosInstance.post('/game/spin', {
+            gamecode: gamecode,
+            bet: bet,
+            feature: feature,
+            index: userSettings.incrementSpinIndex(), // incremented by 1 to request the next genereted reels result
+        });
 
-    return response.data;
+        console.log('spin response: ', response.data);
+
+        return response.data;
+    } catch (error: any) {
+        // roll back the spin index here
+        userSettings.decrementSpinIndex();
+
+        if (axios.isAxiosError(error)) {
+            const data = error.response?.data;
+            console.error('[spin] failed:', data);
+        }
+
+        throw error;
+    }
 };
