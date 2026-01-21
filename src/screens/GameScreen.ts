@@ -24,6 +24,7 @@ import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
 import { getGameConfig } from '../api/services/gameServices';
 import { Match3Process } from '../slot/Match3Process';
 import { Match3AutoSpinProcess } from '../slot/Match3AutoSpinProcess';
+import { i18n } from '../i18n/i18n';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -126,12 +127,12 @@ export class GameScreen extends Container {
         this.addChild(this.controlPanel);
         this.controlPanel.setCredit(userSettings.getBalance());
         this.controlPanel.setBet(2.0);
-        this.controlPanel.setMessage('HOLD SPACE FOR TURBO SPIN');
+        this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
 
         this.messagePanel = new MessagePanel();
         this.addChild(this.messagePanel);
         this.messagePanel.visible = false;
-        this.controlPanel.setMessage('HOLD SPACE FOR TURBO SPIN');
+        this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
 
         // ✅ Spin now supports interrupt-on-second-press
         this.controlPanel.onSpin(() => this.startSpinning());

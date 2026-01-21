@@ -1,6 +1,6 @@
 import { Container, FillGradient, Text } from 'pixi.js';
 import gsap from 'gsap';
-import { i18n } from '../utils/i18n';
+import { i18n } from '../i18n/i18n';
 import { SlotPreview } from '../slot/preview/SlotPreview';
 import { slotGetConfig } from '../slot/Match3Config';
 import { PlayButton } from '../ui/PlayButton';
@@ -11,7 +11,6 @@ import { MessagePagination } from '../ui/MessagePagination';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { GoldRoger } from '../ui/GoldRoger';
 import { bgm } from '../utils/audio';
-import { login } from '../api/services/authServices';
 
 /** Screen shown while loading assets */
 export class PreviewScreen extends Container {
@@ -52,7 +51,7 @@ export class PreviewScreen extends Container {
         });
 
         this.message = new Text({
-            text: 'Win up to 250x bet',
+            text: i18n.t('winUpTo'),
             style: {
                 fill: verticalGradient1,
                 fontFamily: 'Spartanmb Extra Bold',
@@ -75,7 +74,7 @@ export class PreviewScreen extends Container {
         this.gameLogo = new GameLogo();
         this.addChild(this.gameLogo);
 
-        this.messageList = ['Win up to 250x bet', 'Jackpot chance increased!', 'Big Wins are coming!'];
+        this.messageList = [i18n.t('winUpTo'), i18n.t('jackpotChance'), i18n.t('bigWins')];
 
         this.messagePagination = new MessagePagination(this.messageList.length, 80);
         this.messagePagination.setOnPageChange((index) => {
@@ -200,7 +199,7 @@ export class PreviewScreen extends Container {
 
     public async hide() {
         this.stopMessageRotation();
-        this.message.text = i18n.loadingDone;
+        this.message.text = 'We’re Ready!';
 
         gsap.killTweensOf(this.message);
         gsap.to(this.message, {

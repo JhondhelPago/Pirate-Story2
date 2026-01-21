@@ -63,4 +63,8 @@ export const i18nDict = {
     youHaveWon: '당첨되었습니다',
     clickAnywhereToContinue: '아무 곳이나 클릭하여 계속하세요.',
     inFreeSpins: '{spins}번의 무료 스핀 중',
+
+    winUpTo: '최대 250배',
+    jackpotChance: '잭팟 확률 상승',
+    bigWins: '빅윈 대기 중',
 };

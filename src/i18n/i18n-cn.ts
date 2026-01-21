@@ -61,4 +61,8 @@ export const i18nDict = {
     youHaveWon: '您中奖了',
     clickAnywhereToContinue: '点击任意位置继续。',
     inFreeSpins: '第 {spins} 次免费旋转中',
+
+    winUpTo: '最高250倍',
+    jackpotChance: '大奖概率提升',
+    bigWins: '大赢家降临',
 };

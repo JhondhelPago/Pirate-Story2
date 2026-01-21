@@ -65,4 +65,8 @@ export const i18nDict = {
     youHaveWon: 'あなたは当選しました',
     clickAnywhereToContinue: 'クリックして続行してください。',
     inFreeSpins: '{spins} 回のフリースピン中',
+
+    winUpTo: '最大250倍',
+    jackpotChance: '確率アップ',
+    bigWins: 'ビッグウィン到来',
 };

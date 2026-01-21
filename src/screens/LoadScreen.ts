@@ -1,6 +1,6 @@
 import { Container, FillGradient, Sprite, Text } from 'pixi.js';
 import gsap from 'gsap';
-import { i18n } from '../utils/i18n';
+import { i18n } from '../i18n/i18n';
 import { IconButton } from '../ui/IconButton';
 import { bgm, sfx } from '../utils/audio';
 import { navigation } from '../utils/navigation';
@@ -66,7 +66,7 @@ export class LoadScreen extends Container {
         });
 
         this.message = new Text({
-            text: 'Do you want to play with sound?',
+            text: i18n.t('doYouWantToPlayWithSound'),
             style: {
                 fill: verticalGradient1,
                 fontFamily: 'Spartanmb Extra Bold',
@@ -125,7 +125,7 @@ export class LoadScreen extends Container {
     /** Hide screen with animations */
     public async hide() {
         // Change then hide the loading message
-        this.message.text = i18n.loadingDone;
+        this.message.text = 'We’re Ready!';
         gsap.killTweensOf(this.message);
         gsap.to(this.message, {
             alpha: 0,

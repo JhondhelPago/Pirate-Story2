@@ -52,7 +52,7 @@ export const checkResume = async () => {
         .catch((error) => {
             console.error('[checkResume] failed:', error);
             return null;
-        });
+        });   
 };
 
 export const spin = async (feature: number) => {

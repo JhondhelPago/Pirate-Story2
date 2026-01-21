@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { sfx } from '../utils/audio';
 import { navigation } from '../utils/navigation';
 import { BuyFreeSpinPopup } from '../popups/BuyFreeSpinPopup';
+import { i18n } from '../i18n/i18n';
 
 export class BuyFreeSpin extends Container {
     private floatWrapper: Container;
@@ -54,7 +55,7 @@ export class BuyFreeSpin extends Container {
         // --------------------------
         // BUTTON LABEL
         // --------------------------
-        this.labelText = new Text('BUY FREE SPINS', {
+        this.labelText = new Text(i18n.t('buyFreeSpins'), {
             fontFamily: 'Pirata One',
             fontSize: 28,
             align: 'center',

@@ -6,6 +6,7 @@ import { AudioButton } from './AudioButton';
 import { SpinButton, SpinButtonState } from './SpinButton';
 import { LabelValue } from './LabelValue';
 import { BetAPI } from '../api/betApi';
+import { i18n } from '../i18n/i18n';
 
 export interface WinMatchPattern {
     times: number;
@@ -60,7 +61,7 @@ export class ControlPanel extends Container {
 
         // Credit display
         this.creditDisplay = new LabelValue({
-            labelText: 'CREDIT',
+            labelText: i18n.t('credit'),
             fontSize: 22,
             align: 'left',
         });
@@ -69,7 +70,7 @@ export class ControlPanel extends Container {
 
         // Bet display
         this.betDisplay = new LabelValue({
-            labelText: 'BET',
+            labelText: i18n.t('bet'),
             fontSize: 22,
             align: 'left',
         });
@@ -78,7 +79,7 @@ export class ControlPanel extends Container {
 
         // Center message
         this.titleText = new Text({
-            text: 'HOLD SPACE FOR TURBO SPIN',
+            text: i18n.t('holdSpaceForTurboSpin'),
             style: {
                 fontSize: 32,
                 fill: 0xffd700,
