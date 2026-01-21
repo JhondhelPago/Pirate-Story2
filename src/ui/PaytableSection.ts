@@ -6,6 +6,7 @@ import { List } from '@pixi/ui';
 import { gameConfig } from '../utils/gameConfig';
 import { PaytableCard } from './PaytableCard';
 import { config } from '../utils/userSettings';
+import { i18n } from '../i18n/i18n';
 
 export class PayTableSection extends Container {
     private symbolsDescriptionLabel: Label;
@@ -29,7 +30,7 @@ export class PayTableSection extends Container {
         this.addChild(this.mainLayout);
 
         this.symbolsDescriptionLabel = new Label(
-            'Symbols pay if there is a minimum of 5 connected symbols. Your payout is based on the size of connected symbol groups.',
+            i18n.t('paytableDesc'),
             {
                 fill: '#ffffff',
                 fontSize: 18,

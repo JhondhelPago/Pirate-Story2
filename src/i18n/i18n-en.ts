@@ -26,7 +26,7 @@ export const i18nDict = {
     soundFXSwitchDesc: 'Turn sound effects on or off',
     paytable: 'Paytable',
     paytableDesc:
-        'Symbols pay regardless of their position. Your payout is based on the number of identical symbols that appear when the spin ends.',
+        'Symbols pay if there is a minimum of 5 connected symbols. Your payout is based on the size of connected symbol groups.',
     section: 'Section {page}',
     scatter: 'Scatter',
     scattersBOLD: 'SCATTERS',
@@ -34,14 +34,14 @@ export const i18nDict = {
         'Hit 4, 5, or 6 SCATTER symbols anywhere on the screen to trigger the FREE SPINS feature and win 15, 20, or 25 free spins respectively.',
     thisIsScatterSymbol: 'This is the SCATTER symbol.',
     thisIsScatterSymbolDesc: 'The SCATTER symbol appears on all reels.',
-    cascadeFeature: 'CASCADE FEATURE',
-    cascadeFeatureDesc1:
-        'After every spin, winning symbols are paid and removed. Remaining symbols fall downward and new ones drop from above to fill the gaps. The CASCADE FEATURE continues as long as new wins appear, with no limit to how many can occur. All wins are awarded after the final cascade. Special award symbols and SCATTER symbols do not disappear and remain on the reels until all cascades from the spin are finished.',
-    cascadeFeatureDesc2:
-        'JACKPOT AWARD symbols appear as GRAND, ANGELIC, BLESSED, and DIVINE. Each one is collected during winning spins or cascades toward its respective JACKPOT AWARD meter. GRAND is awarded with 2 symbols, ANGELIC with 3, BLESSED with 4, and DIVINE with 5, with any extra symbols added after the meter resets. All collected symbols clear once the spin and its cascades end.',
+    wildFeature: 'WILD FEATURE',
+    wildFeatureDesc1:
+        'After every spin, winning symbols are paid and removed. Remaining symbols drop down and new ones fall from above to fill the gaps. CASCADE FEATURE continue as long as new wins appear, with no limit to how many can occur. All wins are added after the final cascade.\n\nSpecial award symbols and SCATTER symbols do not disappear and stay on the reels until all cascades from the spin are finished.',
+    wildFeatureDesc2:
+        'This is the WILD symbol and substitute for all symbols except for BONUS. WILD symbol hits with a random multiplier of 2x, 3x, 5x, 10x. Multiplier apply to all wining combination, their mutiplier add to each other. The same WILD can be part of multiple winning combinations.',
     freeSpins: 'FREE SPINS',
     freeSpinsDesc:
-        'Hit 4, 5, or 6 SCATTER symbols anywhere on the screen to activate the FREE SPINS feature and receive 15, 20, or 25 free spins respectively. During FREE SPINS, JACKPOT AWARD symbols collected in the meters persist between spins and throughout the cascades. Special reels are active during this feature.',
+        'Hit 4, 5, or 6 SCATTER symbols anywhere on the screen to activate the FREE SPINS feature and receive 15, 20, or 25 free spins, respectively. \n\nDuring the round any WILD symbol that hits remains on the screen until the end of the round. IN the FREE SPINS round, the Bonus symbol can appear randomly on the top of any symbol. Hit 2, 3, 4 or 5 BONUS symbols as overlay during the round to retrigger the feature and win 5, 10, 20, 30 additional free spins. Sepcial reels are in play during the feature.',
     howToPlay: 'How to Play',
     minusButtonDesc: 'Button to decrease the bet value',
     plusButtonDesc: 'Button to increase the bet value',

@@ -4,6 +4,7 @@ import { Label } from './Label';
 import { gameConfig } from '../utils/gameConfig';
 import { config } from '../utils/userSettings';
 import { Block } from '../slot/Match3Config';
+import { i18n } from '../i18n/i18n';
 
 const wildType = config.settings.specialBlocks[1]; //type 12 position at index 1
 
@@ -21,7 +22,7 @@ export class FeatureSection extends Container {
         this.addChild(this.mainLayout);
 
         this.descriptionLabel = new Label(
-            'After every spin, winning symbols are paid and removed. Remaining symbols drop down and new ones fall from above to fill the gaps. CASCADE FEATURE continue as long as new wins appear, with no limit to how many can occur. All wins are added after the final cascade.\n\nSpecial award symbols and SCATTER symbols do not disappear and stay on the reels until all cascades from the spin are finished.',
+            i18n.t('wildFeatureDesc2'),
             {
                 fill: 0xffffff,
                 fontSize: 18,
@@ -47,7 +48,7 @@ export class FeatureSection extends Container {
         this.symbolsContainer.pivot.x = this.symbolsContainer.width / 2;
 
         this.descriptionLabel2 = new Label(
-            'This is the WILD symbol and substitute for all symbols except for BONUS. WILD symbol hits with a random multiplier of 2x, 3x, 5x, 10x. Multiplier apply to all wining combination, their mutiplier add to each other. The same WILD can be part of multiple winning combinations.',
+            '',
             {
                 fill: 0xffffff,
                 fontSize: 20,

@@ -3,6 +3,7 @@ import { Label } from './Label';
 import { List } from '@pixi/ui';
 import { PaytableSpecialCard } from './PaytableSpecialCard';
 import { config } from '../utils/userSettings';
+import { i18n } from '../i18n/i18n';
 
 const bonusType = config.settings.specialBlocks[0]; //type 11 position at index 0
 
@@ -19,7 +20,8 @@ export class ScatterSection extends Container {
         this.addChild(this.mainLayout);
 
         this.symbolsDescriptionLabel = new Label(
-            'Hit 4, 5, or 6 SCATTER symbols anywhere on the screen to trigger the FREE SPINS feature and win 15, 20, or 25 free spins respectively.',
+            // 'Hit 4, 5, or 6 SCATTER symbols anywhere on the screen to trigger the FREE SPINS feature and win 15, 20, or 25 free spins respectively.',
+            i18n.t('scatterDesc'),
             {
                 fill: '#ffffff',
                 fontSize: 18,
@@ -35,7 +37,7 @@ export class ScatterSection extends Container {
         this.bonusCardContainer = new Container();
         this.bonusCard = new PaytableSpecialCard({
             image: `symbol-${bonusType}`,
-            description: 'This is SCATTER symbol. \nSCATTER symbol is present on all reels',
+            description: `${i18n.t('thisIsScatterSymbol')}. \n${i18n.t('thisIsScatterSymbolDesc')}`,
         });
         this.bonusCardContainer.addChild(this.bonusCard);
         this.mainLayout.addChild(this.bonusCardContainer);

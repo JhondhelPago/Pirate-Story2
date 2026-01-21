@@ -25,20 +25,20 @@ export const i18nDict = {
     soundFXSwitch: '사운드 효과',
     soundFXSwitchDesc: '효과음 켜기/끄기',
     paytable: '페이테이블',
-    paytableDesc: '기호 위치와 상관없이 지급됩니다. 스핀 종료 시 동일한 기호의 개수에 따라 보상이 결정됩니다.',
+    paytableDesc: '5개 이상의 심볼이 연결되면 당첨금이 지급됩니다. 당첨금은 연결된 심볼 그룹의 크기에 따라 결정됩니다.',
     section: '섹션 {page}',
     scatter: '스캐터',
     scattersBOLD: '스캐터',
     scatterDesc: '스캐터 4, 5, 6개 등장 시 각각 15, 20, 25 프리 스핀이 지급됩니다.',
     thisIsScatterSymbol: '이것은 스캐터 심볼입니다.',
     thisIsScatterSymbolDesc: '스캐터 심볼은 모든 릴에서 등장할 수 있습니다.',
-    cascadeFeature: '캐스케이드 기능',
-    cascadeFeatureDesc1:
-        '스핀 후 승리한 심볼은 지급 후 제거됩니다. 남은 심볼이 아래로 떨어지고 새로운 심볼이 위에서 떨어져 빈 공간을 채웁니다.',
-    cascadeFeatureDesc2:
-        '잭팟 심볼(GRAND, ANGELIC, BLESSED, DIVINE)은 각각 전용 미터에 모이며 GRAND는 2개, ANGELIC는 3개, BLESSED는 4개, DIVINE은 5개로 당첨됩니다.',
+    wildFeature: '와일드 기능',
+    wildFeatureDesc1:
+        '매 스핀 후, 당첨된 심볼은 배당금이 지급된 후 제거됩니다. 남은 심볼은 아래로 떨어지며, 빈 공간은 위에서 새로운 심볼이 떨어져 채워집니다. 새로운 당첨 조합이 나타나지 않을 때까지 **연쇄 기능(CASCADE)**은 횟수 제한 없이 계속됩니다. 모든 당첨금은 마지막 연쇄 과정이 끝난 후 합산됩니다.\n\n특수 보상 심볼과 스캐터(SCATTER) 심볼은 사라지지 않으며, 해당 스핀의 모든 연쇄 과정이 종료될 때까지 릴에 유지됩니다.',
+    wildFeatureDesc2:
+        '이것은 와일드(WILD) 심볼이며, **보너스(BONUS)**를 제외한 모든 심볼을 대체할 수 있습니다. 와일드 심볼은 2x, 3x, 5x, 10x 중 무작위 배수와 함께 등장합니다. 배수는 모든 당첨 조합에 적용되며, 여러 개의 배수가 있을 경우 서로 합산됩니다. 동일한 와일드...',
     freeSpins: '프리 스핀',
-    freeSpinsDesc: '스캐터 4, 5, 6개로 각각 15, 20, 25 프리 스핀을 획득합니다.',
+    freeSpinsDesc: '화면 어디에서나 스캐터(SCATTER) 심볼이 4개, 5개 또는 6개 나타나면 프리 스핀(FREE SPINS) 기능이 활성화되며, 각각 15회, 20회 또는 25회의 프리 스핀을 획득합니다.\n\n라운드 중에 나타나는 모든 와일드(WILD) 심볼은 라운드가 끝날 때까지 화면에 고정됩니다. 프리 스핀 라운드 동안 보너스(BONUS) 심볼이 임의의 심볼 위에 무작위로 나타날 수 있습니다. 라운드 중 오버레이 형태로 보너스 심볼이 2개, 3개, 4개 또는 5개 나타나면 기능이 재활성화(Retrigger)되며 각각 5회, 10회, 20회, 30회의 추가 프리 스핀을 획득합니다. 기능 중에는 특별한 릴이 사용됩니다.',
     howToPlay: '플레이 방법',
     minusButtonDesc: '베팅 감소 버튼',
     plusButtonDesc: '베팅 증가 버튼',
