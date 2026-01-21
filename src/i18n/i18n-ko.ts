@@ -28,6 +28,7 @@ export const i18nDict = {
     paytableDesc: '기호 위치와 상관없이 지급됩니다. 스핀 종료 시 동일한 기호의 개수에 따라 보상이 결정됩니다.',
     section: '섹션 {page}',
     scatter: '스캐터',
+    scattersBOLD: '스캐터',
     scatterDesc: '스캐터 4, 5, 6개 등장 시 각각 15, 20, 25 프리 스핀이 지급됩니다.',
     thisIsScatterSymbol: '이것은 스캐터 심볼입니다.',
     thisIsScatterSymbolDesc: '스캐터 심볼은 모든 릴에서 등장할 수 있습니다.',

@@ -1,5 +1,6 @@
 import { Container, Sprite, Texture, Text, Matrix } from 'pixi.js';
 import gsap from 'gsap';
+import { i18n } from '../i18n/i18n';
 
 // ✅ PRELOAD FONTS ASAP (before any banner Text is created)
 async function preloadBannerFonts() {
@@ -93,14 +94,14 @@ export class BuyFreeSpinOptionBanner extends Container {
         const labelSize = cfg.labelFontSize ?? 54;
 
         // LINE 1
-        this.freeSpinsText = this.createStyledText('FREE SPINS', labelSize, 'Bangers');
+        this.freeSpinsText = this.createStyledText(i18n.t('freeSpins'), labelSize, 'Bangers');
 
         // LINE 2
         this.scattersLine = new Container();
         this.scattersLine.eventMode = 'none';
 
         this.scattersNumberText = this.createStyledText(`${def.scatters}`, labelSize, 'Bangers');
-        this.scattersWordText = this.createStyledText(' SCATTERS', labelSize, 'Bangers');
+        this.scattersWordText = this.createStyledText(i18n.t('scattersBOLD'), labelSize, 'Bangers');
 
         // number only = white
         (this.scattersNumberText.style as any).fill = 0xffffff;

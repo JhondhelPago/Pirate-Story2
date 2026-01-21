@@ -29,6 +29,7 @@ export const i18nDict = {
         'Symbols pay regardless of their position. Your payout is based on the number of identical symbols that appear when the spin ends.',
     section: 'Section {page}',
     scatter: 'Scatter',
+    scattersBOLD: 'SCATTERS',
     scatterDesc:
         'Hit 4, 5, or 6 SCATTER symbols anywhere on the screen to trigger the FREE SPINS feature and win 15, 20, or 25 free spins respectively.',
     thisIsScatterSymbol: 'This is the SCATTER symbol.',

@@ -28,6 +28,7 @@ export const i18nDict = {
     paytableDesc: 'シンボルは位置に関係なく配当されます。配当はスピン終了時に表示される同一シンボルの数に基づきます。',
     section: 'セクション {page}',
     scatter: 'スキャッター',
+    scattersBOLD: 'スキャッター',
     scatterDesc:
         '画面上のどこにでもスキャッターが4、5、6個止まるとフリースピンが発動し、それぞれ15、20、25回のフリースピンを獲得します。',
     thisIsScatterSymbol: 'これはスキャッターシンボルです。',

@@ -28,6 +28,7 @@ export const i18nDict = {
     paytableDesc: '符号位置无关，结算基于旋转结束后出现的相同符号数量。',
     section: '第 {page} 部分',
     scatter: '分散符号',
+    scattersBOLD: '分散符号',
     scatterDesc: '任意位置出现 4、5 或 6 个分散符号可触发免费旋转，并分别获得 15、20、25 次免费旋转。',
     thisIsScatterSymbol: '这是分散符号。',
     thisIsScatterSymbolDesc: '分散符号会出现在所有卷轴上。',
