@@ -24,6 +24,10 @@ export class BuyFreeSpin extends Container {
     // GRADIENT (STATIC / SHARED TEXTURE)
     // --------------------------
     private static labelGradientTexture?: Texture;
+    private static labelGradientMatrix?: Matrix;
+
+    private static readonly LABEL_GRAD_W = 512;
+    private static readonly LABEL_GRAD_H = 256;
 
     constructor() {
         super();
@@ -59,7 +63,7 @@ export class BuyFreeSpin extends Container {
             fontFamily: 'Pirata One',
             fontSize: 28,
             align: 'center',
-            fill: 0xffffff, // ✅ temporary, will be replaced by gradient
+            fill: 0xffffff, // will be replaced by gradient
             stroke: {
                 color: 0x4c1b05,
                 width: 4,
@@ -94,51 +98,60 @@ export class BuyFreeSpin extends Container {
 
     // -------------------------------
     // GRADIENT CREATION (PRIVATE)
+    // (same as your provided ensureLabelGradient)
     // -------------------------------
     private ensureLabelGradient() {
-        if (BuyFreeSpin.labelGradientTexture) return;
+        if (BuyFreeSpin.labelGradientTexture && BuyFreeSpin.labelGradientMatrix) return;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 256;
+        const gradientCanvas = document.createElement('canvas');
+        gradientCanvas.width = BuyFreeSpin.LABEL_GRAD_W;
+        gradientCanvas.height = BuyFreeSpin.LABEL_GRAD_H;
 
-        const ctx = canvas.getContext('2d')!;
+        const ctx = gradientCanvas.getContext('2d')!;
 
-        // ✅ Figma stops (exact)
-        // NOTE: direction depends on what you want (see below)
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height); // vertical
-        gradient.addColorStop(0.20, '#ECAC18');
-        gradient.addColorStop(0.39, '#FFFFFF');
-        gradient.addColorStop(0.44, '#FDD44F');
-        gradient.addColorStop(0.50, '#FDD44F');
-        gradient.addColorStop(0.70, '#D79600');
-        gradient.addColorStop(1.0, '#FF7700');
+        // same gradient stops used in FeatureBanner / BuyFreeSpinOptionBanner
+        const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.height);
+        gradient.addColorStop(0.0, '#FFF39C');
+        gradient.addColorStop(0.19, '#FFF39C');
+        gradient.addColorStop(0.34, '#FDD44F');
+        gradient.addColorStop(0.4, '#FDD44F');
+        gradient.addColorStop(0.51, '#FDD44F');
+        gradient.addColorStop(1.0, '#D79600');
 
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
 
-        BuyFreeSpin.labelGradientTexture = Texture.from(canvas);
+        BuyFreeSpin.labelGradientTexture = Texture.from(gradientCanvas);
+
+        const mat = new Matrix();
+        mat.scale(1 / gradientCanvas.width, 1 / gradientCanvas.height);
+        BuyFreeSpin.labelGradientMatrix = mat;
     }
 
     /**
-     * ✅ Apply a gradient fill that correctly spans the text bounds.
-     * This fixes the "flat fill" look when the text is scaled.
+     * ✅ Apply gradient fill to labelText using the shared gradient texture.
+     * Keeps the gradient consistent even if text changes size/scale.
      */
     private applyLabelGradient() {
         this.ensureLabelGradient();
+        if (!BuyFreeSpin.labelGradientTexture || !BuyFreeSpin.labelGradientMatrix) return;
 
         // Local bounds in the text’s own space
         const b = this.labelText.getLocalBounds();
 
-        // Option A (recommended): strictly vertical gradient like "gold text"
-        // - ignores width; maps only Y so gradient is consistent even with different text lengths
-        const m = new Matrix().translate(0, -b.y).scale(1, 1 / b.height);
+        // Map the text bounds into the gradient canvas pixel space, then into UV space via the shared matrix.
+        // (base matrix converts pixels -> 0..1 UV)
+        const localToCanvas = new Matrix()
+            .translate(-b.x, -b.y)
+            .scale(
+                BuyFreeSpin.LABEL_GRAD_W / Math.max(1e-6, b.width),
+                BuyFreeSpin.LABEL_GRAD_H / Math.max(1e-6, b.height)
+            );
 
-        // Option B (if you want it to also vary across width):
-        // const m = new Matrix().translate(-b.x, -b.y).scale(1 / b.width, 1 / b.height);
+        const m = BuyFreeSpin.labelGradientMatrix.clone().append(localToCanvas);
 
         (this.labelText.style as any).fill = {
-            texture: BuyFreeSpin.labelGradientTexture!,
+            texture: BuyFreeSpin.labelGradientTexture,
             matrix: m,
         };
     }

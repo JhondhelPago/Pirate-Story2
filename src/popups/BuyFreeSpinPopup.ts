@@ -1,4 +1,4 @@
-import { Container, Sprite, Texture } from 'pixi.js';
+import { Container, Sprite, Texture, Text, Matrix } from 'pixi.js';
 import gsap from 'gsap';
 import { navigation } from '../utils/navigation';
 import { ConfirmationBuyFreeSpinPopup } from './BuyFreeConfirmationPopup';
@@ -8,7 +8,12 @@ import { GameScreen } from '../screens/GameScreen';
 import { userSettings, config as loadedConfig } from '../utils/userSettings';
 
 // ✅ updated imports (letter type + definition)
-import { BuyFreeSpinOptionBanner, type BuyFreeTypeLetter, type BuyFreeTypeDefinition } from '../ui/FeatureBanner';
+import {
+    BuyFreeSpinOptionBanner,
+    type BuyFreeTypeLetter,
+    type BuyFreeTypeDefinition,
+} from '../ui/FeatureBanner';
+import { i18n } from '../i18n/i18n';
 
 /* ===============================
    Currency helpers
@@ -38,7 +43,8 @@ export class BuyFreeSpinPopup extends Container {
     private bg: Sprite;
     private panel: Container;
 
-    private buyLabel: Sprite;
+    // ✅ was Sprite, now Text with gradient fill + stroke
+    private buyLabel: Text;
 
     private featureA: BuyFreeSpinOptionBanner;
     private featureB: BuyFreeSpinOptionBanner;
@@ -63,6 +69,12 @@ export class BuyFreeSpinPopup extends Container {
         C: { bannerTextureKey: 'blue-spin-banner', spins: 0, scatters: 0 },
     };
 
+    // -----------------------
+    // Gradient cache (same idea as FeatureBanner)
+    // -----------------------
+    private static labelGradientTexture?: Texture;
+    private static labelGradientMatrix?: Matrix;
+
     constructor() {
         super();
         this.eventMode = 'static';
@@ -77,8 +89,8 @@ export class BuyFreeSpinPopup extends Container {
         this.panel = new Container();
         this.addChild(this.panel);
 
-        this.buyLabel = Sprite.from('buy-free-spin-label');
-        this.buyLabel.anchor.set(0.5);
+        // ✅ Replace sprite label with styled text label
+        this.buyLabel = this.createGradientLabelText(i18n.t('buyFreeSpins'), 110);
         this.panel.addChild(this.buyLabel);
 
         this.featureA = new BuyFreeSpinOptionBanner({
@@ -191,8 +203,8 @@ export class BuyFreeSpinPopup extends Container {
         gsap.killTweensOf(this.buyLabel.scale);
 
         this.pulseTween = gsap.to(this.buyLabel.scale, {
-            x: 1.05,
-            y: 1.05,
+            x: this.buyLabel.scale.x * 1.05,
+            y: this.buyLabel.scale.y * 1.05,
             duration: 1.2,
             yoyo: true,
             repeat: -1,
@@ -373,5 +385,59 @@ export class BuyFreeSpinPopup extends Container {
 
         await tl;
         await navigation.dismissPopup();
+    }
+
+    // -----------------------
+    // Label text helpers (gradient fill + stroke)
+    // -----------------------
+
+    private createGradientLabelText(value: string, fontSize: number) {
+        this.ensureLabelGradient();
+
+        const style: any = {
+            fontFamily: 'Pirata One',
+            fontSize,
+            align: 'center',
+            fill: {
+                texture: BuyFreeSpinPopup.labelGradientTexture!,
+                matrix: BuyFreeSpinPopup.labelGradientMatrix!,
+            },
+            stroke: {
+                color: 0x4c1b05,
+                width: 6,
+            },
+        };
+
+        const t = new Text(value, style);
+        t.anchor.set(0.5);
+        t.eventMode = 'none';
+        return t;
+    }
+
+    private ensureLabelGradient() {
+        if (BuyFreeSpinPopup.labelGradientTexture && BuyFreeSpinPopup.labelGradientMatrix) return;
+
+        const gradientCanvas = document.createElement('canvas');
+        gradientCanvas.width = 512;
+        gradientCanvas.height = 256;
+        const ctx = gradientCanvas.getContext('2d')!;
+
+        // same gradient stops used in FeatureBanner / BuyFreeSpinOptionBanner
+        const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.height);
+        gradient.addColorStop(0.0, '#FFF39C');
+        gradient.addColorStop(0.19, '#FFF39C');
+        gradient.addColorStop(0.34, '#FDD44F');
+        gradient.addColorStop(0.4, '#FDD44F');
+        gradient.addColorStop(0.51, '#FDD44F');
+        gradient.addColorStop(1.0, '#D79600');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, gradientCanvas.width, gradientCanvas.height);
+
+        BuyFreeSpinPopup.labelGradientTexture = Texture.from(gradientCanvas);
+
+        const mat = new Matrix();
+        mat.scale(1 / gradientCanvas.width, 1 / gradientCanvas.height);
+        BuyFreeSpinPopup.labelGradientMatrix = mat;
     }
 }
