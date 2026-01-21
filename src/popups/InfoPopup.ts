@@ -9,6 +9,7 @@ import { SettingsMenuSection } from '../ui/SettingsMenuSection';
 import { pool } from '../utils/pool';
 import { FreeSpinSection } from '../ui/FreeSpinSection';
 import { ScatterSection } from '../ui/ScatterSection';
+import { i18n } from '../i18n/i18n';
 
 interface ModalSection extends Container {
     /** Show the screen */
@@ -74,27 +75,27 @@ export class InfoPopup extends Container {
     /** Sections */
     private sections: { title: string; section: SectionConstructor }[] = [
         {
-            title: 'Paytable',
+            title: i18n.t('paytable'),
             section: PayTableSection,
         },
         {
-            title: 'Scatter',
+            title: i18n.t('scatter'),
             section: ScatterSection,
         },
         {
-            title: 'CASCADE FEATURE',
+            title: i18n.t('wildFeature'),
             section: FeatureSection,
         },
         {
-            title: 'FREE SPINS',
+            title: i18n.t('freeSpins'),
             section: FreeSpinSection,
         },
         {
-            title: 'How to play',
+            title: i18n.t('howToPlay'),
             section: HowToPlaySection,
         },
         {
-            title: 'Settings menu',
+            title: i18n.t('settingsMenu'),
             section: SettingsMenuSection,
         },
     ];

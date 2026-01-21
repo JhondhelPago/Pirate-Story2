@@ -2,31 +2,32 @@ import { Container } from 'pixi.js';
 import { List } from '@pixi/ui';
 import { Label } from './Label';
 import { IconInfoCard } from './IconInfoCard';
+import { i18n } from '../i18n/i18n';
 
 const defaultSettingsMenuSectionOptions = {
     icons1: [
         {
-            label: 'QUICK SPIN - Selects the Quick Spin for game reels to start automatucally stop as soon as released.',
+            label: i18n.t('quickSpinDesc'),
         },
         {
-            label: 'AMBIENT MUSIC - toggles the ambient sound and music in the game ON and OFF',
+            label: i18n.t('ambientMusicDesc'),
         },
         {
-            label: 'SOUND FX - toggles the game sound effects ON and OFF',
+            label: i18n.t('soundFXDesc'),
         },
     ],
     icons2: [
         {
             image: 'icon-button-left-arrow-default-view',
-            label: 'Back navigation between information sections',
+            label: i18n.t('backButtonDesc'),
         },
         {
             image: 'icon-button-right-arrow-default-view',
-            label: 'Next navigation between information sections',
+            label: i18n.t('nextButtonDesc'),
         },
         {
             image: 'icon-button-default-close-view',
-            label: 'Close information screen',
+            label: i18n.t('closeButtonDesc'),
         },
     ],
 };
@@ -66,7 +67,7 @@ export class SettingsMenuSection extends Container {
             this.labels.push(label);
         });
 
-        this.secondTitleLabel = new Label('Main Game Interface', {
+        this.secondTitleLabel = new Label(i18n.t('mainGameInterface'), {
             fill: '#FCC100',
         });
         this.secondTitleLabel.anchor.set(0.5);

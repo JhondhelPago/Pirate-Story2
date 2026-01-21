@@ -2,38 +2,39 @@ import { Container } from 'pixi.js';
 import { List } from '@pixi/ui';
 import { Label } from './Label';
 import { IconInfoCard } from './IconInfoCard';
+import { i18n } from '../i18n/i18n';
 
 const defaultHowToPlaySectionOptions = {
     icons1: [
         {
             image: 'icon-button-minus-default-view',
-            label: 'Button to decrease the bet value',
+            label: i18n.t('minusButtonDesc'),
         },
         {
             image: 'icon-button-add-default-view',
-            label: 'Button to increase the bet value',
+            label: i18n.t('plusButtonDesc'),
         },
         {
             image: 'icon-button-autoplay-default-view',
-            label: 'Button to autoplay spin',
+            label: i18n.t('autoplayButtonDesc'),
         },
     ],
     icons2: [
         {
             image: 'icon-button-sound-on-default-view',
-            label: 'Sound FX and Ambient Music ON Button',
+            label: i18n.t('audioButtonOnDesc'),
         },
         {
             image: 'icon-button-sound-off-hover-view',
-            label: 'Sound FX and Ambient Music OFF Button',
+            label: i18n.t('audioButtonOffDesc'),
         },
         {
             image: 'icon-button-settings-default-view',
-            label: 'Settings Button to display the game settings popup.',
+            label: i18n.t('settingsButtonDesc'),
         },
         {
             image: 'icon-button-info-default-view',
-            label: 'Information Button to display the game informations popup.',
+            label: i18n.t('infoButtonDesc'),
         },
     ],
 };
@@ -65,13 +66,13 @@ export class HowToPlaySection extends Container {
         });
         this.mainLayout.addChild(this.topLayout);
 
-        this.secondTitleLabel = new Label('Main Game Interface', {
+        this.secondTitleLabel = new Label(i18n.t('mainGameInterface'), {
             fill: '#FCC100',
         });
         this.mainLayout.addChild(this.secondTitleLabel);
 
         this.bottomLayout = new List({ type: 'vertical', elementsMargin: 20 });
-        this.creditAndBetLabel = new Label('CREDITS and BET labels show the current balance and current total bet.', {
+        this.creditAndBetLabel = new Label(i18n.t('creditsAndBetDesc'), {
             fill: 0xffffff,
             fontSize: 18,
             fontWeight: '200',
