@@ -1,8 +1,8 @@
-import { ConfigAPI } from '../api/configApi';
 import { GameServices } from '../api/services';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 import { userAuth } from './userAuth';
+import { updateUrlSettings } from './urlsHelper';
 
 await userAuth.login('7408d33a197ca940e6bb31e5d3f7b313');
 

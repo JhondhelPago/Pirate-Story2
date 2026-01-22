@@ -30,9 +30,9 @@ export class I18n {
     /**
      * Property that stores the i18n dictionary.
      */
-    public readonly dict: I18nDictionary = i18nDict;
+    public dict: I18nDictionary = i18nDict;
 
-    constructor() {
+    public init() {
         this.dict = i18nDict;
 
         switch (getUrlParam('lang')?.toLocaleLowerCase()) {
