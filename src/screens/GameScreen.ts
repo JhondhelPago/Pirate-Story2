@@ -25,6 +25,7 @@ import { getGameConfig } from '../api/services/gameServices';
 import { Match3Process } from '../slot/Match3Process';
 import { Match3AutoSpinProcess } from '../slot/Match3AutoSpinProcess';
 import { i18n } from '../i18n/i18n';
+import { SpinLeftBanner } from '../ui/SpinLeftBanner';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -55,6 +56,8 @@ export class GameScreen extends Container {
     public readonly controlPanel: ControlPanel;
 
     public readonly messagePanel: MessagePanel;
+
+    public readonly spinLeftBanner: SpinLeftBanner;
 
     /** The special effects layer */
     public readonly vfx?: GameEffects;
@@ -133,6 +136,12 @@ export class GameScreen extends Container {
         this.addChild(this.messagePanel);
         this.messagePanel.visible = false;
         this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
+
+        // spin left ui banner for the mobile
+        this.spinLeftBanner = new SpinLeftBanner();
+        this.addChild(this.spinLeftBanner);
+        this.spinLeftBanner.visible = false;
+
 
         // ✅ Spin now supports interrupt-on-second-press
         this.controlPanel.onSpin(() => this.startSpinning());
@@ -348,6 +357,12 @@ export class GameScreen extends Container {
 
             // this.messagePanel.setTitle("Welcome to Pirate Story");
             this.messagePanel.setMessage('');
+
+
+            this.spinLeftBanner.scale.set(.5);
+            this.spinLeftBanner.x = width * 0.18;
+            this.spinLeftBanner.y = height * 0.06;
+            this.spinLeftBanner.visible = true;
         }
 
         const isMobile = document.documentElement.id === 'isMobile';
@@ -504,6 +519,7 @@ export class GameScreen extends Container {
         console.log('Current Spin: ', current, 'Remaining Spins: ', remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
         this.messagePanel.setMessage(`FREE SPIN LEFT ${remaining}`);
+        this.spinLeftBanner.setSpinsLeft(remaining);
         this.lockInteraction();
     }
 
