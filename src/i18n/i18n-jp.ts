@@ -5,7 +5,7 @@ export const i18nDict = {
     bigWinsComing: 'ビッグウィンが来る！',
     buyFree: 'フリースピン購入',
     spin: 'スピン',
-    buyFreeSpins: 'フリースピンを購入',
+    buyFreeSpins: 'フリースピン\n購入',
     holdSpaceForTurboSpin: 'スペース長押しでターボスピン',
     goodluck: 'グッドラック！',
     win: '{amount} を獲得！',

@@ -323,7 +323,7 @@ export class GameScreen extends Container {
             this.match3.scale.set(1.25);
 
             this.buyFreeSpin.scale.set(1);
-            this.buyFreeSpin.x = 180;
+            this.buyFreeSpin.x = 230;
             this.buyFreeSpin.y = height * 0.73;
 
             this.gameLogo.scale.set(0.87);
