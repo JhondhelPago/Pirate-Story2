@@ -3,43 +3,64 @@ import { List } from '@pixi/ui';
 import { Label } from './Label';
 import { IconInfoCard } from './IconInfoCard';
 import { i18n } from '../i18n/i18n';
+import type { I18nKey } from '../i18n/i18n';
 
-const defaultHowToPlaySectionOptions = {
+/**
+ * Strongly typed icon option
+ */
+type IconOption = {
+    image: string;
+    labelKey: I18nKey;
+};
+
+/**
+ * Strongly typed options
+ */
+type HowToPlaySectionOptionsInternal = {
+    icons1: IconOption[];
+    icons2: IconOption[];
+};
+
+/**
+ * Default options (store KEYS, not translated strings)
+ */
+const defaultHowToPlaySectionOptions: HowToPlaySectionOptionsInternal = {
     icons1: [
         {
             image: 'icon-button-minus-default-view',
-            label: i18n.t('minusButtonDesc'),
+            labelKey: 'minusButtonDesc',
         },
         {
             image: 'icon-button-add-default-view',
-            label: i18n.t('plusButtonDesc'),
+            labelKey: 'plusButtonDesc',
         },
         {
             image: 'icon-button-autoplay-default-view',
-            label: i18n.t('autoplayButtonDesc'),
+            labelKey: 'autoplayButtonDesc',
         },
     ],
     icons2: [
         {
             image: 'icon-button-sound-on-default-view',
-            label: i18n.t('audioButtonOnDesc'),
+            labelKey: 'audioButtonOnDesc',
         },
         {
             image: 'icon-button-sound-off-hover-view',
-            label: i18n.t('audioButtonOffDesc'),
+            labelKey: 'audioButtonOffDesc',
         },
         {
             image: 'icon-button-settings-default-view',
-            label: i18n.t('settingsButtonDesc'),
+            labelKey: 'settingsButtonDesc',
         },
         {
             image: 'icon-button-info-default-view',
-            label: i18n.t('infoButtonDesc'),
+            labelKey: 'infoButtonDesc',
         },
     ],
 };
 
-export type HowToPlaySectionOptions = typeof defaultHowToPlaySectionOptions;
+export type HowToPlaySectionOptions = Partial<HowToPlaySectionOptionsInternal>;
+
 export class HowToPlaySection extends Container {
     private mainLayout: List;
     private topLayout: List;
@@ -50,28 +71,48 @@ export class HowToPlaySection extends Container {
 
     private infoCards: IconInfoCard[] = [];
 
-    constructor(opts: Partial<HowToPlaySectionOptions> = {}) {
+    constructor(opts: HowToPlaySectionOptions = {}) {
         super();
 
-        const options = { ...defaultHowToPlaySectionOptions, ...opts };
+        const options: HowToPlaySectionOptionsInternal = {
+            icons1: opts.icons1 ?? defaultHowToPlaySectionOptions.icons1,
+            icons2: opts.icons2 ?? defaultHowToPlaySectionOptions.icons2,
+        };
 
         this.mainLayout = new List({ type: 'vertical', elementsMargin: 40 });
         this.addChild(this.mainLayout);
 
+        /**
+         * TOP ICONS
+         */
         this.topLayout = new List({ type: 'vertical', elementsMargin: 20 });
+
         options.icons1.forEach((icon) => {
-            const card = new IconInfoCard({ image: icon.image, label: icon.label, imageScale: 0.75 });
+            const card = new IconInfoCard({
+                image: icon.image,
+                label: i18n.t(icon.labelKey),
+                imageScale: 0.75,
+            });
+
             this.topLayout.addChild(card);
             this.infoCards.push(card);
         });
+
         this.mainLayout.addChild(this.topLayout);
 
+        /**
+         * SECTION TITLE
+         */
         this.secondTitleLabel = new Label(i18n.t('mainGameInterface'), {
             fill: '#FCC100',
         });
         this.mainLayout.addChild(this.secondTitleLabel);
 
+        /**
+         * BOTTOM CONTENT
+         */
         this.bottomLayout = new List({ type: 'vertical', elementsMargin: 20 });
+
         this.creditAndBetLabel = new Label(i18n.t('creditsAndBetDesc'), {
             fill: 0xffffff,
             fontSize: 18,
@@ -79,17 +120,22 @@ export class HowToPlaySection extends Container {
             wordWrap: true,
             align: 'center',
         });
+
         this.bottomLayout.addChild(this.creditAndBetLabel);
 
         options.icons2.forEach((icon) => {
-            const card = new IconInfoCard({ image: icon.image, label: icon.label, imageScale: 1 });
+            const card = new IconInfoCard({
+                image: icon.image,
+                label: i18n.t(icon.labelKey), // ✅ FIXED: translated at runtime
+                imageScale: 1,
+            });
+
             this.bottomLayout.addChild(card);
             card.updateLayout();
             this.infoCards.push(card);
         });
 
         this.mainLayout.addChild(this.bottomLayout);
-        console.log(this.mainLayout.elementsMargin);
     }
 
     public resize(width: number, height: number) {
@@ -139,7 +185,6 @@ export class HowToPlaySection extends Container {
     }
 
     public async hide() {
-        // Clean up info cards
         for (const card of this.infoCards) {
             card.destroy({ children: true });
         }

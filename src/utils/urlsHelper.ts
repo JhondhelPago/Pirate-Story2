@@ -13,7 +13,6 @@ export function updateUrlSettings(lang: string, currency: string) {
         changed = true;
     }
 
-    // Only touch history if something actually changed
     if (changed) {
         window.history.replaceState({}, '', url.toString());
     }
