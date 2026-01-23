@@ -5,9 +5,8 @@ import { MatchPattern } from './MatchPattern';
 import { AudioButton } from './AudioButton';
 import { SpinButton, SpinButtonState } from './SpinButton';
 import { LabelValue } from './LabelValue';
+import { BetAPI } from '../api/betApi';
 import { i18n } from '../i18n/i18n';
-import { getUrlParam } from '../utils/getUrlParams';
-import { AutoplayButton, AutoplayButtonState } from './AutoplayButton';
 
 export interface WinMatchPattern {
     times: number;
@@ -35,13 +34,11 @@ export class ControlPanel extends Container {
     private minusButton: IconButton;
     private spinButton: SpinButton;
     private plusButton: IconButton;
-    private autoplayButton: AutoplayButton;
+    private autoplayButton: IconButton;
 
     private panelHeight = 160;
     private contentWidth = 1920;
 
-    private isMobile = false;
-    private isPortrait = false;
     private currency = 'usd';
     private shouldStopMatches = false;
 
@@ -50,7 +47,7 @@ export class ControlPanel extends Container {
     constructor() {
         super();
 
-        this.currency = getUrlParam('cur') ?? 'usd';
+        this.currency = userSettings.getCurrency();
 
         // Create semi-transparent background using Sprite
         this.background = Sprite.from(Texture.WHITE);
@@ -82,15 +79,11 @@ export class ControlPanel extends Container {
 
         // Center message
         this.titleText = new Text({
-            text: 'HOLD SPACE FOR TURBO SPIN',
+            text: i18n.t('holdSpaceForTurboSpin'),
             style: {
                 fontSize: 32,
                 fill: 0xffd700,
-                fontWeight: 'bolder',
-                stroke: {
-                    width: 2,
-                    color: '#616161ff',
-                },
+                fontWeight: 'bold',
             },
         });
         this.titleText.anchor.set(0.5, 0.75);
@@ -108,7 +101,7 @@ export class ControlPanel extends Container {
                 fontWeight: 'lighter',
             },
         });
-        this.messageText.anchor.set(0.5);
+        this.messageText.anchor.set(0.5, -0.75);
         this.contentContainer.addChild(this.messageText);
 
         // Create buttons
@@ -140,8 +133,12 @@ export class ControlPanel extends Container {
             imagePressed: 'icon-button-add-active-view',
             imageDisabled: 'icon-button-add-disabled-view',
         });
-
-        this.autoplayButton = new AutoplayButton();
+        this.autoplayButton = new IconButton({
+            imageDefault: 'icon-button-autoplay-default-view',
+            imageHover: 'icon-button-autoplay-hover-view',
+            imagePressed: 'icon-button-autoplay-active-view',
+            imageDisabled: 'icon-button-autoplay-disabled-view',
+        });
 
         this.contentContainer.addChild(this.audioButton);
         this.contentContainer.addChild(this.infoButton);
@@ -156,12 +153,11 @@ export class ControlPanel extends Container {
      * Layout the control panel based on screen width
      */
     public resize(width: number, height: number, isMobile?: boolean) {
-        this.isMobile = isMobile ?? false;
-        this.isPortrait = height > width;
+        const isPortrait = height > width;
 
         // === MOBILE PORTRAIT ===
-        if (isMobile && this.isPortrait) {
-            this.panelHeight = 440;
+        if (isMobile && isPortrait) {
+            this.panelHeight = 400;
 
             // Background
             // this.background.alpha = 0;
@@ -175,7 +171,7 @@ export class ControlPanel extends Container {
 
             // Adjust button sizes for mobile
             const buttonScale = 1.75;
-            const spinButtonScale = 1.7;
+            const spinButtonScale = 1.75;
 
             this.audioButton.scale.set(buttonScale);
             this.infoButton.scale.set(buttonScale);
@@ -197,15 +193,15 @@ export class ControlPanel extends Container {
 
             // Center - Large spin button
             this.spinButton.x = this.contentWidth / 2;
-            this.spinButton.y = this.panelHeight * 0.5 + 20;
+            this.spinButton.y = this.panelHeight * 0.5 - 20;
 
             const betBtnX = 220;
 
             this.minusButton.x = width / 2 - betBtnX;
-            this.minusButton.y = this.panelHeight * 0.5 + 20;
+            this.minusButton.y = this.panelHeight * 0.5 - 20;
 
             this.plusButton.x = width / 2 + betBtnX;
-            this.plusButton.y = this.panelHeight * 0.5 + 20;
+            this.plusButton.y = this.panelHeight * 0.5 - 20;
 
             // Right side buttons (vertical stack on far right)
             const rightBtnEndX = width - 130;
@@ -217,34 +213,28 @@ export class ControlPanel extends Container {
             this.settingsButton.x = rightBtnEndX;
             this.settingsButton.y = rightBtnY + 110;
 
-            const creditBetDisplayY = 340;
-
             // Bottom left - Credit display
             this.creditDisplay.x = 90;
-            this.creditDisplay.y = creditBetDisplayY;
+            this.creditDisplay.y = 300;
             this.creditDisplay.scale.set(1.6);
             this.creditDisplay.setAlign('left');
 
             // Bottom right - Bet display
-            this.betDisplay.x = width - this.betDisplay.width;
-            this.betDisplay.y = creditBetDisplayY;
+            this.betDisplay.x = width - this.betDisplay.width * 1.5;
+            this.betDisplay.y = 300;
             this.betDisplay.scale.set(1.6);
             this.betDisplay.setAlign('right');
 
             // Message
             this.titleText.x = this.contentWidth / 2;
-            this.titleText.y = -195;
+            this.titleText.y = height / 2;
             this.titleText.style.fontSize = 42;
 
-            this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
-            this.matchPattern.y = 40;
-
-            this.messageText.style.fontSize = 36;
-            this.messageText.x = this.contentWidth * 0.5;
-            this.messageText.y = 40;
+            this.messageText.x = this.contentWidth / 2;
+            this.messageText.y = this.panelHeight / 2;
         }
         // === MOBILE LANDSCAPE ===
-        else if (isMobile && !this.isPortrait) {
+        else if (isMobile && !isPortrait) {
             this.panelHeight = 210;
 
             // Background
@@ -290,7 +280,7 @@ export class ControlPanel extends Container {
 
             // Center message (smaller font)
             this.titleText.x = this.contentWidth / 2;
-            this.titleText.y = 100;
+            this.titleText.y = 60;
             this.titleText.style.fontSize = 42;
 
             // Right side buttons (horizontal, compact)
@@ -310,12 +300,8 @@ export class ControlPanel extends Container {
             this.autoplayButton.x = this.contentWidth - 180;
             this.autoplayButton.y = 160;
 
-            this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
-            this.matchPattern.y = this.panelHeight - this.matchPattern.height - 40;
-
-            this.messageText.style.fontSize = 36;
-            this.messageText.x = this.contentWidth * 0.5;
-            this.messageText.y = this.panelHeight - this.messageText.height * 0.5 - 40;
+            this.messageText.x = this.contentWidth / 2;
+            this.messageText.y = this.panelHeight / 2;
         }
         // === DESKTOP ===
         else {
@@ -368,6 +354,9 @@ export class ControlPanel extends Container {
             this.titleText.y = 80;
             this.titleText.style.fontSize = 32;
 
+            this.messageText.x = this.contentWidth / 2;
+            this.messageText.y = this.panelHeight / 2;
+
             // Right side buttons (horizontal layout centered around spin button)
             const rightCenterX = this.contentWidth - 200;
             const buttonY = 40;
@@ -386,14 +375,10 @@ export class ControlPanel extends Container {
             // Autoplay button (bottom right)
             this.autoplayButton.x = this.contentWidth - 100;
             this.autoplayButton.y = 120;
-
-            this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
-            this.matchPattern.y = this.panelHeight - this.matchPattern.height - 20;
-
-            this.messageText.style.fontSize = 28;
-            this.messageText.x = this.contentWidth * 0.5;
-            this.messageText.y = this.panelHeight - this.messageText.height * 0.5 - 20;
         }
+
+        this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
+        this.matchPattern.y = this.panelHeight - this.matchPattern.height - 20;
     }
 
     /**
@@ -415,11 +400,7 @@ export class ControlPanel extends Container {
      */
     public setTitle(title: string) {
         this.titleText.text = title;
-        if (this.isMobile) {
-            this.titleText.style.fontSize = 42;
-        } else {
-            this.titleText.style.fontSize = 32;
-        }
+        this.titleText.style.fontSize = 32;
         this.titleText.anchor.set(0.5, 0.75);
     }
 
@@ -438,23 +419,37 @@ export class ControlPanel extends Container {
     public setMessage(message: string) {
         this.messageText.text = message;
         // relayout the free spins label
+        this.messageText.x = this.contentWidth / 2;
+        this.messageText.y = this.panelHeight / 2;
     }
 
     /** Play all queued match patterns sequentially */
     public async playMatchMessages() {
         this.shouldStopMatches = false;
+
+        // ✅ NO WINS
+        if (this.winMatchPatterns.length === 0) {
+            this.setTitle('HOLD SPACE FOR TURBO SPIN');
+            this.messageText.visible = false;
+            return;
+        }
+
+        // ✅ HAS WINS
+        this.messageText.visible = true;
+
         for (const pattern of this.winMatchPatterns) {
-            if (this.shouldStopMatches) {
-                break;
-            }
+            if (this.shouldStopMatches) break;
+
             this.matchPattern.setup(pattern.times, `symbol-${pattern.type}`, pattern.amount, pattern.currency);
+
             this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
+            this.matchPattern.y = this.panelHeight - this.matchPattern.height - 20;
+
             this.messageText.alpha = 0;
             await this.matchPattern.show();
             this.messageText.alpha = 1;
         }
 
-        // Clear the queue after playing all
         this.winMatchPatterns = [];
         this.shouldStopMatches = false;
     }
@@ -469,6 +464,11 @@ export class ControlPanel extends Container {
 
     /** Set match pattern result */
     public async addMatchMessage(times: number, type: number, amount: number, currency: string) {
+        // 🚫 No win → do nothing
+        if (!amount || amount <= 0 || Number.isNaN(amount)) {
+            return;
+        }
+
         this.winMatchPatterns.push({
             times,
             type,
@@ -479,10 +479,10 @@ export class ControlPanel extends Container {
 
     /** Disabled betting */
     public disableBetting() {
+        this.autoplayButton.enabled = false;
         this.plusButton.enabled = false;
         this.minusButton.enabled = false;
 
-        this.autoplayButton.setState(AutoplayButtonState.DISABLED);
         this.spinButton.setState(SpinButtonState.STOP);
     }
 
@@ -492,18 +492,22 @@ export class ControlPanel extends Container {
         this.plusButton.enabled = true;
         this.minusButton.enabled = true;
 
-        this.autoplayButton.setState(AutoplayButtonState.ENABLED);
         this.spinButton.setState(SpinButtonState.PLAY);
     }
 
     /** Enabled autoplay button */
     public disableAutoplay() {
-        this.autoplayButton.setState(AutoplayButtonState.DISABLED);
+        this.autoplayButton.enabled = false;
     }
 
     /** Enabled autoplay button */
     public enableAutoplay() {
-        this.autoplayButton.setState(AutoplayButtonState.AUTOPLAY);
+        this.autoplayButton.enabled = true;
+    }
+
+    /** Collect */
+    public async collect() {
+        // await BetAPI.collect();
     }
 
     /**

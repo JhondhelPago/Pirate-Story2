@@ -19,13 +19,11 @@ import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
-import { MessagePanel } from '../ui/MessagePanel';
 import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
 import { collect, getGameConfig } from '../api/services/gameServices';
 import { Match3Process } from '../slot/Match3Process';
 import { Match3AutoSpinProcess } from '../slot/Match3AutoSpinProcess';
 import { i18n } from '../i18n/i18n';
-import { SpinLeftBanner } from '../ui/SpinLeftBanner';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -54,10 +52,6 @@ export class GameScreen extends Container {
 
     /** The Control Panel */
     public readonly controlPanel: ControlPanel;
-
-    public readonly messagePanel: MessagePanel;
-
-    public readonly spinLeftBanner: SpinLeftBanner;
 
     /** The special effects layer */
     public readonly vfx?: GameEffects;
@@ -131,17 +125,6 @@ export class GameScreen extends Container {
         this.controlPanel.setCredit(userSettings.getBalance());
         this.controlPanel.setBet(2.0);
         this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
-
-        this.messagePanel = new MessagePanel();
-        this.addChild(this.messagePanel);
-        this.messagePanel.visible = false;
-        this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
-
-        // spin left ui banner for the mobile
-        this.spinLeftBanner = new SpinLeftBanner();
-        this.addChild(this.spinLeftBanner);
-        this.spinLeftBanner.visible = false;
-
 
         // ✅ Spin now supports interrupt-on-second-press
         this.controlPanel.onSpin(() => this.startSpinning());
@@ -342,27 +325,7 @@ export class GameScreen extends Container {
             this.goldRoger.x = width - 160;
             this.goldRoger.y = height - 150;
             this.goldRoger.scale.set(1);
-
-            this.messagePanel.visible = true;
-
-            // ✅ pick a scale you can tune easily (try 1.6, 1.8, 2.0)
-            const panelScale = this.match3.scale.x * 1.3;
-
-            // resize in LOCAL space (because we scale it)
-            this.messagePanel.resize(width, 200, panelScale);
-
-            // place it in world space (centered)
-            this.messagePanel.x = width * 0.5;
-            this.messagePanel.y = height * 0.66;
-
-            // this.messagePanel.setTitle("Welcome to Pirate Story");
-            this.messagePanel.setMessage('');
-
-
-            this.spinLeftBanner.scale.set(.5);
-            this.spinLeftBanner.x = width * 0.18;
-            this.spinLeftBanner.y = height * 0.06;
-            this.spinLeftBanner.visible = true;
+   
         }
 
         const isMobile = document.documentElement.id === 'isMobile';
@@ -395,11 +358,10 @@ export class GameScreen extends Container {
         const roundWin = this.match3.process.getRoundWin();
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
-            this.controlPanel.setTitle(`Win ${roundWin}`);
+            this.controlPanel.setWinTitle(`Win ${roundWin}`);
             sfx.play('common/sfx-symbol-win.wav');
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);
-            this.messagePanel.setTitle(`GOOD LUCK`);
         }
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
@@ -444,7 +406,6 @@ export class GameScreen extends Container {
         console.log('remaining spins left failed to display if there is no winning round');
 
         this.controlPanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
-        this.messagePanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
 
         this.lockInteraction();
     }
@@ -459,12 +420,10 @@ export class GameScreen extends Container {
         const totalWon = this.match3.autoSpinProcess.getAccumulatedWin();
 
         if (totalWon > 0) {
-            this.controlPanel.setTitle(`Win ${totalWon}`);
-            this.messagePanel.setTitle(`Win ${totalWon}`);
+            this.controlPanel.setWinTitle(`Win ${totalWon}`);
             this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);
-            this.messagePanel.setTitle(`GOOD LUCK`);
         }
 
         await this.finish();
@@ -525,7 +484,6 @@ export class GameScreen extends Container {
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log('Current Spin: ', current, 'Remaining Spins: ', remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
-        this.messagePanel.setMessage(`FREE SPIN LEFT ${remaining}`);
 
         this.lockInteraction();
     }
@@ -536,11 +494,9 @@ export class GameScreen extends Container {
 
         const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0) {
-            this.controlPanel.setTitle(`Win ${totalWon}`);
-            this.spinLeftBanner.setSpinsLeft(totalWon);
+            this.controlPanel.setWinTitle(`Win ${totalWon}`);
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);
-            this.messagePanel.setTitle(`GOOD LUCK`);
         }
 
         this.messageMatchQueuing(this.match3.freeSpinProcess.getRoundResult());
@@ -563,7 +519,7 @@ export class GameScreen extends Container {
         this.finished = false;
         await waitFor(3);
         await this.drawFreeSpinWonBanner(currentSpin);
-        this.controlPanel.setTitle(`Win ${this.match3.freeSpinProcess.getAccumulatedWin()}`); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
+        this.controlPanel.setWinTitle(`Win ${this.match3.freeSpinProcess.getAccumulatedWin()}`); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
 
         this.syncFeatureAvailability();
     }
@@ -668,12 +624,9 @@ export class GameScreen extends Container {
             const baseWin = getPatternByCount(r.type, r.count)?.multiplier * userSettings.getBet();
 
             this.controlPanel.addMatchMessage(r.count, r.type, baseWin, 'krw');
-
-            this.messagePanel.addMatchMessage(r.count, r.type, baseWin, 'krw');
         });
 
         this.controlPanel.playMatchMessages();
-        this.messagePanel.playMatchMessages();
     }
 
     private async checkBonus(feature: string) {
