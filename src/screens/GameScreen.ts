@@ -81,6 +81,7 @@ export class GameScreen extends Container {
 
         this.goldRoger = new GoldRoger();
         this.goldRoger.scale.set(1);
+        this.goldRoger.playIdle();
         this.addChild(this.goldRoger);
 
         /** Match3 core */
@@ -299,8 +300,8 @@ export class GameScreen extends Container {
             this.buyFreeSpin.x = 220;
             this.buyFreeSpin.y = 480;
 
-            this.goldRoger.x = width - 250;
-            this.goldRoger.y = height - 260;
+            this.goldRoger.x = width + 50;
+            this.goldRoger.y = height + 260;
 
             this.overtime.x = this.gameContainer.x;
             this.overtime.y = this.gameContainer.y;
@@ -319,10 +320,9 @@ export class GameScreen extends Container {
             this.gameLogo.x = width * 0.5;
             this.gameLogo.y = 130;
 
-            this.goldRoger.x = width - 160;
-            this.goldRoger.y = height - 150;
+            this.goldRoger.x = width + 160;
+            this.goldRoger.y = height + 320;
             this.goldRoger.scale.set(1);
-   
         }
 
         const isMobile = document.documentElement.id === 'isMobile';
@@ -438,6 +438,9 @@ export class GameScreen extends Container {
     public async onFreeSpinInitialStart(spins: number, featureCode: number) {
         if (this.finished) return;
         if (this.getFreeSpinProcessing()) return;
+
+        this.goldRoger.playAction();
+        await waitFor(1);
 
         // set updated Credit here
         this.controlPanel.setCredit(userSettings.getBalance());

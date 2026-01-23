@@ -173,8 +173,8 @@ export class PreviewScreen extends Container {
         this.playButton.x = width * 0.5;
         this.playButton.y = height * 0.8;
 
-        this.goldRoger.x = width * 0.85;
-        this.goldRoger.y = height * 0.8;
+        this.goldRoger.x = width;
+        this.goldRoger.y = height;
 
         this.gameLogo.x = width * 0.5;
         this.gameLogo.y = height * 0.1;
