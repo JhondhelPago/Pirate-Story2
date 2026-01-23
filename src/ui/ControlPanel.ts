@@ -82,7 +82,7 @@ export class ControlPanel extends Container {
 
         // Center message
         this.titleText = new Text({
-            text: 'HOLD SPACE FOR TURBO SPIN',
+            text: i18n.t('holdSpaceForTurboSpin'),
             style: {
                 fontSize: 32,
                 fill: 0xffd700,

@@ -24,6 +24,7 @@ import { collect, getGameConfig } from '../api/services/gameServices';
 import { Match3Process } from '../slot/Match3Process';
 import { Match3AutoSpinProcess } from '../slot/Match3AutoSpinProcess';
 import { i18n } from '../i18n/i18n';
+import { formatCurrency } from '../utils/formatter';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -124,7 +125,7 @@ export class GameScreen extends Container {
         this.addChild(this.controlPanel);
         this.controlPanel.setCredit(userSettings.getBalance());
         this.controlPanel.setBet(2.0);
-        this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
+        this.controlPanel.setMessage(i18n.t('goodluck'));
 
         // ✅ Spin now supports interrupt-on-second-press
         this.controlPanel.onSpin(() => this.startSpinning());
@@ -358,10 +359,10 @@ export class GameScreen extends Container {
         const roundWin = this.match3.process.getRoundWin();
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
-            this.controlPanel.setWinTitle(`Win ${roundWin}`);
+            this.controlPanel.setWinTitle(i18n.t('win', {amount: roundWin}));
             sfx.play('common/sfx-symbol-win.wav');
         } else {
-            this.controlPanel.setTitle(`GOOD LUCK`);
+            this.controlPanel.setTitle(i18n.t('goodluck'));
         }
 
         this.messageMatchQueuing(this.match3.process.getRoundResult());
@@ -423,7 +424,7 @@ export class GameScreen extends Container {
             this.controlPanel.setWinTitle(`Win ${totalWon}`);
             this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
         } else {
-            this.controlPanel.setTitle(`GOOD LUCK`);
+            this.controlPanel.setTitle(i18n.t('goodluck'));
         }
 
         await this.finish();
@@ -496,7 +497,7 @@ export class GameScreen extends Container {
         if (totalWon > 0) {
             this.controlPanel.setWinTitle(`Win ${totalWon}`);
         } else {
-            this.controlPanel.setTitle(`GOOD LUCK`);
+            this.controlPanel.setTitle(i18n.t('goodluck'));
         }
 
         this.messageMatchQueuing(this.match3.freeSpinProcess.getRoundResult());
