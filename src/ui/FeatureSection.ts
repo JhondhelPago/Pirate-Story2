@@ -73,7 +73,9 @@ export class FeatureSection extends Container {
             this.descriptionLabel.style.wordWrapWidth = 700;
 
             for (const symbol of this.symbols) {
-                symbol.anchor.y = 1.25;
+                symbol.scale.set(1.5);
+                symbol.anchor.y = 1;
+                symbol.y += 250;
             }
 
             this.descriptionLabel2.style.fontSize = 28;

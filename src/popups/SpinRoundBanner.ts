@@ -11,6 +11,12 @@ type BannerItem = {
     sfx: string;
 };
 
+export const bannerDict: BannerItem[] = [
+    { min: userSettings.getBet() * 200, board: 'red-banner-board', text: 'red-banner-text', sfx: 'common/sfx-avast.wav' }, 
+    { min: userSettings.getBet() * 150, board: 'blue-banner-board', text: 'blue-banner-text', sfx: 'common/sfx-avast.wav' },
+    { min: userSettings.getBet() * 50, board: 'green-banner-board', text: 'green-banner-text', sfx: 'common/sfx-avast.wav' },
+];
+
 export type SpinRoundBannerData = {
     win: number;
     onClosed?: () => void;
@@ -532,12 +538,6 @@ export class SpinRoundBanner extends Container {
 
     private getBannerTexture(win: number): BannerItem {
         const bet = userSettings.getBet();
-
-        const bannerDict: BannerItem[] = [
-            { min: bet * 10, board: 'red-banner-board', text: 'red-banner-text', sfx: 'common/sfx-avast.wav' },
-            { min: bet * 5, board: 'blue-banner-board', text: 'blue-banner-text', sfx: 'common/sfx-avast.wav' },
-            { min: bet * 3, board: 'green-banner-board', text: 'green-banner-text', sfx: 'common/sfx-avast.wav' },
-        ];
 
         return bannerDict.find((x) => win >= x.min)!;
     }

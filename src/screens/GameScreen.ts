@@ -13,7 +13,7 @@ import { BetAction, SpinModeEnum, userSettings } from '../utils/userSettings';
 import { GoldRoger } from '../ui/GoldRoger';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
-import { SpinRoundBanner } from '../popups/SpinRoundBanner';
+import { bannerDict, SpinRoundBanner } from '../popups/SpinRoundBanner';
 import { getPatternByCount, RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
@@ -111,10 +111,6 @@ export class GameScreen extends Container {
         this.match3.scale.set(1.2);
         this.gameContainer.addChild(this.match3);
 
-        /** VFX layer */
-        this.vfx = new GameEffects(this);
-        this.addChild(this.vfx);
-
         /** Countdown UI */
         this.overtime = new GameOvertime();
         this.addChild(this.overtime);
@@ -125,7 +121,7 @@ export class GameScreen extends Container {
         this.addChild(this.controlPanel);
         this.controlPanel.setCredit(userSettings.getBalance());
         this.controlPanel.setBet(2.0);
-        this.controlPanel.setMessage(i18n.t('goodluck'));
+        this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
 
         // ✅ Spin now supports interrupt-on-second-press
         this.controlPanel.onSpin(() => this.startSpinning());
@@ -445,6 +441,7 @@ export class GameScreen extends Container {
 
         // set updated Credit here
         this.controlPanel.setCredit(userSettings.getBalance());
+        this.controlPanel.setTitle('');
 
         this.lockInteraction();
         this.match3.freeSpinInitial(spins, featureCode);
@@ -538,7 +535,8 @@ export class GameScreen extends Container {
     }
 
     private async drawWinBannerAsync(winAmount: number): Promise<void> {
-        if (winAmount < userSettings.getBet() * 3) return; // return if win is below mimimum to draw the banner
+        const lowestMin = Math.min(...bannerDict.map(item => item.min));
+        if (winAmount < lowestMin) return; // return if win is below mimimum to draw the banner
 
         await waitFor(1.5);
         await new Promise<void>((resolve) => {

@@ -38,7 +38,7 @@ export class FreeSpinSection extends Container {
         if (isMobile && isPortrait) {
             fontSize = 28;
             wordWrapWidth = 600;
-            containerY = 240;
+            containerY = 340;
         } else if (isMobile && !isPortrait) {
             fontSize = 28;
             wordWrapWidth = 1000;
