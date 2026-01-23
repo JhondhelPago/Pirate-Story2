@@ -21,7 +21,7 @@ import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 import { MessagePanel } from '../ui/MessagePanel';
 import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
-import { getGameConfig } from '../api/services/gameServices';
+import { collect, getGameConfig } from '../api/services/gameServices';
 import { Match3Process } from '../slot/Match3Process';
 import { Match3AutoSpinProcess } from '../slot/Match3AutoSpinProcess';
 import { i18n } from '../i18n/i18n';
@@ -505,10 +505,17 @@ export class GameScreen extends Container {
         this.controlPanel.setMessage('');
         this.controlPanel.setCredit(userSettings.getBalance());
 
-        // ✅ hard lock while banner is open
+        // sure lines to correct and prevent wrong credit display
+        collect() 
+            .then((result) => {
+                this.controlPanel.setCredit(result.balance);
+                userSettings.setBalance(result.balance);
+            }); 
+
+        // hard lock while banner is open
         this.lockInteraction();
 
-        // ✅ show banner and wait close
+        // show banner and wait close
         await this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
 
         this.isResuming = false;
@@ -519,7 +526,7 @@ export class GameScreen extends Container {
         console.log('Current Spin: ', current, 'Remaining Spins: ', remaining);
         this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
         this.messagePanel.setMessage(`FREE SPIN LEFT ${remaining}`);
-        this.spinLeftBanner.setSpinsLeft(remaining);
+
         this.lockInteraction();
     }
 
@@ -530,6 +537,7 @@ export class GameScreen extends Container {
         const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0) {
             this.controlPanel.setTitle(`Win ${totalWon}`);
+            this.spinLeftBanner.setSpinsLeft(totalWon);
         } else {
             this.controlPanel.setTitle(`GOOD LUCK`);
             this.messagePanel.setTitle(`GOOD LUCK`);

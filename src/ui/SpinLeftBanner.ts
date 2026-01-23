@@ -19,7 +19,8 @@ export class SpinLeftBanner extends Container {
         // Background
         this.bg = Sprite.from(SpinLeftBanner.BG_TEXTURE_KEY);
         this.bg.anchor.set(0.5);
-        this.bg.scale.set(.8);
+        this.bg.scale.set(1);
+        this.bg.visible = false;
         this.addChild(this.bg);
 
         // Gradient ready
@@ -60,7 +61,7 @@ export class SpinLeftBanner extends Container {
     }
 
     private buildLabel(value: number): string {
-        return `Spins Left ${value}`;
+        return `Win:  ${value}`;
     }
 
     /**
