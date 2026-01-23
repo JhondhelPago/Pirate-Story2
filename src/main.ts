@@ -11,7 +11,7 @@ import { GameScreen } from './screens/GameScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { config, userSettings } from './utils/userSettings';
-import { updateUrlSettings } from './utils/urlsHelper';
+import { updateUrlSettings } from './utils/getUrlParams'; 
 import { i18n } from './i18n/i18n';
 
 /** The PixiJS app Application instance, shared across the project */
