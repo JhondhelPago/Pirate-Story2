@@ -2,6 +2,7 @@ import axiosInstance from '../config/axios';
 import { userAuth } from '../../utils/userAuth';
 import { showErrorScreen } from '../../utils/error';
 import axios from 'axios';
+import { getUrlParam } from '../../utils/getUrlParams';
 
 export const login = async (token: string) => {
     try {
@@ -36,3 +37,33 @@ export const login = async (token: string) => {
         throw err;
     }
 };
+
+export async function authenticate() {
+    const urlToken = getUrlParam("token");
+
+    if (urlToken) {
+        try {
+            // 🔹 Always trust URL token over stored token
+            await userAuth.login(urlToken);
+
+            // Optionally: remove token from URL to clean it
+            const url = new URL(window.location.href);
+            url.searchParams.delete("token");
+            window.history.replaceState({}, "", url.toString());
+        } catch (err) {
+            // login() failed → show error and stop loading
+            let message = "Failed to authenticate.";
+            if (err instanceof Error) message = err.message;
+            showErrorScreen(message);
+            return false; // stop app
+        }
+    } else if (userAuth.has()) {
+        // ✅ Already logged in from localStorage, continue
+    } else {
+        // ❌ No token at all → show error
+        showErrorScreen("No token provided.");
+        return false;
+    }
+
+    return true;
+}

@@ -1,11 +1,6 @@
 import { GameServices } from '../api/services';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
-import { userAuth } from './userAuth';
-import { getUrlParam } from './getUrlParams';
-
-// await userAuth.login(getUrlParam('token') || '');
-await userAuth.login(getUrlParam('token') || '');
 
 //PIRATE STORY GAME CONFIG
 const response = await GameServices.getGameConfig();

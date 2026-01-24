@@ -1,10 +1,21 @@
 import { AuthServices } from "../api/services";
 
+const STORAGE_KEY = "accessToken";
+
 class UserAuth {
     public accessToken: string | null = null;
 
+    constructor() {
+        // 🔹 Restore token from localStorage if exists
+        const savedToken = localStorage.getItem(STORAGE_KEY);
+        if (savedToken) {
+            this.accessToken = savedToken;
+        }
+    }
+
     public set(token: string) {
         this.accessToken = token;
+        localStorage.setItem(STORAGE_KEY, token);
     }
 
     public get(): string | null {
@@ -17,23 +28,30 @@ class UserAuth {
 
     public clear() {
         this.accessToken = null;
+        localStorage.removeItem(STORAGE_KEY);
     }
 
+    // 🔹 Always try to login with provided token
     public async login(token: string) {
-        // 🔹 GUARD
-        if (this.has()) {
-            return {
-                skipped: true,
-                accessToken: this.accessToken,
-            };
-        }
+        try {
+            const res = await AuthServices.login(token);
 
-        const response = await AuthServices.login(token);
-        this.accessToken = response.data.data.accessToken;
-        return response;
+            const accessToken = res.data?.data?.accessToken;
+
+            if (!accessToken) {
+                throw new Error("No access token returned from login");
+            }
+
+            this.set(accessToken); // store in memory + localStorage
+            return res;
+        } catch (err) {
+            // wipe old token if login fails
+            this.clear();
+
+            throw err; // let caller handle error (showErrorScreen)
+        }
     }
 }
 
-
-/** SHared user settings instance */
+/** Shared instance */
 export const userAuth = new UserAuth();

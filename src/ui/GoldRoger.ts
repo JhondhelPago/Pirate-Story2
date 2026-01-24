@@ -1,6 +1,8 @@
 import { Container } from 'pixi.js';
 import gsap from 'gsap';
 import { Spine } from '@esotericsoftware/spine-pixi-v8';
+import { sfx } from '../utils/audio';
+import { waitFor } from '../utils/asyncUtils';
 
 export class GoldRoger extends Container {
     private zeus: Spine;
@@ -57,8 +59,16 @@ export class GoldRoger extends Container {
         this.floatTimeline?.pause();
 
         this.zeus.state.setAnimation(0, 'action', false);
-        this.zeus.state.addAnimation(0, 'idle', true, 0);
+
+        waitFor(0.2).then(() => {
+            sfx.play('common/sfx-pistol-shot.wav');
+            waitFor(1).then(() => {
+                sfx.play('common/sfx-pirate-dialogue.wav');
+                this.zeus.state.setAnimation(0, 'idle', true);
+            });
+        });
     }
+
 
     /** Show the mascot */
     public async show(animated = true) {
