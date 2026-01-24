@@ -4,6 +4,7 @@ import { storage } from './storage';
 import { userAuth } from './userAuth';
 import { getUrlParam } from './getUrlParams';
 
+// await userAuth.login(getUrlParam('token') || '');
 await userAuth.login(getUrlParam('token') || '');
 
 //PIRATE STORY GAME CONFIG

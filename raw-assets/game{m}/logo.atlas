@@ -1,0 +1,43 @@
+logo.png
+size:1409,806
+filter:Linear,Linear
+pma:true
+0030
+bounds:2,2,199,199
+offsets:1,1,201,201
+0031
+bounds:203,2,199,199
+offsets:1,1,201,201
+0032
+bounds:404,2,199,199
+offsets:1,1,201,201
+0033
+bounds:605,2,199,199
+offsets:1,1,201,201
+0034
+bounds:806,2,199,199
+offsets:1,1,201,201
+0035
+bounds:1007,25,199,199
+offsets:1,1,201,201
+0036
+bounds:1208,25,199,199
+offsets:1,1,201,201
+Logo
+bounds:2,203,884,601
+offsets:1,1,886,603
+eye glow
+bounds:1233,588,216,134
+offsets:5,5,227,144
+rotate:90
+side chains left
+bounds:1062,226,147,319
+side chains right
+bounds:888,229,172,316
+side ropes left
+bounds:1303,280,81,306
+side ropes right
+bounds:1211,235,90,310
+skull
+bounds:888,547,343,257
+offsets:1,1,345,259

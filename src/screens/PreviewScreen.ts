@@ -60,11 +60,11 @@ export class PreviewScreen extends Container {
                 align: 'center',
             },
         });
-        this.message.anchor.set(0.5);
-        this.addChild(this.message);
-
         this.goldRoger = new GoldRoger();
         this.addChild(this.goldRoger);
+
+        this.message.anchor.set(0.5);
+        this.addChild(this.message);
 
         this.playButton = new PlayButton();
         this.playButton.scale.set(0.9);
@@ -140,9 +140,9 @@ export class PreviewScreen extends Container {
             this.playButton.x = width * 0.82;
             this.playButton.y = height * 0.6;
 
-            this.gameLogo.scale.set(0.85);
+            this.gameLogo.scale.set(.5);
             this.gameLogo.x = width * 0.82;
-            this.gameLogo.y = height * 0.2;
+            this.gameLogo.y = height * 0.23;
 
             this.message.x = width * 0.35;
             this.message.y = this.barrelBoard.y + 350;
@@ -176,6 +176,7 @@ export class PreviewScreen extends Container {
         this.goldRoger.x = width;
         this.goldRoger.y = height;
 
+        this.gameLogo.scale.set(0.35);
         this.gameLogo.x = width * 0.5;
         this.gameLogo.y = height * 0.1;
 

@@ -5,6 +5,7 @@ import { IconButton } from '../ui/IconButton';
 import { bgm, sfx } from '../utils/audio';
 import { navigation } from '../utils/navigation';
 import { PreviewScreen } from './PreviewScreen';
+import { GameLogo } from '../ui/GameLogo';
 
 /** Screen shown while loading assets */
 export class LoadScreen extends Container {
@@ -13,7 +14,7 @@ export class LoadScreen extends Container {
     /** LThe loading message display */
     private message: Text;
     /** The logo */
-    private logo: Sprite;
+    private logo: GameLogo;
     /** Yes Button */
     private yesButton: IconButton;
     /** No button */
@@ -81,9 +82,8 @@ export class LoadScreen extends Container {
         this.message.anchor.set(0.5);
         this.addChild(this.message);
 
-        this.logo = Sprite.from('Logo');
-        this.logo.anchor.set(0.5);
-        this.logo.scale.set(1.8);
+        this.logo = new GameLogo();
+        this.logo.scale.set(0.5);
         this.addChild(this.logo);
     }
 

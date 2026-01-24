@@ -20,11 +20,8 @@ import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
-import { collect, getGameConfig } from '../api/services/gameServices';
-import { Match3Process } from '../slot/Match3Process';
-import { Match3AutoSpinProcess } from '../slot/Match3AutoSpinProcess';
+import { collect } from '../api/services/gameServices';
 import { i18n } from '../i18n/i18n';
-import { formatCurrency } from '../utils/formatter';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -292,9 +289,9 @@ export class GameScreen extends Container {
             this.gameContainer.x = centerX;
             this.gameContainer.y = this.gameContainer.height * 0.5 - 65;
 
-            this.gameLogo.scale.set(0.9);
-            this.gameLogo.x = 220;
-            this.gameLogo.y = this.gameLogo.height * 0.6;
+            this.gameLogo.scale.set(0.35);
+            this.gameLogo.x = 235;
+            this.gameLogo.y = height * 0.15;
 
             this.buyFreeSpin.scale.set(1);
             this.buyFreeSpin.x = 220;
@@ -316,7 +313,7 @@ export class GameScreen extends Container {
             this.buyFreeSpin.x = 230;
             this.buyFreeSpin.y = height * 0.73;
 
-            this.gameLogo.scale.set(0.87);
+            this.gameLogo.scale.set(0.32);
             this.gameLogo.x = width * 0.5;
             this.gameLogo.y = 130;
 
