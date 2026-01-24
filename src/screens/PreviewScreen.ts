@@ -153,7 +153,7 @@ export class PreviewScreen extends Container {
         }
 
         // ---------- MOBILE PORTRAIT ----------
-        this.goldRoger.visible = true;
+        this.goldRoger.visible = false;
 
         // FIX: Increase preview size for mobile
         this.slotPreview.scale.set(0.85);
