@@ -1,7 +1,7 @@
 import { Container, Graphics, Ticker } from 'pixi.js';
 import gsap from 'gsap';
 import { Slot } from './Slot';
-import { Match3Config, slotGetBlocks } from './Match3Config';
+import { SlotConfig, slotGetBlocks } from './SlotConfig';
 import { SlotSymbol } from './SlotSymbol';
 import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from './SlotUtility';
 import { userSettings, config, FreeSpinSetting, SpinModeEnum, features } from '../utils/userSettings';
@@ -271,7 +271,7 @@ export class SlotBoard {
     }
     
 
-    public setup(config: Match3Config) {
+    public setup(config: SlotConfig) {
         this.rows = config.rows;
         this.columns = config.columns;
         this.tileSize = config.tileSize;

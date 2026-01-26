@@ -32,9 +32,9 @@ const defaultBlock = {
 export type Block = typeof defaultBlock;
 
 /** Mount a list of blocks available */
-// export function slotGetBlocks(): Block[] {
-//     return gameConfig.getBlocks();
-// }
+export function slotGetBlocks(): number[] {
+    return gameConfig.getBlocks();
+}
 
 /** Default special block tier configuration */
 const defaultJackpot = {
