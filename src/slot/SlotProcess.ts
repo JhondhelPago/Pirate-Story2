@@ -1,6 +1,6 @@
 import { BetAPI } from '../api/betApi';
 import { AsyncQueue } from '../utils/asyncUtils';
-import { Match3 } from './Match3';
+import { Slot } from './Slot';
 import { userSettings, config, FreeSpinSetting, features } from '../utils/userSettings';
 import { ConfigAPI } from '../api/configApi';
 import {
@@ -31,8 +31,8 @@ type SpinModeDelays = {
     betweenNoWinMs: number;
 };
 
-export class Match3Process {
-    protected match3: Match3;
+export class SlotProcess {
+    protected match3: Slot;
     protected processing = false;
     protected round = 0;
     protected queue: AsyncQueue;
@@ -62,7 +62,7 @@ export class Match3Process {
     // feature integer code
     protected featureCode = 0;
 
-    constructor(match3: Match3) {
+    constructor(match3: Slot) {
         this.match3 = match3;
         this.queue = new AsyncQueue();
     }

@@ -1,5 +1,5 @@
 import { Container, Ticker } from 'pixi.js';
-import { Match3 } from '../slot/Match3';
+import { Slot } from '../slot/Slot';
 import { navigation } from '../utils/navigation';
 import { GameEffects } from '../ui/GameEffects';
 import { bgm, sfx } from '../utils/audio';
@@ -19,7 +19,7 @@ import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
 import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
-import { Match3FreeSpinProcess } from '../slot/Match3FreeSpinProcess';
+import { SlotFreeSpinProcess } from '../slot/SlotFreeSpinProcess';
 import { collect } from '../api/services/gameServices';
 import { i18n } from '../i18n/i18n';
 
@@ -33,7 +33,7 @@ export type SettingsPopupData = {
 export class GameScreen extends Container {
     public static assetBundles = ['game', 'common'];
 
-    public readonly match3: Match3;
+    public readonly slot: Slot;
     public readonly gameContainer: Container;
     public readonly overtime: GameOvertime;
 
@@ -82,32 +82,32 @@ export class GameScreen extends Container {
         this.addChild(this.goldRoger);
 
         /** Match3 core */
-        this.match3 = new Match3();
-        this.match3.onSpinStart = this.onSpinStart.bind(this);
-        this.match3.onFreeSpinStart = this.onFreeSpinStart.bind(this);
-        this.match3.onFreeSpinComplete = this.onFreeSpinComplete.bind(this);
-        this.match3.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
-        this.match3.onFreeSpinRoundComplete = this.onFreeSpinRoundComplete.bind(this);
-        this.match3.onFreeSpinInitialBonusScatterComplete = this.onFreeSpinInitialBonusScatterComplete.bind(this);
-        this.match3.onFreeSpinResumeStart = this.onFreeSpinResumeStart.bind(this);
+        this.slot = new Slot();
+        this.slot.onSpinStart = this.onSpinStart.bind(this);
+        this.slot.onFreeSpinStart = this.onFreeSpinStart.bind(this);
+        this.slot.onFreeSpinComplete = this.onFreeSpinComplete.bind(this);
+        this.slot.onFreeSpinRoundStart = this.onFreeSpinRoundStart.bind(this);
+        this.slot.onFreeSpinRoundComplete = this.onFreeSpinRoundComplete.bind(this);
+        this.slot.onFreeSpinInitialBonusScatterComplete = this.onFreeSpinInitialBonusScatterComplete.bind(this);
+        this.slot.onFreeSpinResumeStart = this.onFreeSpinResumeStart.bind(this);
 
-        this.match3.onAutoSpinStart = this.onAutoSpinStart.bind(this);
-        this.match3.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
-        this.match3.onAutoSpinRoundStart = this.onAutoSpinRoundStart.bind(this);
-        this.match3.onAutoSpinRoundComplete = this.onAutoSpinRoundComplete.bind(this);
+        this.slot.onAutoSpinStart = this.onAutoSpinStart.bind(this);
+        this.slot.onAutoSpinComplete = this.onAutoSpinComplete.bind(this);
+        this.slot.onAutoSpinRoundStart = this.onAutoSpinRoundStart.bind(this);
+        this.slot.onAutoSpinRoundComplete = this.onAutoSpinRoundComplete.bind(this);
 
         // ✅ IMPORTANT CHANGE:
         // Use an async callback that returns Promise<void>, so Match3 can await it
         // (Match3.switchToFreeSpin will do: await this.onAutoSpinWonToFreeSpin?.(spins);)
-        this.match3.onAutoSpinWonToFreeSpin = async (spins: number) => {
+        this.slot.onAutoSpinWonToFreeSpin = async (spins: number) => {
             await waitFor(3);
             await this.drawFreeSpinWonBanner(spins);
         };
 
-        this.match3.onProcessStart = this.onProcessStart.bind(this);
-        this.match3.onProcessComplete = this.onProcessComplete.bind(this);
-        this.match3.scale.set(1.2);
-        this.gameContainer.addChild(this.match3);
+        this.slot.onProcessStart = this.onProcessStart.bind(this);
+        this.slot.onProcessComplete = this.onProcessComplete.bind(this);
+        this.slot.scale.set(1.2);
+        this.gameContainer.addChild(this.slot);
 
         /** Countdown UI */
         this.overtime = new GameOvertime();
@@ -178,15 +178,15 @@ export class GameScreen extends Container {
     }
 
     private getNormalProcessing(): boolean {
-        return this.match3.process?.isProcessing?.() ?? false;
+        return this.slot.process?.isProcessing?.() ?? false;
     }
 
     private getFreeSpinProcessing(): boolean {
-        return this.match3.freeSpinProcess?.getFreeSpinProcessing?.() ?? false;
+        return this.slot.freeSpinProcess?.getFreeSpinProcessing?.() ?? false;
     }
 
     private getAutoSpinProcessing(): boolean {
-        return this.match3.autoSpinProcess?.getAutoSpinProcessing?.() ?? false;
+        return this.slot.autoSpinProcess?.getAutoSpinProcessing?.() ?? false;
     }
     private syncFeatureAvailability() {
         const normalProcessing = this.getNormalProcessing();
@@ -214,8 +214,8 @@ export class GameScreen extends Container {
     }
 
     private requestSpinInterrupt() {
-        this.match3.board.hasIncomingSpinTrigger = true;
-        this.match3.board.interruptSpin();
+        this.slot.board.hasIncomingSpinTrigger = true;
+        this.slot.board.interruptSpin();
     }
 
     // =========================================================================
@@ -226,21 +226,21 @@ export class GameScreen extends Container {
         if (navigation.currentPopup) return;
 
         // Second press while spinning = interrupt
-        if (this.match3.spinning) {
+        if (this.slot.spinning) {
             this.requestSpinInterrupt();
             return;
         }
 
-        if (this.match3.process instanceof Match3FreeSpinProcess && this.match3.process.getIsInitialFreeSpin()) return; // preventing spin trigger while on the free spin initial bonus spin
+        if (this.slot.process instanceof SlotFreeSpinProcess && this.slot.process.getIsInitialFreeSpin()) return; // preventing spin trigger while on the free spin initial bonus spin
 
         // Don’t start a new spin if any process is busy
         if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
 
         // If we’re idle but animations are still looping, stop them before spinning
-        this.match3.board.hasIncomingSpinTrigger = true;
+        this.slot.board.hasIncomingSpinTrigger = true;
 
         this.lockInteraction();
-        await this.match3.spin();
+        await this.slot.spin();
     }
 
     public freeSpinStartSpinning(spins: number) {
@@ -248,7 +248,7 @@ export class GameScreen extends Container {
         if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
 
         this.lockInteraction();
-        this.match3.freeSpin(spins);
+        this.slot.freeSpin(spins);
         this.finished = true;
     }
 
@@ -258,27 +258,27 @@ export class GameScreen extends Container {
     public prepare() {
         const match3Config = slotGetConfig();
         this.barrelBoard?.setup(match3Config);
-        this.match3.setup(match3Config);
+        this.slot.setup(match3Config);
         this.syncFeatureAvailability();
     }
 
     public update(time: Ticker) {
-        this.match3.update(time.deltaMS);
+        this.slot.update(time.deltaMS);
     }
 
     public async pause() {
         this.gameContainer.interactiveChildren = false;
-        this.match3.pause();
+        this.slot.pause();
     }
 
     public async resume() {
         this.gameContainer.interactiveChildren = true;
-        this.match3.resume();
+        this.slot.resume();
     }
 
     public reset() {
         this.barrelBoard?.reset();
-        this.match3.reset();
+        this.slot.reset();
         this.syncFeatureAvailability();
     }
 
@@ -307,7 +307,7 @@ export class GameScreen extends Container {
             this.gameContainer.y = this.gameContainer.height * 0.7;
 
             this.barrelBoard?.scale.set(1.45);
-            this.match3.scale.set(1.25);
+            this.slot.scale.set(1.25);
 
             this.buyFreeSpin.scale.set(1);
             this.buyFreeSpin.x = 230;
@@ -328,7 +328,7 @@ export class GameScreen extends Container {
 
     public async show() {
         bgm.play('common/bgm-game.mp3', { volume: 0.3 });
-        this.match3.startPlaying();
+        this.slot.startPlaying();
         this.syncFeatureAvailability();
     }
 
@@ -350,7 +350,7 @@ export class GameScreen extends Container {
     }
 
     private async onProcessComplete() {
-        const roundWin = this.match3.process.getRoundWin();
+        const roundWin = this.slot.process.getRoundWin();
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
             this.controlPanel.setWinTitle(i18n.t('win', {amount: roundWin}));
@@ -359,7 +359,7 @@ export class GameScreen extends Container {
             this.controlPanel.setTitle(i18n.t('goodluck'));
         }
 
-        this.messageMatchQueuing(this.match3.process.getRoundResult());
+        this.messageMatchQueuing(this.slot.process.getRoundResult());
 
         // ✅ If NOT in free-spin session, show banner. Keep UI locked while popup shows.
         if (!this.getFreeSpinProcessing()) {
@@ -378,15 +378,15 @@ export class GameScreen extends Container {
 
     public async onAutoSpinStart(spins: number) {
         if (this.finished) return;
-        if (this.match3.autoSpinProcess.getAutoSpinProcessing()) return;
+        if (this.slot.autoSpinProcess.getAutoSpinProcessing()) return;
 
         this.lockInteraction();
-        this.match3.autoSpin(spins);
+        this.slot.autoSpin(spins);
         this.finished = true;
     }
 
     private async onAutoSpinComplete(current: number, remaining: number) {
-        console.log(`Total Won in ${current} Auto Spin: `, this.match3.autoSpinProcess.getAccumulatedWin());
+        console.log(`Total Won in ${current} Auto Spin: `, this.slot.autoSpinProcess.getAccumulatedWin());
 
         // ✅ Unlock only when auto spin session is finished
         this.controlPanel.enableBetting();
@@ -406,17 +406,17 @@ export class GameScreen extends Container {
     }
 
     private async onAutoSpinRoundComplete() {
-        const roundWin = this.match3.autoSpinProcess.getRoundWin();
+        const roundWin = this.slot.autoSpinProcess.getRoundWin();
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
             sfx.play('common/sfx-symbol-win.wav');
         }
 
-        const totalWon = this.match3.autoSpinProcess.getAccumulatedWin();
+        const totalWon = this.slot.autoSpinProcess.getAccumulatedWin();
 
         if (totalWon > 0) {
             this.controlPanel.setWinTitle(`Win ${totalWon}`);
-            this.messageMatchQueuing(this.match3.autoSpinProcess.getRoundResult());
+            this.messageMatchQueuing(this.slot.autoSpinProcess.getRoundResult());
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
         }
@@ -426,7 +426,7 @@ export class GameScreen extends Container {
         // check for bonus and process switching if there is passed bonus condition
         await this.checkBonus('autospin');
 
-        if (this.match3.autoSpinProcess.getAutoSpinProcessing()) {
+        if (this.slot.autoSpinProcess.getAutoSpinProcessing()) {
             this.lockInteraction();
         }
 
@@ -445,7 +445,7 @@ export class GameScreen extends Container {
         this.controlPanel.setTitle('');
 
         this.lockInteraction();
-        this.match3.freeSpinInitial(spins, featureCode);
+        this.slot.freeSpinInitial(spins, featureCode);
         this.finished = true;
     }
 
@@ -454,12 +454,12 @@ export class GameScreen extends Container {
         if (this.getFreeSpinProcessing()) return;
 
         this.lockInteraction();
-        this.match3.freeSpin(spins);
+        this.slot.freeSpin(spins);
         this.finished = true;
     }
 
     private async onFreeSpinComplete(current: number, remaining: number) {
-        console.log(`Total Won in ${current} Free Spin: `, this.match3.freeSpinProcess.getAccumulatedWin());
+        console.log(`Total Won in ${current} Free Spin: `, this.slot.freeSpinProcess.getAccumulatedWin());
         this.controlPanel.setMessage('');
         this.controlPanel.setCredit(userSettings.getBalance());
 
@@ -474,7 +474,7 @@ export class GameScreen extends Container {
         this.lockInteraction();
 
         // show banner and wait close
-        await this.drawTotalWinBanner(this.match3.freeSpinProcess.getAccumulatedWin(), current);
+        await this.drawTotalWinBanner(this.slot.freeSpinProcess.getAccumulatedWin(), current);
 
         this.isResuming = false;
         this.syncFeatureAvailability();
@@ -488,21 +488,21 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinRoundComplete() {
-        const roundWin = this.match3.freeSpinProcess.getRoundWin();
+        const roundWin = this.slot.freeSpinProcess.getRoundWin();
         if (roundWin > 0) sfx.play('common/sfx-symbol-win.wav');
 
-        const totalWon = this.match3.freeSpinProcess.getAccumulatedWin();
+        const totalWon = this.slot.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0) {
             this.controlPanel.setWinTitle(`Win ${totalWon}`);
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
         }
 
-        this.messageMatchQueuing(this.match3.freeSpinProcess.getRoundResult());
+        this.messageMatchQueuing(this.slot.freeSpinProcess.getRoundResult());
 
-        if (!this.match3.freeSpinProcess.isProcessing()) {
+        if (!this.slot.freeSpinProcess.isProcessing()) {
             await this.finish();
-            await this.drawWinBannerAsync(this.match3.freeSpinProcess.getRoundWin());
+            await this.drawWinBannerAsync(this.slot.freeSpinProcess.getRoundWin());
         }
 
         // do not switch process, instead check bonus for extra free spins, then add spin sessions
@@ -518,7 +518,7 @@ export class GameScreen extends Container {
         this.finished = false;
         await waitFor(3);
         await this.drawFreeSpinWonBanner(currentSpin);
-        this.controlPanel.setWinTitle(`Win ${this.match3.freeSpinProcess.getAccumulatedWin()}`); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
+        this.controlPanel.setWinTitle(`Win ${this.slot.freeSpinProcess.getAccumulatedWin()}`); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
 
         this.syncFeatureAvailability();
     }
@@ -549,7 +549,7 @@ export class GameScreen extends Container {
     }
 
     private drawTotalWinBanner(winAmount: number, freeSpins: number): Promise<void> {
-        const hasPrevProcess = this.match3.getStackSize() > 0;
+        const hasPrevProcess = this.slot.getStackSize() > 0;
         const spinMode = userSettings.getSpinMode();
         let duration = 0;
 
@@ -587,7 +587,7 @@ export class GameScreen extends Container {
     }
 
     private drawFreeSpinWonBanner(spins: number, initiateSpin: boolean = true): Promise<void> {
-        const hasPrevProcess = this.match3.getStackSize() > 0;
+        const hasPrevProcess = this.slot.getStackSize() > 0;
         const spinMode = userSettings.getSpinMode();
         let duration = 0;
 
@@ -634,27 +634,27 @@ export class GameScreen extends Container {
 
         switch (feature) {
             case 'normalspin': {
-                spinWon = await this.match3.process.getSpinWon();
+                spinWon = await this.slot.process.getSpinWon();
                 if (spinWon > 0) {
-                    await this.match3.switchToFreeSpin(spinWon, { initial: false });
+                    await this.slot.switchToFreeSpin(spinWon, { initial: false });
                 }
                 return;
             }
 
             case 'autospin': {
-                spinWon = await this.match3.autoSpinProcess.getSpinWon();
+                spinWon = await this.slot.autoSpinProcess.getSpinWon();
                 if (spinWon > 0) {
-                    await this.match3.switchToFreeSpin(spinWon, { initial: false });
+                    await this.slot.switchToFreeSpin(spinWon, { initial: false });
                 }
                 return;
             }
 
             case 'freespin': {
-                spinWon = await this.match3.freeSpinProcess.getSpinWon();
+                spinWon = await this.slot.freeSpinProcess.getSpinWon();
                 if (spinWon > 0) {
                     await waitFor(0.5); // wait so the navigation have time to dismiss the current popup
                     await this.drawFreeSpinWonBanner(spinWon, false);
-                    this.match3.freeSpinProcess.addSpins(spinWon);
+                    this.slot.freeSpinProcess.addSpins(spinWon);
                 }
                 return;
             }

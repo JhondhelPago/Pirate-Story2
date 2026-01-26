@@ -1,10 +1,10 @@
-import { Match3 } from './Match3';
+import { Slot } from './Slot';
 
-export class Match3Actions {
-    public match3: Match3;
+export class SlotActions {
+    public match3: Slot;
     public freeMoves = false;
 
-    constructor(match3: Match3) {
+    constructor(match3: Slot) {
         this.match3 = match3;
     }
 

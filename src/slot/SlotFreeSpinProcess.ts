@@ -1,6 +1,6 @@
 import { userSettings } from '../utils/userSettings';
-import { Match3 } from './Match3';
-import { Match3Process } from './Match3Process';
+import { Slot } from './Slot';
+import { SlotProcess } from './SlotProcess';
 import { config, FreeSpinSetting } from '../utils/userSettings';
 import {
     calculateTotalWin,
@@ -14,8 +14,8 @@ import { userStats } from '../utils/userStats';
 import { GameServices } from '../api/services';
 import { waitFor } from '../utils/asyncUtils';
 
-export class Match3FreeSpinProcess extends Match3Process {
-    constructor(match3: Match3) {
+export class SlotFreeSpinProcess extends SlotProcess {
+    constructor(match3: Slot) {
         super(match3);
     }
 

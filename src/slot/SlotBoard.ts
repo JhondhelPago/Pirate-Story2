@@ -1,6 +1,6 @@
 import { Container, Graphics, Ticker } from 'pixi.js';
 import gsap from 'gsap';
-import { Match3 } from './Match3';
+import { Slot } from './Slot';
 import { Match3Config, slotGetBlocks } from './Match3Config';
 import { SlotSymbol } from './SlotSymbol';
 import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from './SlotUtility';
@@ -14,8 +14,8 @@ interface ReelColumn {
     position: number;
 }
 
-export class Match3Board {
-    public match3: Match3;
+export class SlotBoard {
+    public match3: Slot;
 
     public rows = 0;
     public columns = 0;
@@ -177,7 +177,7 @@ export class Match3Board {
     // keep a handle so we can timeScale it when user interrupts during landing
     private _landingTween?: gsap.core.Tween | gsap.core.Timeline;
 
-    constructor(match3: Match3) {
+    constructor(match3: Slot) {
         this.match3 = match3;
 
         this.piecesMask = new Graphics();

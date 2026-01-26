@@ -9,7 +9,7 @@ import { sfx } from '../utils/audio';
 import { PopExplosion } from './PopExplosion';
 import { waitFor } from '../utils/asyncUtils';
 import { SlotSymbol } from '../slot/SlotSymbol';
-import { SlotOnJackpotMatchData } from '../slot/Match3';
+import { SlotOnJackpotMatchData } from '../slot/Slot';
 
 /**
  * All gameplay special effects, isolated on its own class in a way that can be changed freely, without affecting gameplay.

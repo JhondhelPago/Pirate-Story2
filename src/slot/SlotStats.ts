@@ -1,4 +1,4 @@
-import { Match3 } from './Match3';
+import { Slot } from './Slot';
 
 /** Default gameplay stats data */
 const defaultStatsData = {
@@ -15,13 +15,13 @@ export type Match3StatsData = typeof defaultStatsData;
 /**
  * Computes scores and general gameplay stats during the session.
  */
-export class Match3Stats {
+export class SlotStats {
     /** The Match3 instance */
-    private match3: Match3;
+    private match3: Slot;
     /** Current internal stats data */
     private data: Match3StatsData;
 
-    constructor(match3: Match3) {
+    constructor(match3: Slot) {
         this.match3 = match3;
         this.data = { ...defaultStatsData };
     }

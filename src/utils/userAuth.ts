@@ -23,7 +23,7 @@ class UserAuth {
     }
 
     public has(): boolean {
-        return !!this.accessToken;
+        return !!this.accessToken;  
     }
 
     public clear() {

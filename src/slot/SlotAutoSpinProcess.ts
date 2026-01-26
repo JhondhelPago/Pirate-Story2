@@ -1,11 +1,11 @@
 import { GameServices } from '../api/services';
 import { userSettings } from '../utils/userSettings';
-import { Match3 } from './Match3';
-import { Match3Process } from './Match3Process';
+import { Slot } from './Slot';
+import { SlotProcess } from './SlotProcess';
 import { calculateTotalWin, gridZeroReset } from './SlotUtility';
 
-export class Match3AutoSpinProcess extends Match3Process {
-    constructor(match3: Match3) {
+export class SlotAutoSpinProcess extends SlotProcess {
+    constructor(match3: Slot) {
         super(match3);
     }
 
