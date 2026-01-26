@@ -79,7 +79,7 @@ export class Match3BoardPreview {
         this.grid = match3CreateGrid(this.rows, this.columns, this.commonTypes);
 
         match3ForEach(this.grid, (pos, type) => {
-            const multiplier = type === 11 || type === 12 ? getRandomMultiplier() : 0;
+            const multiplier = type === 12 ? getRandomMultiplier() : 0;
 
             this.createPiece(pos, type, multiplier);
         });
