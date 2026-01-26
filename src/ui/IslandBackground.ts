@@ -28,6 +28,7 @@ export class IslandBackground extends Container {
     constructor() {
         super();
         this.init();
+        this.focus();
     }
 
     /** Create background sprite */

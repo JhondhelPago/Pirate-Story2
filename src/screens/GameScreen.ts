@@ -330,7 +330,6 @@ export class GameScreen extends Container {
         bgm.play('common/bgm-game.mp3', { volume: 0.3 });
         this.match3.startPlaying();
         this.syncFeatureAvailability();
-        navigation.background?.focus?.();
     }
 
     public async hide() {

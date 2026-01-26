@@ -89,38 +89,7 @@ async function preloadFonts() {
 
 /** Main bootstrap */
 async function init() {
-    // const urlToken = getUrlParam('token');
-
-    // try {
-    //     if (urlToken) {
-    //         // Always validate URL token first
-    //         console.log( "try if statement");
-    //         await userAuth.login(urlToken);
-
-    //         // Remove token from URL after successful login
-    //         const url = new URL(window.location.href);
-    //         url.searchParams.delete('token');
-    //         window.history.replaceState({}, '', url.toString());
-    //     } else if (!userAuth.has()) {
-    //         // No token anywhere → stop and show error
-    //         console.log( "try else if statement");
-    //         showErrorScreen('No token provided.');
-    //         return; // Stop app bootstrap
-    //     }
-
-    //     // Optionally, you can also authenticate stored token on startup
-    //     // const isAuthenticated = await AuthServices.authenticate(userAuth.get());
-    //     // if (!isAuthenticated) {
-    //     //     userAuth.clear();
-    //     //     showErrorScreen('Stored token invalid.');
-    //     //     return;
-    //     // }
-
-    // } catch (err) {
-    //     showErrorScreen(err instanceof Error ? err.message : 'Failed to authenticate.');
-    //     return; // Stop app
-    // }
-
+   
     if (!isAuthenticated) showErrorScreen('No token provided.');
 
     // Setup app and assets

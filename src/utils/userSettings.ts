@@ -28,7 +28,6 @@ async function authenticateLogin(){
 
 export const isAuthenticated = await authenticateLogin();
 
-
 //PIRATE STORY GAME CONFIG
 const response = await GameServices.getGameConfig();
 export const config = response.data;
