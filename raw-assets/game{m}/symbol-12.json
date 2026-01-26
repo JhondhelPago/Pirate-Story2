@@ -1,6 +1,6 @@
 {
 "skeleton": {
-	"hash": "W2fzi+ytO6Q",
+	"hash": "0P9TtexKc4Y",
 	"spine": "4.2.43",
 	"x": -133,
 	"y": -134,
@@ -10,11 +10,10 @@
 	"audio": "./audio"
 },
 "bones": [
-	{ "name": "root" },
-	{ "name": "Treasure", "parent": "root", "x": 3, "y": -30.45, "scaleX": 1.2584, "scaleY": 1.2584 },
+	{ "name": "root", "scaleX": 1.1697, "scaleY": 1.1697 },
+	{ "name": "Treasure", "parent": "root", "x": 3, "y": -18 },
 	{ "name": "box cover-front", "parent": "Treasure", "length": 104.54, "x": -78.91, "y": 97.01 },
-	{ "name": "coin", "parent": "root", "x": 1, "y": -12.95, "scaleX": 1.2584, "scaleY": 1.2584 },
-	{ "name": "TREASURE text", "parent": "root", "x": 0.5, "y": -89.95, "scaleX": 1.2584, "scaleY": 1.2584 }
+	{ "name": "coin", "parent": "root", "x": 1, "y": -0.5 }
 ],
 "slots": [
 	{ "name": "box cover-back", "bone": "box cover-front", "attachment": "box cover-back" },
@@ -24,8 +23,6 @@
 	{ "name": "box cover-front", "bone": "box cover-front", "attachment": "box cover-front" },
 	{ "name": "box cover-front2", "bone": "box cover-front", "color": "ffffff00", "attachment": "box cover-front", "blend": "additive" },
 	{ "name": "coin", "bone": "coin", "color": "ffffff00", "attachment": "coin" },
-	{ "name": "TREASURE text", "bone": "TREASURE text", "attachment": "TREASURE text" },
-	{ "name": "TREASURE text2", "bone": "TREASURE text", "color": "ffffff00", "attachment": "TREASURE text", "blend": "additive" },
 	{ "name": "bounding box", "bone": "root", "attachment": "bounding box" }
 ],
 "skins": [
@@ -59,12 +56,6 @@
 			},
 			"Treasure2": {
 				"Treasure": { "width": 232, "height": 162 }
-			},
-			"TREASURE text": {
-				"TREASURE text": { "width": 267, "height": 77 }
-			},
-			"TREASURE text2": {
-				"TREASURE text": { "width": 267, "height": 77 }
 			}
 		}
 	}
@@ -95,13 +86,6 @@
 				]
 			},
 			"Treasure2": {
-				"rgba": [
-					{ "time": 0.3333, "color": "ffffff00" },
-					{ "time": 0.5, "color": "ffffffff" },
-					{ "time": 0.6667, "color": "ffffff00" }
-				]
-			},
-			"TREASURE text2": {
 				"rgba": [
 					{ "time": 0.3333, "color": "ffffff00" },
 					{ "time": 0.5, "color": "ffffffff" },
@@ -138,32 +122,6 @@
 						"curve": [ 0.444, 1.194, 0.5, 1, 0.444, 1.194, 0.5, 1 ]
 					},
 					{ "time": 0.6667 }
-				]
-			},
-			"TREASURE text": {
-				"translate": [
-					{
-						"time": 0.1667,
-						"curve": [ 0.2, 0, 0.233, 0, 0.2, 0, 0.169, 39.57 ]
-					},
-					{
-						"time": 0.2667,
-						"y": 39.57,
-						"curve": [ 0.311, 0, 0.356, 0, 0.311, 39.57, 0.356, 13.19 ]
-					},
-					{ "time": 0.4 },
-					{ "time": 0.5, "y": -17.45 },
-					{ "time": 0.6667 }
-				],
-				"scale": [
-					{ "x": 0.017, "y": 0.017, "curve": "stepped" },
-					{
-						"time": 0.1667,
-						"x": 0.017,
-						"y": 0.017,
-						"curve": [ 0.2, 0.017, 0.169, 1, 0.2, 0.017, 0.169, 1 ]
-					},
-					{ "time": 0.2667 }
 				]
 			},
 			"box cover-front": {

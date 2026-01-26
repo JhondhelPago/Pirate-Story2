@@ -593,23 +593,3 @@ export function getPatternByCount(type: number, count: number): PatternSettings 
     return pattern;
 }
 
-
-export function NormalSymbolRandomizerAtWild(
-    reels: number[][],
-    multipliers: number[][]
-): number[][] {
-    return reels.map((row, r) =>
-        row.map((value, c) => {
-            if (multipliers[r]?.[c] && multipliers[r][c] !== 0) {
-                return getRandomInt(1, 10);
-            }
-            return value;
-        })
-    );
-}
-
-/** Random integer between min and max (inclusive) */
-function getRandomInt(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
