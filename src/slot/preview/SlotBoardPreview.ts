@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { pool } from '../../utils/pool';
-import { Match3Config, slotGetBlocks } from '../Match3Config';
+import { SlotConfig, slotGetBlocks } from '../SlotConfig';
 import {
     Match3Position,
     match3SetPieceType,
@@ -19,7 +19,7 @@ import { SlotPreview } from './SlotPreview';
  * As a convention for this game, 'grid' is usually referring to the match3 state (array of types),
  * and 'board' is its visual representation with sprites.
  */
-export class Match3BoardPreview {
+export class SlotBoardPreview {
     /** The Match3 instance */
     public match3: SlotPreview;
     /** The grid state, with only numbers */
@@ -56,7 +56,7 @@ export class Match3BoardPreview {
      * Setup the initial grid state and fill up the view with pieces
      * @param config Match3 config params
      */
-    public setup(config: Match3Config) {
+    public setup(config: SlotConfig) {
         this.rows = config.rows;
         this.columns = config.columns;
         this.tileSize = config.tileSize;

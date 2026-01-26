@@ -10,9 +10,7 @@ import {
     isMaxWin,
     slotEvaluateClusterWins,
 } from './SlotUtility';
-import { userStats } from '../utils/userStats';
 import { GameServices } from '../api/services';
-import { waitFor } from '../utils/asyncUtils';
 
 export class SlotFreeSpinProcess extends SlotProcess {
     constructor(match3: Slot) {

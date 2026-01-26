@@ -1,7 +1,6 @@
 import { Container, Ticker } from 'pixi.js';
 import { Slot } from '../slot/Slot';
 import { navigation } from '../utils/navigation';
-import { GameEffects } from '../ui/GameEffects';
 import { bgm, sfx } from '../utils/audio';
 import { GameOvertime } from '../ui/GameOvertime';
 import { waitFor } from '../utils/asyncUtils';
@@ -50,9 +49,6 @@ export class GameScreen extends Container {
 
     /** The Control Panel */
     public readonly controlPanel: ControlPanel;
-
-    /** The special effects layer */
-    public readonly vfx?: GameEffects;
 
     /** Track if finish */
     public finished: boolean;
@@ -335,7 +331,6 @@ export class GameScreen extends Container {
     public async hide() {
         navigation.background?.blur?.();
         this.overtime.hide();
-        this.vfx?.playGridExplosion();
         await waitFor(0.3);
     }
 

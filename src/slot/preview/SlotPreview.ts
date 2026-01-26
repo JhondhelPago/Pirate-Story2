@@ -1,7 +1,7 @@
 import { Container } from 'pixi.js';
-import { Match3Config, slotGetConfig } from '../Match3Config';
+import { SlotConfig, slotGetConfig } from '../SlotConfig';
 import { Match3Position, Match3Type } from '../SlotUtility';
-import { Match3BoardPreview } from './Match3BoardPreview';
+import { SlotBoardPreview } from './SlotBoardPreview';
 
 /** Interface for onMatch event data */
 export interface Match3OnMatchData {
@@ -39,23 +39,23 @@ export interface Match3OnMoveData {
  */
 export class SlotPreview extends Container {
     /** Match3 game basic configuration */
-    public config: Match3Config;
+    public config: SlotConfig;
     /** Holds the grid state and display */
-    public board: Match3BoardPreview;
+    public board: SlotBoardPreview;
 
     constructor() {
         super();
 
         // Game sub-systems
         this.config = slotGetConfig();
-        this.board = new Match3BoardPreview(this);
+        this.board = new SlotBoardPreview(this);
     }
 
     /**
      * Sets up a new match3 game with pieces, rows, columns, duration, etc.
      * @param config The config object in which the game will be based on
      */
-    public setup(config: Match3Config) {
+    public setup(config: SlotConfig) {
         this.config = config;
         this.reset();
         this.board.setup(config);

@@ -720,6 +720,12 @@ export class SlotBoard {
     }
 
     public applyBackendResults(reels: number[][], multipliers: number[][]) {
+
+        // if the process is free spin manipulate the reels
+        // get the index position of valid multiplier from the parameter multipliers
+        // using those position replace random types to the reels
+
+
         this.backendReels = reels;
         this.backendMultipliers = multipliers;
         this._hasBackendResult = Array.isArray(reels) && reels.length > 0;
