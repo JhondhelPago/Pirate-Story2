@@ -7,11 +7,8 @@ import { SlotStats } from './SlotStats';
 import { SlotFreeSpinProcess } from './SlotFreeSpinProcess';
 import { SlotAutoSpinProcess } from './SlotAutoSpinProcess';
 import { SlotSymbol } from './SlotSymbol';
-import { gameConfig } from '../utils/gameConfig';
 import { waitFor } from '../utils/asyncUtils';
 import { userSettings } from '../utils/userSettings';
-import { ResultScreen } from '../screens/ResultScreen';
-import { countScatterBonus, flattenClusterPositions, slotEvaluateClusterWins } from './SlotUtility';
 
 // Match3.ts - Holds the state
 export enum SpinState {

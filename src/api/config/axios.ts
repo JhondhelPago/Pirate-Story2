@@ -81,6 +81,7 @@ axiosInstance.interceptors.response.use(
             }
 
             isRefreshing = true;
+            console.log("REQUESTING REFERESH TOKEN");
 
             try {
                 const res = await axios.post('/auth/refresh', null, {
