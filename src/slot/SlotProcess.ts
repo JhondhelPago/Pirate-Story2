@@ -1,7 +1,7 @@
-import { BetAPI } from '../api/betApi';
 import { AsyncQueue } from '../utils/asyncUtils';
 import { Slot } from './Slot';
-import { userSettings, config, FreeSpinSetting, features } from '../utils/userSettings';
+import { userSettings, features } from '../utils/userSettings';
+import { config } from './SlotSettings'; 
 import { ConfigAPI } from '../api/configApi';
 import {
     RoundResult,
@@ -15,7 +15,6 @@ import {
     countScatterBonus,
     getmaxWin,
 } from './SlotUtility';
-import { userStats } from '../utils/userStats';
 import { GameServices } from '../api/services';
 
 export interface BackendSpinResult {
@@ -65,10 +64,6 @@ export class SlotProcess {
     constructor(match3: Slot) {
         this.match3 = match3;
         this.queue = new AsyncQueue();
-    }
-
-    protected async fetchBackendSpin(): Promise<BackendSpinResult> {
-        return BetAPI.spin('n');
     }
 
     public isProcessing() {
@@ -260,12 +255,7 @@ export class SlotProcess {
         await this.match3.board.startSpin();
 
         const PirateApiResponse = await GameServices.spin(this.featureCode);
-
-        // Fetch backend + dynamic delay based on spinMode
-        const backendPromise = this.fetchBackendSpin();
         const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
-
-        const result = await backendPromise;
 
         if (minSpinMs > 0) {
             await delayPromise;

@@ -1,7 +1,5 @@
-import { gameConfig } from '../utils/gameConfig';
-import { Pattern } from './Match3Config';
-import { userSettings, config, PaytableLedger, PatternSettings } from '../utils/userSettings';
-import { PaytableCard } from '../ui/PaytableCard';
+import { userSettings, PaytableLedger, PatternSettings } from '../utils/userSettings';
+import { config } from './SlotSettings';
 
 /** Piece type on each position in the grid */
 export type Match3Type = number;

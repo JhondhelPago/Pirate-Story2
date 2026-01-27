@@ -1,16 +1,18 @@
 symbol-12.png
-	size: 391, 267
+	size: 661, 269
 	filter: Linear, Linear
+BG
+	bounds: 2, 2, 265, 265
+	offsets: 1, 1, 267, 267
 Treasure
-	bounds: 2, 105, 230, 160
+	bounds: 269, 107, 230, 160
 	offsets: 1, 1, 232, 162
 box cover-back
-	bounds: 184, 25, 158, 78
+	bounds: 501, 32, 158, 78
 	offsets: 1, 1, 160, 80
 box cover-front
-	bounds: 2, 2, 180, 101
+	bounds: 269, 4, 180, 101
 	offsets: 1, 1, 182, 103
 coin
-	bounds: 234, 108, 157, 155
+	bounds: 501, 112, 157, 155
 	offsets: 2, 3, 162, 161
-	rotate: 90

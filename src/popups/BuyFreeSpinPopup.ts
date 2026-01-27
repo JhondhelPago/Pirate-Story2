@@ -5,7 +5,8 @@ import { ConfirmationBuyFreeSpinPopup } from './BuyFreeConfirmationPopup';
 import { GameScreen } from '../screens/GameScreen';
 
 // ✅ use already-loaded config from userSettings.ts
-import { userSettings, config as loadedConfig } from '../utils/userSettings';
+import { userSettings } from '../utils/userSettings';
+import { config as loadedConfig  } from '../slot/SlotSettings';
 
 // ✅ updated imports (letter type + definition)
 import {

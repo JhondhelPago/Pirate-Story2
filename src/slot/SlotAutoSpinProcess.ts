@@ -66,11 +66,7 @@ export class SlotAutoSpinProcess extends SlotProcess {
         await this.match3.board.startSpin();
 
         const PirateApiResponse = await GameServices.spin(this.featureCode);
-
-        const backendPromise = this.fetchBackendSpin();
         const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
-
-        const result = await backendPromise;
 
         if (minSpinMs > 0) {
             await delayPromise;

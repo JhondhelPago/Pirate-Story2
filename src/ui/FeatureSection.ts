@@ -1,9 +1,7 @@
 import { Container, Sprite } from 'pixi.js';
 import { List } from '@pixi/ui';
 import { Label } from './Label';
-import { gameConfig } from '../utils/gameConfig';
-import { config } from '../utils/userSettings';
-import { Block } from '../slot/Match3Config';
+import { config } from '../slot/SlotSettings';
 import { i18n } from '../i18n/i18n';
 
 const wildType = config.settings.specialBlocks[1]; //type 12 position at index 1

@@ -3,9 +3,8 @@ import { Label } from './Label';
 import { userSettings } from '../utils/userSettings';
 import { Paytable } from '../slot/SlotConfig';
 import { List } from '@pixi/ui';
-import { gameConfig } from '../utils/gameConfig';
 import { PaytableCard } from './PaytableCard';
-import { config } from '../utils/userSettings';
+import { config } from '../slot/SlotSettings'; 
 import { i18n } from '../i18n/i18n';
 
 export class PayTableSection extends Container {

@@ -1,36 +1,8 @@
 import { GameServices } from '../api/services';
 import { bgm, setMasterVolume, sfx } from './audio';
-import { showErrorScreen } from './error';
-import { getUrlParam } from './getUrlParams';
 import { storage } from './storage';
-import { userAuth } from './userAuth';
+import { config } from '../slot/SlotSettings';
 
-// const urlToken = getUrlParam('token');
-// await userAuth.login(urlToken || '');
-async function authenticateLogin(){
-    const urlToken = getUrlParam('token');
-
-    try {
-        if (urlToken) {
-            await userAuth.login(urlToken);
-
-            const url = new URL(window.location.href);
-            url.searchParams.delete('token');
-            window.history.replaceState({}, '', url.toString());
-        } else if (!userAuth.has()) {
-            return false;
-        }
-        return true;
-    } catch (err) {
-        return false;
-    }
-}
-
-export const isAuthenticated = await authenticateLogin();
-
-//PIRATE STORY GAME CONFIG
-const response = await GameServices.getGameConfig();
-export const config = response.data;
 
 // interface for the extraFreeSpins
 export interface FreeSpinSetting {

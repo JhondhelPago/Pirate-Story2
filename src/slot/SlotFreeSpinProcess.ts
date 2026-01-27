@@ -1,7 +1,8 @@
 import { userSettings } from '../utils/userSettings';
 import { Slot } from './Slot';
 import { SlotProcess } from './SlotProcess';
-import { config, FreeSpinSetting } from '../utils/userSettings';
+import { FreeSpinSetting } from '../utils/userSettings';
+import { config } from './SlotSettings'; 
 import {
     calculateTotalWin,
     countScatterBonus,

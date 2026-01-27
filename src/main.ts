@@ -10,11 +10,12 @@ import { getUrlParam, updateUrlSettings } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
-import { config, isAuthenticated, userSettings } from './utils/userSettings';
+import { userSettings } from './utils/userSettings';
+import { config } from './slot/SlotSettings';
+import { isAuthenticated } from './slot/SlotSettings'; 
 import { i18n } from './i18n/i18n';
-import { userAuth } from './utils/userAuth';
 import { showErrorScreen } from './utils/error';
-import { AuthServices } from './api/services';
+
 
 /** The PixiJS app Application instance */
 export const app = new Application();

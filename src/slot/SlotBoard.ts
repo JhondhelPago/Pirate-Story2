@@ -4,8 +4,8 @@ import { Slot } from './Slot';
 import { SlotConfig, slotGetBlocks } from './SlotConfig';
 import { SlotSymbol } from './SlotSymbol';
 import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from './SlotUtility';
-import { userSettings, config, FreeSpinSetting, SpinModeEnum, features } from '../utils/userSettings';
-import { ConfigAPI } from '../api/configApi';
+import { userSettings, SpinModeEnum, features } from '../utils/userSettings';
+import { config } from './SlotSettings';
 import { sfx } from '../utils/audio';
 
 interface ReelColumn {
