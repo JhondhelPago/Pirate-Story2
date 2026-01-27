@@ -464,6 +464,9 @@ export class SlotFreeSpinProcess extends SlotProcess {
 
         this.isInitialFreeSpin = false;
 
+        userSettings.setupCollect(); // fresh spin index and collect balance setter
+        console.log('At Reset spinIndex: ', userSettings.getSpinIndex()); 
+
         super.reset();
     }
 

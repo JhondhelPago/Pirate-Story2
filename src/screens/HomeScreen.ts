@@ -6,7 +6,6 @@ import { i18n } from '../utils/i18n';
 import { LargeButton } from '../ui/LargeButton';
 import { registerCustomEase } from '../utils/animation';
 import { Logo } from '../ui/Logo';
-import { Dragon } from '../ui/Dragon';
 import { waitFor } from '../utils/asyncUtils';
 import { SmallButton } from '../ui/SmallButton';
 import { ImageButton } from '../ui/ImageButton';
@@ -27,7 +26,6 @@ export class HomeScreen extends Container {
     /** The game logo */
     private logo: Logo;
     /** Animated dragon */
-    private dragon: Dragon;
     /** Button that leads to gameplay */
     private playButton: LargeButton;
     /** Button that links to the Github project */
@@ -47,9 +45,7 @@ export class HomeScreen extends Container {
         this.logo = new Logo();
         this.addChild(this.logo);
 
-        this.dragon = new Dragon();
-        this.dragon.playIdle();
-        this.addChild(this.dragon);
+
 
         this.base = new NineSliceSprite({
             texture: Texture.from('rounded-rectangle'),
@@ -90,8 +86,6 @@ export class HomeScreen extends Container {
 
     /** Resize the screen, fired whenever window size changes  */
     public resize(width: number, height: number) {
-        this.dragon.x = width * 0.5;
-        this.dragon.y = height * 0.5;
         this.playButton.x = width * 0.5;
         this.playButton.y = height - 130;
         this.base.width = width;
@@ -118,7 +112,6 @@ export class HomeScreen extends Container {
         this.infoButton.hide(false);
         this.settingsButton.hide(false);
         this.githubButton.hide(false);
-        this.dragon.show(false);
         this.logo.show(false);
 
         // Play reveal animation
@@ -145,7 +138,6 @@ export class HomeScreen extends Container {
         await waitFor(0.1);
         this.logo.hide();
         await waitFor(0.1);
-        await this.dragon.hide();
     }
 
     /** Animation for revealing the screen behind the purple sprite */

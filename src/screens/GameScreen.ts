@@ -2,7 +2,6 @@ import { Container, Ticker } from 'pixi.js';
 import { Slot } from '../slot/Slot';
 import { navigation } from '../utils/navigation';
 import { bgm, sfx } from '../utils/audio';
-import { GameOvertime } from '../ui/GameOvertime';
 import { waitFor } from '../utils/asyncUtils';
 import { slotGetConfig } from '../slot/Match3Config';
 import { GameLogo } from '../ui/GameLogo';
@@ -34,7 +33,6 @@ export class GameScreen extends Container {
 
     public readonly slot: Slot;
     public readonly gameContainer: Container;
-    public readonly overtime: GameOvertime;
 
     public readonly barrelBoard?: BarrelBoard;
 
@@ -104,10 +102,6 @@ export class GameScreen extends Container {
         this.slot.onProcessComplete = this.onProcessComplete.bind(this);
         this.slot.scale.set(1.2);
         this.gameContainer.addChild(this.slot);
-
-        /** Countdown UI */
-        this.overtime = new GameOvertime();
-        this.addChild(this.overtime);
 
         console.log('balance from settings: ', userSettings.getBalance());
         /** Control panel */
@@ -296,8 +290,6 @@ export class GameScreen extends Container {
             this.goldRoger.x = width + 50;
             this.goldRoger.y = height + 260;
 
-            this.overtime.x = this.gameContainer.x;
-            this.overtime.y = this.gameContainer.y;
         } else {
             this.gameContainer.x = centerX;
             this.gameContainer.y = this.gameContainer.height * 0.7;
@@ -330,7 +322,6 @@ export class GameScreen extends Container {
 
     public async hide() {
         navigation.background?.blur?.();
-        this.overtime.hide();
         await waitFor(0.3);
     }
 
@@ -488,7 +479,7 @@ export class GameScreen extends Container {
 
         const totalWon = this.slot.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0) {
-            this.controlPanel.setWinTitle(`Win ${totalWon}`);
+            this.controlPanel.setWinTitle(i18n.t('win', { amount: totalWon }));
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
         }
@@ -513,7 +504,7 @@ export class GameScreen extends Container {
         this.finished = false;
         await waitFor(3);
         await this.drawFreeSpinWonBanner(currentSpin);
-        this.controlPanel.setWinTitle(`Win ${this.slot.freeSpinProcess.getAccumulatedWin()}`); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
+        this.controlPanel.setWinTitle(i18n.t('win', { amount: this.slot.freeSpinProcess.getAccumulatedWin()})); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
 
         this.syncFeatureAvailability();
     }

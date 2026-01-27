@@ -8,7 +8,6 @@ import { sound } from '@pixi/sound';
 import { IslandBackground } from './ui/IslandBackground';
 import { getUrlParam, updateUrlSettings } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
-import { ResultScreen } from './screens/ResultScreen';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { userSettings } from './utils/userSettings';
 import { config } from './slot/SlotSettings';
@@ -119,12 +118,10 @@ async function init() {
 
     const gameParam = getUrlParam('game');
     const loadParam = getUrlParam('load');
-    const resultParam = getUrlParam('result');
     const modalParam = getUrlParam('modal');
 
     if (gameParam !== null) await navigation.showScreen(GameScreen);
     else if (loadParam !== null) await navigation.showScreen(LoadScreen);
-    else if (resultParam !== null) await navigation.showScreen(ResultScreen);
     else if (modalParam !== null) {
         navigation.presentPopup(FreeSpinWinPopup, {
             winAmount: 100000,
