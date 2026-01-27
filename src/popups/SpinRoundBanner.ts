@@ -1,4 +1,4 @@
-import { AnimatedSprite, Container, Sprite, Texture, Text, Matrix } from 'pixi.js';
+import { AnimatedSprite, Container, Sprite, Texture, Text, Matrix, Rectangle } from 'pixi.js';
 import gsap from 'gsap';
 import { navigation } from '../utils/navigation';
 import { bgm, sfx } from '../utils/audio';
@@ -12,7 +12,7 @@ type BannerItem = {
 };
 
 export const bannerDict: BannerItem[] = [
-    { min: userSettings.getBet() * 200, board: 'red-banner-board', text: 'red-banner-text', sfx: 'common/sfx-avast.wav' }, 
+    { min: userSettings.getBet() * 200, board: 'red-banner-board', text: 'red-banner-text', sfx: 'common/sfx-avast.wav' },
     { min: userSettings.getBet() * 150, board: 'blue-banner-board', text: 'blue-banner-text', sfx: 'common/sfx-avast.wav' },
     { min: userSettings.getBet() * 50, board: 'green-banner-board', text: 'green-banner-text', sfx: 'common/sfx-avast.wav' },
 ];
@@ -66,10 +66,12 @@ export class SpinRoundBanner extends Container {
     private readonly HEADER_OFFSET_Y = -180;
     private readonly HEADER_OFFSET_X = 20;
 
+    // ✅ prevent double-hide / orphaned async awaits
+    private isHiding = false;
+    private isClosed = false;
+
     // ✅ event handlers (bound once)
     private onVisibilityChangeBound = () => {
-        // If user switches tab while counting, onComplete may never run.
-        // So we force cleanup here.
         if (document.hidden) {
             this.forceStopAllBannerAudio();
             this.killValueTweenOnly();
@@ -77,7 +79,6 @@ export class SpinRoundBanner extends Container {
     };
 
     private onWindowBlurBound = () => {
-        // Some platforms fire blur without visibilitychange.
         this.forceStopAllBannerAudio();
         this.killValueTweenOnly();
     };
@@ -93,19 +94,23 @@ export class SpinRoundBanner extends Container {
         this.bg = new Sprite(Texture.WHITE);
         this.bg.tint = 0x000000;
         this.bg.alpha = 0.75;
-        this.bg.eventMode = 'static';
+        // IMPORTANT: we will handle taps on the root container (hitArea),
+        // so the BG doesn't need its own handler.
+        this.bg.eventMode = 'none';
         this.addChild(this.bg);
 
         this.coinContainer = new Container();
         this.addChild(this.coinContainer);
 
-        this.bg.on('pointertap', () => {
-            if (!this.canClickAnywhere) return;
-            this.hide();
-        });
-
         this.panel = new Container();
         this.addChild(this.panel);
+
+        // ✅ Tap ANYWHERE (including popup/board/text) to close once allowed.
+        // Using hitArea set in resize() so this triggers consistently.
+        this.on('pointertap', () => {
+            if (!this.canClickAnywhere) return;
+            void this.hide();
+        });
     }
 
     public static forceDismiss() {
@@ -117,6 +122,12 @@ export class SpinRoundBanner extends Container {
 
     public prepare<T>(data?: T) {
         const anyData = data as SpinRoundBannerData;
+
+        // ✅ reset state each time
+        this.isHiding = false;
+        this.isClosed = false;
+        this.alpha = 1;
+        this.canClickAnywhere = false;
 
         // ✅ safety: kill any leftovers if prepare is called again
         this.clearTimeouts();
@@ -171,8 +182,10 @@ export class SpinRoundBanner extends Container {
 
         this.timeouts.push(
             setTimeout(() => {
+                // ✅ don't auto-close if already hiding/closed
+                if (this.isHiding || this.isClosed) return;
                 if (SpinRoundBanner.currentInstance === this) {
-                    if (this.canClickAnywhere) this.hide();
+                    if (this.canClickAnywhere) void this.hide();
                 }
             }, 6000),
         );
@@ -538,7 +551,6 @@ export class SpinRoundBanner extends Container {
 
     private getBannerTexture(win: number): BannerItem {
         const bet = userSettings.getBet();
-
         return bannerDict.find((x) => win >= x.min)!;
     }
 
@@ -547,7 +559,7 @@ export class SpinRoundBanner extends Container {
 
         this.playBannerSfx(tex.sfx);
 
-        gsap.killTweensOf([this.banner, this.headerText, this.valueText, ...this.getGlows()]);
+        gsap.killTweensOf([this.banner, this.headerText, this.valueText, this.bg, this.panel, ...this.getGlows()]);
         gsap.killTweensOf([this.headerText.scale, this.valueText.scale]);
         for (const g of this.getGlows()) gsap.killTweensOf(g);
 
@@ -593,6 +605,7 @@ export class SpinRoundBanner extends Container {
                 this.syncGlowToBanner();
             },
             onComplete: () => {
+                if (this.isHiding || this.isClosed) return;
                 this.syncGlowToBanner();
                 this.showGlowEffects();
                 this.startCoinBlast();
@@ -619,7 +632,6 @@ export class SpinRoundBanner extends Container {
     private playBannerSfx(sfxKey: string) {
         try {
             sfx.play(sfxKey, { volume: 0.5 });
-            // this.sfxCoinBlast = sfx.play("common/sfx-coin-fall.wav");
             this.sfxCoinBlast = sfx.playLoopTimes('common/sfx-coin-fall.wav', 2);
         } catch (e) {
             console.warn('Failed to play banner SFX:', sfxKey, e);
@@ -727,13 +739,14 @@ export class SpinRoundBanner extends Container {
     }
 
     private animateValue() {
+        if (this.isHiding || this.isClosed) return;
+
         // ✅ ensure no previous instance/tween keeps running
         this.killValueTweenOnly();
         this.stopCollectWinSfx();
 
         this.currentDisplayValue = 0;
 
-        // ✅ pixi sound volumes are typically 0..1 (avoid 3)
         this.sfxCollectWin = sfx.playSegment('common/sfx-win-rise.wav', 0, 2, { volume: 0.5 });
 
         // ✅ store tween reference, so it can be killed on blur/hidden/hide()
@@ -742,11 +755,19 @@ export class SpinRoundBanner extends Container {
             duration: 2,
             ease: 'power2.out',
             onUpdate: () => {
+                // ✅ if banner is closing, don't keep updating UI
+                if (this.isHiding || this.isClosed) return;
                 this.valueText.text = this.formatCurrency(this.currentDisplayValue);
             },
             onComplete: () => {
-                this.valueTween = undefined;
+                // ✅ if user closed early, do nothing
+                if (this.isHiding || this.isClosed) {
+                    this.valueTween = undefined;
+                    this.stopCollectWinSfx();
+                    return;
+                }
 
+                this.valueTween = undefined;
                 this.stopCollectWinSfx();
 
                 gsap.fromTo(
@@ -757,7 +778,10 @@ export class SpinRoundBanner extends Container {
                         y: 1,
                         duration: 0.6,
                         ease: 'elastic.out(1, 0.6)',
-                        onComplete: () => this.animateValuePulse(),
+                        onComplete: () => {
+                            if (this.isHiding || this.isClosed) return;
+                            this.animateValuePulse();
+                        },
                     },
                 );
             },
@@ -771,12 +795,10 @@ export class SpinRoundBanner extends Container {
             } catch {}
             this.valueTween = undefined;
         }
-        // safety: kill any gsap tween targeting this object (amount tween is gsap.to(this, ...))
         gsap.killTweensOf(this);
     }
 
     private forceStopAllBannerAudio() {
-        // stop both loop sounds, always safe
         try {
             this.sfxCoinBlast?.stop?.();
         } catch {}
@@ -807,6 +829,9 @@ export class SpinRoundBanner extends Container {
     public resize(width: number, height: number) {
         this.bg.width = width;
         this.bg.height = height;
+
+        // ✅ important: makes root container receive pointertap even when tapping on panel/content
+        this.hitArea = new Rectangle(0, 0, width, height);
 
         if (this.getChildIndex(this.bg) !== 0) this.setChildIndex(this.bg, 0);
         if (this.getChildIndex(this.coinContainer) !== 1) this.setChildIndex(this.coinContainer, 1);
@@ -843,22 +868,30 @@ export class SpinRoundBanner extends Container {
     }
 
     public async hide(forceInstant = false) {
+        // ✅ prevent double close (tap + auto close, or tap spam)
+        if (this.isHiding || this.isClosed) return;
+        this.isHiding = true;
+        this.isClosed = true;
+
         this.canClickAnywhere = false;
 
         // ✅ detach handlers
         document.removeEventListener('visibilitychange', this.onVisibilityChangeBound);
         window.removeEventListener('blur', this.onWindowBlurBound);
 
+        // ✅ stop future scheduled work first
         this.clearTimeouts();
 
         // ✅ stop ANY audio owned by this banner no matter what
         this.forceStopAllBannerAudio();
 
-        // ✅ also kill amount tween so onComplete can’t “revive” anything later
+        // ✅ kill amount tween so onComplete can’t fire “after closing”
         this.killValueTweenOnly();
 
-        gsap.killTweensOf(this.headerText.scale);
-        gsap.killTweensOf(this.valueText.scale);
+        // ✅ kill ALL UI tweens/timelines that might still be running
+        gsap.killTweensOf(this.headerText?.scale);
+        gsap.killTweensOf(this.valueText?.scale);
+        gsap.killTweensOf([this.banner, this.headerText, this.valueText, this.bg, this.panel, ...this.getGlows()].filter(Boolean));
 
         this.stopCoinBlast();
 
