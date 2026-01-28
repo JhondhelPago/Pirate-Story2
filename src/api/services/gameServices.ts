@@ -1,12 +1,9 @@
-import { userSettings } from '../../utils/userSettings';
 import axios from 'axios';
 import axiosInstance from '../config/axios';
+import { userSettings } from '../../utils/userSettings';
+import { userAuth } from '../../utils/userAuth';
 
-const Code = 'piratestory';
-
-const gamecode = 'piratestory';
-const bet = 100;
-const index = 11;
+const gameCode = 'piratestory';
 
 interface CollectData {
     index: number;
@@ -16,7 +13,7 @@ interface CollectData {
 export const getGameConfig = async () => {
     const response = await axiosInstance.get('/game/settings', {
         params: {
-            gamecode: Code,
+            gamecode: gameCode,
         },
     });
 
@@ -27,7 +24,7 @@ export const collect = async (): Promise<CollectData> => {
     return axiosInstance
         .get('/game/collect', {
             params: {
-                gamecode: Code,
+                gamecode: gameCode,
             },
         })
         .then((res) => res.data.data as CollectData)
@@ -41,7 +38,7 @@ export const checkResume = async () => {
     return axiosInstance
         .get('/game/check-resume', {
             params: {
-                gamecode: Code,
+                gamecode: gameCode,
             },
         }).then((res) => res.data.data as any)
         .catch((error) => {
@@ -54,8 +51,8 @@ export const spin = async (feature: number) => {
 
     try {
         const response = await axiosInstance.post('/game/spin', {
-            gamecode: gamecode,
-            bet: bet,
+            gamecode: gameCode,
+            bet: userSettings.getBet(),
             feature: feature,
             index: userSettings.incrementSpinIndex(), // incremented by 1 to request the next genereted reels result
         });

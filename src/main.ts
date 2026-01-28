@@ -6,11 +6,10 @@ import { navigation } from './utils/navigation';
 import { LoadScreen } from './screens/LoadScreen';
 import { sound } from '@pixi/sound';
 import { IslandBackground } from './ui/IslandBackground';
-import { getUrlParam, updateUrlSettings } from './utils/getUrlParams';
+import { getUrlParam } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { userSettings } from './utils/userSettings';
-import { config } from './slot/SlotSettings';
 import { isAuthenticated } from './slot/SlotSettings'; 
 import { i18n } from './i18n/i18n';
 import { showErrorScreen } from './utils/error';
@@ -73,7 +72,9 @@ function visibilityChange() {
 async function setupUserSettings() {
     await userSettings.setupGameConfig();
     await userSettings.setupCollect();
-    updateUrlSettings(config.language, config.currency);
+
+    // uncomment in production
+    //updateUrlSettings(config.language, config.currency);
     i18n.init();
     await userSettings.setupResume();
 }
@@ -91,7 +92,7 @@ async function preloadFonts() {
 async function init() {
    
     if (!isAuthenticated) showErrorScreen('No token provided.');
-
+    
     // Setup app and assets
     await setupUserSettings();
     await preloadFonts();

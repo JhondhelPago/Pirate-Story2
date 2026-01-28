@@ -58,6 +58,7 @@ class UserSettings {
     private currency: string;
     private balance: number;
     private spinIndex: number;
+    private gameCode: string | null = null;
 
     private gameConfig: any = null;
     private resumeData: any = null;
@@ -168,6 +169,14 @@ class UserSettings {
     public decrementSpinIndex() {
         this.spinIndex--;
         return this.spinIndex;
+    }
+
+    public setGameCode(code: string | null) {
+        this.gameCode = code;
+    }
+
+    public getGameCode() {
+        return this.gameCode;
     }
 
     public async setupGameConfig() {

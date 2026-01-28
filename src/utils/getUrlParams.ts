@@ -14,6 +14,8 @@ export function getUrlParamNumber(param: string) {
     return valueNumber;
 }
 
+
+// token query parameter remover
 export function updateUrlSettings(lang: string, currency: string) {
     const url = new URL(window.location.href);
 
