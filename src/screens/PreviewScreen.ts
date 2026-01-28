@@ -140,7 +140,7 @@ export class PreviewScreen extends Container {
             this.playButton.x = width * 0.82;
             this.playButton.y = height * 0.6;
 
-            this.gameLogo.scale.set(.5);
+            this.gameLogo.scale.set(0.5);
             this.gameLogo.x = width * 0.82;
             this.gameLogo.y = height * 0.23;
 

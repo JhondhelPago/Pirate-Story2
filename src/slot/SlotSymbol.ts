@@ -264,8 +264,10 @@ export class SlotSymbol extends Container {
 
         this.visible = false;
 
-        return new Promise(async (resolve) => {
-            await gsap.delayedCall(stagger, async () => {
+        // ✅ Fix: Promise executor is not async
+        return new Promise((resolve) => {
+            gsap.delayedCall(stagger, async () => {
+                // async callback is fine
                 let elapsed = 0;
 
                 while (elapsed < spinDuration) {

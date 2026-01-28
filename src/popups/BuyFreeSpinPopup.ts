@@ -6,14 +6,10 @@ import { GameScreen } from '../screens/GameScreen';
 
 // ✅ use already-loaded config from userSettings.ts
 import { userSettings } from '../utils/userSettings';
-import { config as loadedConfig  } from '../slot/SlotSettings';
+import { config as loadedConfig } from '../slot/SlotSettings';
 
 // ✅ updated imports (letter type + definition)
-import {
-    BuyFreeSpinOptionBanner,
-    type BuyFreeTypeLetter,
-    type BuyFreeTypeDefinition,
-} from '../ui/FeatureBanner';
+import { BuyFreeSpinOptionBanner, type BuyFreeTypeLetter, type BuyFreeTypeDefinition } from '../ui/FeatureBanner';
 import { i18n } from '../i18n/i18n';
 
 /* ===============================

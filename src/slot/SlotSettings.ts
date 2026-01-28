@@ -1,8 +1,8 @@
-import { GameServices } from "../api/services";
-import { getUrlParam } from "../utils/getUrlParams";
-import { userAuth } from "../utils/userAuth";
+import { GameServices } from '../api/services';
+import { getUrlParam } from '../utils/getUrlParams';
+import { userAuth } from '../utils/userAuth';
 
-async function authenticateLogin(){
+async function authenticateLogin() {
     const urlToken = getUrlParam('token');
     try {
         if (urlToken) {
@@ -19,7 +19,6 @@ async function authenticateLogin(){
         return false;
     }
 }
-
 
 // initial post request to the api to get the game configuration and authentication for the slot user
 export const isAuthenticated = await authenticateLogin();

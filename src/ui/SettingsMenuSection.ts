@@ -26,11 +26,7 @@ type SettingsMenuSectionOptionsInternal = {
  * Defaults (store KEYS only)
  */
 const defaultSettingsMenuSectionOptions: SettingsMenuSectionOptionsInternal = {
-    icons1: [
-        { labelKey: 'quickSpinDesc' },
-        { labelKey: 'ambientMusicDesc' },
-        { labelKey: 'soundFXDesc' },
-    ],
+    icons1: [{ labelKey: 'quickSpinDesc' }, { labelKey: 'ambientMusicDesc' }, { labelKey: 'soundFXDesc' }],
     icons2: [
         {
             image: 'icon-button-left-arrow-default-view',

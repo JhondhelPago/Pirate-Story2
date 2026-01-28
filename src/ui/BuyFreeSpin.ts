@@ -145,7 +145,7 @@ export class BuyFreeSpin extends Container {
             .translate(-b.x, -b.y)
             .scale(
                 BuyFreeSpin.LABEL_GRAD_W / Math.max(1e-6, b.width),
-                BuyFreeSpin.LABEL_GRAD_H / Math.max(1e-6, b.height)
+                BuyFreeSpin.LABEL_GRAD_H / Math.max(1e-6, b.height),
             );
 
         const m = BuyFreeSpin.labelGradientMatrix.clone().append(localToCanvas);

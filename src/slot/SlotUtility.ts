@@ -589,4 +589,3 @@ export function getPatternByCount(type: number, count: number): PatternSettings 
 
     return pattern;
 }
-

@@ -45,8 +45,6 @@ export class HomeScreen extends Container {
         this.logo = new Logo();
         this.addChild(this.logo);
 
-
-
         this.base = new NineSliceSprite({
             texture: Texture.from('rounded-rectangle'),
             leftWidth: 32,

@@ -1,4 +1,4 @@
-import { AuthServices } from "../api/services";
+import { AuthServices } from '../api/services';
 
 class UserAuth {
     private accessToken: string | null = null;
@@ -27,7 +27,7 @@ class UserAuth {
             const accessToken = res.data?.data?.accessToken;
 
             if (!accessToken) {
-                throw new Error("No access token returned from login");
+                throw new Error('No access token returned from login');
             }
 
             this.set(accessToken); // store ONLY in memory

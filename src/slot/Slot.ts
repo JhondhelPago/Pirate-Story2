@@ -183,10 +183,14 @@ export class Slot extends Container {
         // Pause current process safely
         try {
             current.interruptSpinDelay?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
         try {
             current.pause?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
 
         // Push paused process for later resume
         this.processStack.push(current);
@@ -222,7 +226,9 @@ export class Slot extends Container {
         // Resume the restored process
         try {
             prev.resume?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
 
         this.switching = false;
     }
@@ -310,27 +316,23 @@ export class Slot extends Container {
         const ResumeData = userSettings.getResumeData();
 
         //resumeType of not equal 2 is non free spin resume
-        if (ResumeData.resumeType != 2){ // setting up the board from resume of NonFreeSpin
+        if (ResumeData.resumeType != 2) {
+            // setting up the board from resume of NonFreeSpin
 
             await this.process.resumeStart();
             this.board.setup(config);
-
-        } else { // setting up the board from resume of FreeSpin
+        } else {
+            // setting up the board from resume of FreeSpin
             // lock interactions here
             await this.onFreeSpinResumeStart?.(ResumeData.spins);
-            
+
             this.useFreeSpinProcess();
 
-            this.board.applyBackendResults(
-                ResumeData.reels,
-                ResumeData.multiplierReels
-            );
+            this.board.applyBackendResults(ResumeData.reels, ResumeData.multiplierReels);
             this.board.setup(config);
             await waitFor(2);
             await this.process.resumeStart();
-
         }
-       
     }
 
     /** Fully reset the game */

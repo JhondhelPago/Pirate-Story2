@@ -90,5 +90,6 @@ export class SlotPreview extends Container {
     /** Update the timer */
     public update(_delta: number) {
         // this.timer.update(delta);
+        void _delta;
     }
 }

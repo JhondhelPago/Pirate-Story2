@@ -25,12 +25,10 @@ export class ShadowLabel extends Container {
     /** The main text sprite */
     private mainText: Text;
 
-
     constructor(options: ShadowLabelOptions) {
         super();
 
         const { text, style, shadowOffsetX = 0, shadowOffsetY = 4, shadowColor = '#000000', shadowAlpha = 1 } = options;
-
 
         // Create shadow text (without stroke)
         const shadowStyle = { ...style };

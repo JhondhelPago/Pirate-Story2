@@ -24,10 +24,7 @@ export class GoldRoger extends Container {
         this.zeus.x = 0;
         this.zeus.y = 0;
         this.zeus.scale.set(1);
-        this.zeus.pivot.set(
-            this.zeus.width / 2,
-            this.zeus.height / 2
-        );
+        this.zeus.pivot.set(this.zeus.width / 2, this.zeus.height / 2);
 
         this.container.addChild(this.zeus);
 
@@ -68,7 +65,6 @@ export class GoldRoger extends Container {
             });
         });
     }
-
 
     /** Show the mascot */
     public async show(animated = true) {

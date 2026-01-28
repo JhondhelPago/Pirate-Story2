@@ -6,8 +6,7 @@ export class BetAPI {
      * @param type - The type of spin ('n' for new, 'r' for refill, 'f' for free).
      * @returns {Promise<{reels: number[][]}>} A promise that resolves with the reels data.
      */
-    static async spin(
-    ): Promise<{ reels: number[][]; multiplierReels: number[][]; bonusReels: number[][] }> {
+    static async spin(): Promise<{ reels: number[][]; multiplierReels: number[][]; bonusReels: number[][] }> {
         try {
             // Make a GET request to the Express server
             const response = await fetch(url, {

@@ -135,7 +135,9 @@ class SFX {
         instance.stop = () => {
             try {
                 originalStop?.();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.loopingInstances.delete(instance);
         };
     }
@@ -153,7 +155,9 @@ class SFX {
         for (const inst of this.loopingInstances) {
             try {
                 inst.stop?.();
-            } catch {}
+            } catch {
+                // do nothing
+            }
         }
         this.loopingInstances.clear();
     }

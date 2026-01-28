@@ -236,7 +236,9 @@ export class TotalWinBanner extends Container {
         try {
             await Promise.all(families.map((f) => fonts.load(`64px "${f}"`)));
             if (fonts.ready) await fonts.ready;
-        } catch {}
+        } catch {
+            // do nothing
+        }
     }
 
     // ==================================================
@@ -246,13 +248,17 @@ export class TotalWinBanner extends Container {
         if (this.bgmDuckTween) {
             try {
                 this.bgmDuckTween.kill();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.bgmDuckTween = undefined;
         }
         if (this.bgmRestoreTween) {
             try {
                 this.bgmRestoreTween.kill();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.bgmRestoreTween = undefined;
         }
     }
@@ -745,7 +751,9 @@ export class TotalWinBanner extends Container {
             // this.sfxWinRise = sfx.playSegment("common/sfx-win-rise.wav", 0, 2);
             this.sfxWinRise =
                 this.targetDisplayValue > 0 ? sfx.playSegment('common/sfx-win-rise.wav', 0, 2, { volume: 0.5 }) : null;
-        } catch {}
+        } catch {
+            // do nothing
+        }
 
         // ✅ store tween reference, so it can be killed on blur/hidden/hide()
         this.amountTween = gsap.to(this, {
@@ -777,7 +785,9 @@ export class TotalWinBanner extends Container {
         if (this.amountTween) {
             try {
                 this.amountTween.kill();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.amountTween = undefined;
         }
         // safety: kill any gsap tween targeting this object (amount tween is gsap.to(this, ...))
@@ -788,7 +798,9 @@ export class TotalWinBanner extends Container {
         try {
             this.sfxTotalWin?.stop?.();
             this.sfxWinRise?.stop?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
         this.sfxTotalWin = null;
         this.sfxWinRise = null;
     }
@@ -1019,7 +1031,9 @@ export class TotalWinBanner extends Container {
             // ✅ IMPORTANT ORDER: dismiss popup first, then onClosed (prevents dismissing next popup)
             try {
                 await navigation.dismissPopup();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.restoreBgmVolume();
             await this.fireClosedOnce();
             return;
@@ -1035,7 +1049,9 @@ export class TotalWinBanner extends Container {
         // ✅ IMPORTANT ORDER: dismiss popup first, then onClosed
         try {
             await navigation.dismissPopup();
-        } catch {}
+        } catch {
+            // do nothing
+        }
         this.restoreBgmVolume();
         await this.fireClosedOnce();
     }

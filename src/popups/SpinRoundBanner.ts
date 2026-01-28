@@ -12,9 +12,24 @@ type BannerItem = {
 };
 
 export const bannerDict: BannerItem[] = [
-    { min: userSettings.getBet() * 200, board: 'red-banner-board', text: 'red-banner-text', sfx: 'common/sfx-avast.wav' },
-    { min: userSettings.getBet() * 150, board: 'blue-banner-board', text: 'blue-banner-text', sfx: 'common/sfx-avast.wav' },
-    { min: userSettings.getBet() * 50, board: 'green-banner-board', text: 'green-banner-text', sfx: 'common/sfx-avast.wav' },
+    {
+        min: userSettings.getBet() * 200,
+        board: 'red-banner-board',
+        text: 'red-banner-text',
+        sfx: 'common/sfx-avast.wav',
+    },
+    {
+        min: userSettings.getBet() * 150,
+        board: 'blue-banner-board',
+        text: 'blue-banner-text',
+        sfx: 'common/sfx-avast.wav',
+    },
+    {
+        min: userSettings.getBet() * 50,
+        board: 'green-banner-board',
+        text: 'green-banner-text',
+        sfx: 'common/sfx-avast.wav',
+    },
 ];
 
 export type SpinRoundBannerData = {
@@ -791,7 +806,9 @@ export class SpinRoundBanner extends Container {
         if (this.valueTween) {
             try {
                 this.valueTween.kill();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.valueTween = undefined;
         }
         gsap.killTweensOf(this);
@@ -800,7 +817,9 @@ export class SpinRoundBanner extends Container {
     private forceStopAllBannerAudio() {
         try {
             this.sfxCoinBlast?.stop?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
         this.sfxCoinBlast = null;
 
         this.stopCollectWinSfx();
@@ -890,7 +909,9 @@ export class SpinRoundBanner extends Container {
         // ✅ kill ALL UI tweens/timelines that might still be running
         gsap.killTweensOf(this.headerText?.scale);
         gsap.killTweensOf(this.valueText?.scale);
-        gsap.killTweensOf([this.banner, this.headerText, this.valueText, this.bg, this.panel, ...this.getGlows()].filter(Boolean));
+        gsap.killTweensOf(
+            [this.banner, this.headerText, this.valueText, this.bg, this.panel, ...this.getGlows()].filter(Boolean),
+        );
 
         this.stopCoinBlast();
 
@@ -942,7 +963,9 @@ export class SpinRoundBanner extends Container {
         if (this.sfxCollectWin) {
             try {
                 this.sfxCollectWin.stop();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.sfxCollectWin = null;
         }
     }

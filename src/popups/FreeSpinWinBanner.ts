@@ -253,7 +253,9 @@ export class FreeSpinWinBanner extends Container {
         try {
             await Promise.all(families.map((f) => fonts.load(`64px "${f}"`)));
             if (fonts.ready) await fonts.ready;
-        } catch {}
+        } catch {
+            throw new Error('[FreeSpinWinBanner] Failed to load fonts');
+        }
     }
 
     // ==================================================
@@ -263,13 +265,17 @@ export class FreeSpinWinBanner extends Container {
         if (this.bgmDuckTween) {
             try {
                 this.bgmDuckTween.kill();
-            } catch {}
+            } catch {
+                throw new Error('[FreeSpinWinBanner] Failed to kill bgmDuckTween');
+            }
             this.bgmDuckTween = undefined;
         }
         if (this.bgmRestoreTween) {
             try {
                 this.bgmRestoreTween.kill();
-            } catch {}
+            } catch {
+                throw new Error('[FreeSpinWinBanner] Failed to kill bgmRestoreTween');
+            }
             this.bgmRestoreTween = undefined;
         }
     }
@@ -616,7 +622,9 @@ export class FreeSpinWinBanner extends Container {
         this.forceStopAllBannerAudio();
         try {
             this.sfxFreeSpinWin = sfx.play('common/sfx-freespin-win.wav');
-        } catch {}
+        } catch {
+            // do nothing
+        }
 
         const startOffset = -900;
 
@@ -735,7 +743,9 @@ export class FreeSpinWinBanner extends Container {
         if (this.numberTween) {
             try {
                 this.numberTween.kill();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.numberTween = undefined;
         }
         // the number tween targets "this"
@@ -745,7 +755,9 @@ export class FreeSpinWinBanner extends Container {
     private forceStopAllBannerAudio() {
         try {
             this.sfxFreeSpinWin?.stop?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
         this.sfxFreeSpinWin = null;
     }
 
@@ -838,7 +850,9 @@ export class FreeSpinWinBanner extends Container {
             // ✅ IMPORTANT: dismiss first, then onClosed (prevents “next popup got dismissed”)
             try {
                 await navigation.dismissPopup();
-            } catch {}
+            } catch {
+                // do nothing
+            }
             this.restoreBgmVolume();
             this.fireClosedOnce();
             return;
@@ -851,7 +865,9 @@ export class FreeSpinWinBanner extends Container {
         // ✅ IMPORTANT: dismiss first, then onClosed (same reasoning)
         try {
             await navigation.dismissPopup();
-        } catch {}
+        } catch {
+            // do nothing
+        }
         this.restoreBgmVolume();
         this.fireClosedOnce();
     }

@@ -25,7 +25,8 @@ export const i18nDict = {
     soundFXSwitch: 'サウンドFX',
     soundFXSwitchDesc: '効果音のオン／オフ',
     paytable: 'ペイテーブル',
-    paytableDesc: '5個以上のシンボルが隣接して繋がると配当が発生します。配当額は繋がったシンボルの数に応じて決まります。',
+    paytableDesc:
+        '5個以上のシンボルが隣接して繋がると配当が発生します。配当額は繋がったシンボルの数に応じて決まります。',
     section: 'セクション {page}',
     scatter: 'スキャッター',
     scattersBOLD: 'スキャッター',

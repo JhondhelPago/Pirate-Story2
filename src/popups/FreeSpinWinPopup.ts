@@ -283,7 +283,7 @@ export class FreeSpinWinPopup extends Container {
 
         // LEFTCOINS
         for (let count = 0; count < 10; count++) {
-            let coin = new AnimatedSprite(coinTextures);
+            const coin = new AnimatedSprite(coinTextures);
             let accelX = randomRange(12, 18); // Increased from 7.5-11.5
             let coinSpeed = 0.25; // Increased from 0.15
             const gravity = 0.25; // Increased from 0.15
@@ -326,7 +326,7 @@ export class FreeSpinWinPopup extends Container {
 
         // RIGHTCOINS
         for (let count = 0; count < 10; count++) {
-            let coin = new AnimatedSprite(coinTextures);
+            const coin = new AnimatedSprite(coinTextures);
             let accelX = randomRange(12, 18); // Increased from 7.5-11.5
             let coinSpeed = 0.25; // Increased from 0.15
             const gravity = 0.25; // Increased from 0.15

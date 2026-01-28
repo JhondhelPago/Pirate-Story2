@@ -20,10 +20,7 @@ export class GameLogo extends Container {
         this.logo.x = 0;
         this.logo.y = 0;
         this.logo.scale.set(1.2);
-        this.logo.pivot.set(
-            this.logo.width / 2,
-            this.logo.height / 2
-        );
+        this.logo.pivot.set(this.logo.width / 2, this.logo.height / 2);
 
         this.addChild(this.logo);
 

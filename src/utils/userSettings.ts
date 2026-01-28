@@ -3,7 +3,6 @@ import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
 import { config } from '../slot/SlotSettings';
 
-
 // interface for the extraFreeSpins
 export interface FreeSpinSetting {
     count: number;
@@ -62,7 +61,6 @@ class UserSettings {
 
     private gameConfig: any = null;
     private resumeData: any = null;
-
 
     constructor() {
         this.spinMode = SpinModeEnum.Normal;

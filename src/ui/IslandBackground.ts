@@ -62,14 +62,11 @@ export class IslandBackground extends Container {
 
         this.elapsed += ticker.deltaTime;
 
-        const bobY =
-            Math.sin(this.elapsed * this.bobSpeed) * this.bobAmplitude;
+        const bobY = Math.sin(this.elapsed * this.bobSpeed) * this.bobAmplitude;
 
-        const swayX =
-            Math.cos(this.elapsed * this.swaySpeed) * this.swayAmplitude;
+        const swayX = Math.cos(this.elapsed * this.swaySpeed) * this.swayAmplitude;
 
-        const tilt =
-            Math.sin(this.elapsed * this.tiltSpeed) * this.tiltAmplitude;
+        const tilt = Math.sin(this.elapsed * this.tiltSpeed) * this.tiltAmplitude;
 
         this.bg.x = app.screen.width / 2 + swayX;
         this.bg.y = app.screen.height / 2 + bobY;

@@ -1,7 +1,7 @@
 import { AsyncQueue } from '../utils/asyncUtils';
 import { Slot } from './Slot';
 import { userSettings, features } from '../utils/userSettings';
-import { config } from './SlotSettings'; 
+import { config } from './SlotSettings';
 import { ConfigAPI } from '../api/configApi';
 import {
     RoundResult,
@@ -302,8 +302,8 @@ export class SlotProcess {
         await this.match3.onProcessComplete?.();
     }
 
-
-    public async resumeStart() { // this method will runs once on the intiail setup of of the mathc3
+    public async resumeStart() {
+        // this method will runs once on the intiail setup of of the mathc3
         // access the resumed reels here
         const ResumeData = userSettings.getResumeData();
         this.reels = ResumeData?.reels;
@@ -312,7 +312,7 @@ export class SlotProcess {
 
         this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
-        console.log("from the resumeStart match3process ",ResumeData);
+        console.log('from the resumeStart match3process ', ResumeData);
 
         // call the resumeProcessRound()
         await this.resumeProcessRound();
@@ -320,7 +320,6 @@ export class SlotProcess {
         await this.waitIfPaused();
 
         // reset the process
-
     }
 
     public async resumeProcessRound(): Promise<void> {
@@ -333,7 +332,6 @@ export class SlotProcess {
         await this.queue.process();
 
         await this.waitIfPaused();
-
     }
 
     public async runProcessRound(): Promise<void> {

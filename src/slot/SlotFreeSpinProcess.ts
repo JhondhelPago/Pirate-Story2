@@ -2,7 +2,7 @@ import { userSettings } from '../utils/userSettings';
 import { Slot } from './Slot';
 import { SlotProcess } from './SlotProcess';
 import { FreeSpinSetting } from '../utils/userSettings';
-import { config } from './SlotSettings'; 
+import { config } from './SlotSettings';
 import {
     calculateTotalWin,
     countScatterBonus,
@@ -50,8 +50,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
         await this.match3.board.startSpin();
 
         const PirateApiResponse = await GameServices.spin(this.featureCode);
-        const delayPromise =
-            minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+        const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
         if (minSpinMs > 0) {
             await delayPromise;
@@ -146,7 +145,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
         this.isInitialFreeSpin = false;
         this.freeSpinProcessing = true;
 
-        while (true) {
+        for (;;) {
             await this.waitIfPaused();
 
             if (!this.processCheckpoint() || this.forfeited) {
@@ -208,8 +207,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
             const PirateApiResponse = await GameServices.spin(this.featureCode);
             this.benefit = PirateApiResponse.data.benefitAmount;
 
-            const delayPromise =
-                minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
+            const delayPromise = minSpinMs > 0 ? this.createCancelableDelay(minSpinMs, token) : Promise.resolve();
 
             if (minSpinMs > 0) {
                 await delayPromise;
@@ -228,10 +226,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
             this.bonusReels = PirateApiResponse.data.bonusReels;
 
             this.reelsTraversed = this.mergeReels(this.reelsTraversed, this.reels);
-            this.multiplierTraversed = this.mergeMultipliers(
-                this.multiplierTraversed,
-                this.multiplierReels
-            );
+            this.multiplierTraversed = this.mergeMultipliers(this.multiplierTraversed, this.multiplierReels);
 
             this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
 
@@ -252,7 +247,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
             // Important: finish the spin visually
             this.match3.board.applyBackendResults(this.reels, this.multiplierReels);
             await this.match3.board.finishSpin();
-            console.log("board finsih visually");
+            console.log('board finsih visually');
 
             throw error;
         }
@@ -287,12 +282,8 @@ export class SlotFreeSpinProcess extends SlotProcess {
         await this.waitIfPaused();
 
         await this.queue.add(
-            async () =>
-                this.setMergeStickyWilds(
-                    this.match3.board.getWildReels(),
-                    this.match3.board.getBackendReels()
-                ),
-            false
+            async () => this.setMergeStickyWilds(this.match3.board.getWildReels(), this.match3.board.getBackendReels()),
+            false,
         );
 
         await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
@@ -316,12 +307,8 @@ export class SlotFreeSpinProcess extends SlotProcess {
         await this.waitIfPaused();
 
         await this.queue.add(
-            async () =>
-                this.setMergeStickyWilds(
-                    this.match3.board.getWildReels(),
-                    this.match3.board.getBackendReels()
-                ),
-            false
+            async () => this.setMergeStickyWilds(this.match3.board.getWildReels(), this.match3.board.getBackendReels()),
+            false,
         );
 
         await this.queue.add(async () => this.checkBonus(this.bonusReels), false);
@@ -450,7 +437,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
         this.match3.board.rebuildReelsAndAnimatePositions(
             this.reelsTraversed,
             this.multiplierTraversed,
-            this.winningPositions!
+            this.winningPositions!,
         );
 
         this.winningPositions = [];
@@ -465,7 +452,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
         this.isInitialFreeSpin = false;
 
         userSettings.setupCollect(); // fresh spin index and collect balance setter
-        console.log('At Reset spinIndex: ', userSettings.getSpinIndex()); 
+        console.log('At Reset spinIndex: ', userSettings.getSpinIndex());
 
         super.reset();
     }
@@ -473,7 +460,6 @@ export class SlotFreeSpinProcess extends SlotProcess {
     public setupResume() {
         // set the userSettings.balance
         // set the userSettings.index for the spin index
-
         // set the tracked reels
         // set last reels, multipliers, bonus
     }

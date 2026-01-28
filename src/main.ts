@@ -10,10 +10,9 @@ import { getUrlParam } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { userSettings } from './utils/userSettings';
-import { isAuthenticated } from './slot/SlotSettings'; 
+import { isAuthenticated } from './slot/SlotSettings';
 import { i18n } from './i18n/i18n';
 import { showErrorScreen } from './utils/error';
-
 
 /** The PixiJS app Application instance */
 export const app = new Application();
@@ -28,12 +27,15 @@ function resize() {
     if (isMobile) {
         const isLandscape = windowWidth > windowHeight;
         if (isLandscape) {
-            baseWidth = 1920; baseHeight = 1080;
+            baseWidth = 1920;
+            baseHeight = 1080;
         } else {
-            baseWidth = 1080; baseHeight = 1920;
+            baseWidth = 1080;
+            baseHeight = 1920;
         }
     } else {
-        baseWidth = 1920; baseHeight = 1080;
+        baseWidth = 1920;
+        baseHeight = 1080;
     }
 
     const scaleX = windowWidth / baseWidth;
@@ -90,14 +92,13 @@ async function preloadFonts() {
 
 /** Main bootstrap */
 async function init() {
-   
     if (!isAuthenticated) showErrorScreen('No token provided.');
-    
+
     // Setup app and assets
     await setupUserSettings();
     await preloadFonts();
 
-    // @ts-ignore
+    // @ts-expect-error: expose PIXI app for debugging in devtools
     globalThis.__PIXI_APP__ = app;
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     document.documentElement.id = isMobile ? 'isMobile' : 'isDesktop';

@@ -12,17 +12,14 @@ export class FreeSpinSection extends Container {
         this.container = new Container();
         this.addChild(this.container);
 
-        this.description = new Label(
-            i18n.t('freeSpinsDesc'),
-            {
-                fill: '#ffffff',
-                fontSize: 18,
-                fontWeight: '200',
-                wordWrap: true,
-                wordWrapWidth: 800,
-                align: 'center',
-            },
-        );
+        this.description = new Label(i18n.t('freeSpinsDesc'), {
+            fill: '#ffffff',
+            fontSize: 18,
+            fontWeight: '200',
+            wordWrap: true,
+            wordWrapWidth: 800,
+            align: 'center',
+        });
         this.description.anchor.set(0.5);
         this.container.addChild(this.description);
     }

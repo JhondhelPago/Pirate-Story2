@@ -39,15 +39,15 @@ export const checkResume = async () => {
             params: {
                 gamecode: gameCode,
             },
-        }).then((res) => res.data.data as any)
+        })
+        .then((res) => res.data.data as any)
         .catch((error) => {
             console.error('[checkResume] failed:', error);
             return null;
         });
-}
+};
 
 export const spin = async (feature: number) => {
-
     try {
         const response = await axiosInstance.post('/game/spin', {
             gamecode: gameCode,

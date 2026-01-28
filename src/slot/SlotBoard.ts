@@ -268,7 +268,6 @@ export class SlotBoard {
         this.piecesContainer.y = BOARD_Y_OFFSET;
         this.piecesMask.y = BOARD_Y_OFFSET;
     }
-    
 
     public setup(config: SlotConfig) {
         this.rows = config.rows;
@@ -326,9 +325,7 @@ export class SlotBoard {
 
         // 🔒 Validate backend reels shape (fail fast)
         if (this.backendReels.length !== this.rows) {
-            throw new Error(
-                `[buildIdleGridFromBackendSource] backendReels row mismatch`
-            );
+            throw new Error(`[buildIdleGridFromBackendSource] backendReels row mismatch`);
         }
 
         for (let c = 0; c < this.columns; c++) {
@@ -349,9 +346,7 @@ export class SlotBoard {
 
                 // ❌ NO FALLBACKS — backend is authoritative
                 if (typeof type !== 'number') {
-                    throw new Error(
-                        `[buildIdleGridFromBackendSource] Invalid reel type at r=${r}, c=${c}: ${type}`
-                    );
+                    throw new Error(`[buildIdleGridFromBackendSource] Invalid reel type at r=${r}, c=${c}: ${type}`);
                 }
 
                 const sym = this.makeSlotSymbol(type, mult);
@@ -704,11 +699,9 @@ export class SlotBoard {
     }
 
     public applyBackendResults(reels: number[][], multipliers: number[][]) {
-
         // if the process is free spin manipulate the reels
         // get the index position of valid multiplier from the parameter multipliers
         // using those position replace random types to the reels
-
 
         this.backendReels = reels;
         this.backendMultipliers = multipliers;
@@ -800,7 +793,9 @@ export class SlotBoard {
             this._accelerateLandingRequested = true;
             try {
                 (this._landingTween as any)?.timeScale?.(30);
-            } catch {}
+            } catch {
+                // do nothing
+            }
             return;
         }
 
@@ -876,7 +871,9 @@ export class SlotBoard {
                 if (b.parent === col) col.removeChild(b);
                 try {
                     b.destroy();
-                } catch {}
+                } catch {
+                    // do nothing
+                }
             }
 
             col.y = yLead;
@@ -1328,12 +1325,16 @@ export class SlotBoard {
     private forceReplaySymbolOnce(sym: SlotSymbol) {
         try {
             sym.resetToSetupPose?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
 
         try {
             const spine: any = (sym as any).spine ?? (sym as any)._spine ?? (sym as any).skeletonAnimation;
             spine?.state?.clearTracks?.();
-        } catch {}
+        } catch {
+            // do nothing
+        }
 
         sym.animatePlay(false);
     }
@@ -1398,10 +1399,8 @@ export class SlotBoard {
         wins: { row: number; column: number }[],
         bonusPositions?: { row: number; column: number }[],
     ) {
-
-        console.log("wins in aniamateWinsWithWildPriority ",wins);
-        console.log("bonusPositions in aniamateWinsWithWildPriority ",bonusPositions);
-
+        console.log('wins in aniamateWinsWithWildPriority ', wins);
+        console.log('bonusPositions in aniamateWinsWithWildPriority ', bonusPositions);
 
         const rows = this.rows > 0 ? this.rows : 5;
         const cols = this.columns > 0 ? this.columns : 5;
@@ -1457,7 +1456,7 @@ export class SlotBoard {
         }
 
         if (!uniq.length) {
-            console.log("No wins to animate");
+            console.log('No wins to animate');
             this.killLoops();
             return;
         }

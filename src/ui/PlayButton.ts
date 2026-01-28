@@ -66,7 +66,6 @@ export class PlayButton extends Container {
     private onOut() {
         if (this.spinTimeline) return; // ignore hover-out while spinning
 
-
         gsap.to(this.shield, {
             rotation: 0,
             duration: 0.35,

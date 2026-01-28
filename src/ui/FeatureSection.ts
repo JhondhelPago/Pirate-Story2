@@ -19,18 +19,15 @@ export class FeatureSection extends Container {
         this.mainLayout = new List({ type: 'vertical', elementsMargin: 40 });
         this.addChild(this.mainLayout);
 
-        this.descriptionLabel = new Label(
-            i18n.t('wildFeatureDesc2'),
-            {
-                fill: 0xffffff,
-                fontSize: 18,
-                fontWeight: '200',
-                wordWrap: true,
-                align: 'center',
-                wordWrapWidth: 1000,
-                lineHeight: 24,
-            },
-        );
+        this.descriptionLabel = new Label(i18n.t('wildFeatureDesc2'), {
+            fill: 0xffffff,
+            fontSize: 18,
+            fontWeight: '200',
+            wordWrap: true,
+            align: 'center',
+            wordWrapWidth: 1000,
+            lineHeight: 24,
+        });
 
         this.mainLayout.addChild(this.descriptionLabel);
 
@@ -45,18 +42,15 @@ export class FeatureSection extends Container {
 
         this.symbolsContainer.pivot.x = this.symbolsContainer.width / 2;
 
-        this.descriptionLabel2 = new Label(
-            '',
-            {
-                fill: 0xffffff,
-                fontSize: 20,
-                lineHeight: 24,
-                fontWeight: '200',
-                wordWrap: true,
-                wordWrapWidth: 1000,
-                align: 'center',
-            },
-        );
+        this.descriptionLabel2 = new Label('', {
+            fill: 0xffffff,
+            fontSize: 20,
+            lineHeight: 24,
+            fontWeight: '200',
+            wordWrap: true,
+            wordWrapWidth: 1000,
+            align: 'center',
+        });
 
         this.mainLayout.addChild(this.descriptionLabel2);
     }

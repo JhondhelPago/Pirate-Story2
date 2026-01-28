@@ -33,10 +33,13 @@ export const i18nDict = {
     thisIsScatterSymbol: '这是分散符号。',
     thisIsScatterSymbolDesc: '分散符号会出现在所有卷轴上。',
     wildFeature: '百搭特色',
-    wildFeatureDesc1: '在每次旋转后，中奖符号将在支付奖金后被移除。剩余符号会下落，上方的新符号将填补空位。只要持续出现新的中奖组合，**消除功能(CASCADE)**就会无限制地继续进行。所有奖金将在最后一次消除结束后汇总。\n\n特殊奖励符号和**分散(SCATTER)**符号不会消失，它们将留在卷轴上，直到该次旋转的所有消除过程全部结束。',
-    wildFeatureDesc2: '这是百搭(WILD)符号，可替代除奖励(BONUS)符号以外的所有符号。百搭符号出现时会带有 2x、3x、5x 或 10x 的随机乘数。乘数适用于所有中奖组合，多个乘数将相互相加。同一百搭...',
+    wildFeatureDesc1:
+        '在每次旋转后，中奖符号将在支付奖金后被移除。剩余符号会下落，上方的新符号将填补空位。只要持续出现新的中奖组合，**消除功能(CASCADE)**就会无限制地继续进行。所有奖金将在最后一次消除结束后汇总。\n\n特殊奖励符号和**分散(SCATTER)**符号不会消失，它们将留在卷轴上，直到该次旋转的所有消除过程全部结束。',
+    wildFeatureDesc2:
+        '这是百搭(WILD)符号，可替代除奖励(BONUS)符号以外的所有符号。百搭符号出现时会带有 2x、3x、5x 或 10x 的随机乘数。乘数适用于所有中奖组合，多个乘数将相互相加。同一百搭...',
     freeSpins: '免费旋转',
-    freeSpinsDesc: '\n在屏幕上任意位置出现 4、5 或 6 个**分散(SCATTER)符号，即可激活免费旋转(FREE SPINS)**特色功能，并分别获得 15、20 或 25 次免费旋转。\n\n在回合中出现的任何百搭(WILD)符号都将保留在屏幕上，直到回合结束。在免费旋转回合中，奖励(BONUS)符号会随机出现在任何符号的上方。\n\n在回合中以叠加(Overlay)形式出现 2、3、4 或 5 个奖励符号，即可再次触发该功能，并赢得 5、10、20 或 30 次额外的免费旋转。该功能期间将使用特殊卷轴。',
+    freeSpinsDesc:
+        '\n在屏幕上任意位置出现 4、5 或 6 个**分散(SCATTER)符号，即可激活免费旋转(FREE SPINS)**特色功能，并分别获得 15、20 或 25 次免费旋转。\n\n在回合中出现的任何百搭(WILD)符号都将保留在屏幕上，直到回合结束。在免费旋转回合中，奖励(BONUS)符号会随机出现在任何符号的上方。\n\n在回合中以叠加(Overlay)形式出现 2、3、4 或 5 个奖励符号，即可再次触发该功能，并赢得 5、10、20 或 30 次额外的免费旋转。该功能期间将使用特殊卷轴。',
     howToPlay: '玩法说明',
     minusButtonDesc: '降低投注按钮',
     plusButtonDesc: '提高投注按钮',
@@ -44,7 +47,7 @@ export const i18nDict = {
     mainGameInterface: '主游戏界面',
     creditsAndBetDesc: '余额与投注栏显示当前余额与总投注',
     audioButtonOnDesc: '开启音效与背景音乐',
-    audioButtonOffDesc: '关闭音效与背景音乐',  
+    audioButtonOffDesc: '关闭音效与背景音乐',
     settingsButtonDesc: '打开设置弹窗',
     infoButtonDesc: '打开信息弹窗',
     settingsMenu: '设置菜单',

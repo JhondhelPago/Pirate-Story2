@@ -184,18 +184,13 @@ export class GameScreen extends Container {
         const autoSpinProcessing = this.getAutoSpinProcessing();
 
         // ✅ treat "resume" as busy too
-        const canInteract =
-            !this.isResuming &&
-            !normalProcessing &&
-            !freeSpinProcessing &&
-            !autoSpinProcessing;
+        const canInteract = !this.isResuming && !normalProcessing && !freeSpinProcessing && !autoSpinProcessing;
 
         this.buyFreeSpin.setEnabled(canInteract);
 
         if (canInteract) this.controlPanel.enableBetting();
         else this.controlPanel.disableBetting();
     }
-
 
     /** Hard lock (used while waiting + while popup is showing) */
     private lockInteraction() {
@@ -289,7 +284,6 @@ export class GameScreen extends Container {
 
             this.goldRoger.x = width + 50;
             this.goldRoger.y = height + 260;
-
         } else {
             this.gameContainer.x = centerX;
             this.gameContainer.y = this.gameContainer.height * 0.7;
@@ -339,7 +333,7 @@ export class GameScreen extends Container {
         const roundWin = this.slot.process.getRoundWin();
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
-            this.controlPanel.setWinTitle(i18n.t('win', {amount: roundWin}));
+            this.controlPanel.setWinTitle(i18n.t('win', { amount: roundWin }));
             sfx.play('common/sfx-symbol-win.wav');
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
@@ -450,11 +444,10 @@ export class GameScreen extends Container {
         this.controlPanel.setCredit(userSettings.getBalance());
 
         // sure lines to correct and prevent wrong credit display
-        collect() 
-            .then((result) => {
-                this.controlPanel.setCredit(result.balance);
-                userSettings.setBalance(result.balance);
-            }); 
+        collect().then((result) => {
+            this.controlPanel.setCredit(result.balance);
+            userSettings.setBalance(result.balance);
+        });
 
         // hard lock while banner is open
         this.lockInteraction();
@@ -504,14 +497,14 @@ export class GameScreen extends Container {
         this.finished = false;
         await waitFor(3);
         await this.drawFreeSpinWonBanner(currentSpin);
-        this.controlPanel.setWinTitle(i18n.t('win', { amount: this.slot.freeSpinProcess.getAccumulatedWin()})); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
+        this.controlPanel.setWinTitle(i18n.t('win', { amount: this.slot.freeSpinProcess.getAccumulatedWin() })); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
 
         this.syncFeatureAvailability();
     }
 
     private async onFreeSpinResumeStart() {
         // this.controlPanel.setMessage(`FREE SPIN LEFT ${spins}`);
-        console.log("lock interactions from onFreeSpinResumeStart");
+        console.log('lock interactions from onFreeSpinResumeStart');
         this.isResuming = true;
         this.lockInteraction();
     }
@@ -522,7 +515,7 @@ export class GameScreen extends Container {
     }
 
     private async drawWinBannerAsync(winAmount: number): Promise<void> {
-        const lowestMin = Math.min(...bannerDict.map(item => item.min));
+        const lowestMin = Math.min(...bannerDict.map((item) => item.min));
         if (winAmount < lowestMin) return; // return if win is below mimimum to draw the banner
 
         await waitFor(1.5);

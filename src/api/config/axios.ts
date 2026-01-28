@@ -4,11 +4,11 @@ import { userAuth } from '../../utils/userAuth';
 // Axios instance with base URL and default headers
 const axiosInstance: AxiosInstance = axios.create({
     baseURL:
-        /** @ts-ignore */
+        /** @ts-expect-error: Type 'string | undefined' is not assignable to type 'string'. */
         import.meta.env.MODE === 'development'
-            ? /** @ts-ignore */
+            ? /** @ts-expect-error: Type 'string | undefined' is not assignable to type 'string'. */
               `${import.meta.env.VITE_DEV_API_URL}`
-            : /** @ts-ignore */
+            : /** @ts-expect-error: Type 'string | undefined' is not assignable to type 'string'. */
               `${import.meta.env.VITE_PROD_API_URL}`,
     timeout: 30000, // 30 seconds
     withCredentials: true,
@@ -41,14 +41,17 @@ axiosInstance.interceptors.request.use(
  */
 
 let isRefreshing = false;
-let failedQueue: { resolve: Function; reject: Function }[] = [];
+let failedQueue: {
+    resolve: (token: string) => void;
+    reject: (err: any) => void;
+}[] = [];
 
 const processQueue = (error: any, token: string | null = null) => {
     failedQueue.forEach((prom) => {
         if (error) {
             prom.reject(error);
         } else {
-            prom.resolve(token);
+            prom.resolve(token!);
         }
     });
 

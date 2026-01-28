@@ -22,9 +22,7 @@ export const login = async (token: string) => {
         if (axios.isAxiosError(err)) {
             if (err.response) {
                 // Server responded (400, 401, 500, etc.)
-                message =
-                    err.response.data?.message ||
-                    `Login failed (${err.response.status})`;
+                message = err.response.data?.message || `Login failed (${err.response.status})`;
             } else if (err.request) {
                 message = 'Unable to reach the server. Please check your connection.';
             }
@@ -39,7 +37,7 @@ export const login = async (token: string) => {
 };
 
 export async function authenticate() {
-    const urlToken = getUrlParam("token");
+    const urlToken = getUrlParam('token');
 
     if (urlToken) {
         try {
@@ -48,11 +46,11 @@ export async function authenticate() {
 
             // Optionally: remove token from URL to clean it
             const url = new URL(window.location.href);
-            url.searchParams.delete("token");
-            window.history.replaceState({}, "", url.toString());
+            url.searchParams.delete('token');
+            window.history.replaceState({}, '', url.toString());
         } catch (err) {
             // login() failed → show error and stop loading
-            let message = "Failed to authenticate.";
+            let message = 'Failed to authenticate.';
             if (err instanceof Error) message = err.message;
             showErrorScreen(message);
             return false; // stop app
@@ -61,7 +59,7 @@ export async function authenticate() {
         // ✅ Already logged in from localStorage, continue
     } else {
         // ❌ No token at all → show error
-        showErrorScreen("No token provided.");
+        showErrorScreen('No token provided.');
         return false;
     }
 
