@@ -1,4 +1,4 @@
-import { Container, Graphics, Ticker } from 'pixi.js';
+import { Container, Graphics, Ticker, triangulateWithHoles } from 'pixi.js';
 import gsap from 'gsap';
 import { Slot } from './Slot';
 import { SlotConfig, slotGetBlocks } from './SlotConfig';
@@ -7,6 +7,7 @@ import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from './Slot
 import { userSettings, SpinModeEnum, features } from '../utils/userSettings';
 import { config } from './SlotSettings';
 import { sfx } from '../utils/audio';
+import { SlotFreeSpinProcess } from './SlotFreeSpinProcess';
 
 interface ReelColumn {
     container: Container;
@@ -49,6 +50,8 @@ export class SlotBoard {
 
     private _startSeqId = 0;
     private _startSequencePromise: Promise<void> | null = null;
+
+    public winSound = true;
 
     private readonly BLUR_EXTRA = 3;
 
@@ -1384,16 +1387,16 @@ export class SlotBoard {
         tick();
     }
 
-    public animateWinningSymbols(wins: { row: number; column: number }[]) {
-        this.startReplayLoop(() => {
-            const list: SlotSymbol[] = [];
-            for (const { row, column } of wins) {
-                const symbol = this.getDisplayedRealSymbol(row, column);
-                if (symbol) list.push(symbol);
-            }
-            return list;
-        }, 'win');
-    }
+    // public animateWinningSymbols(wins: { row: number; column: number }[]) {
+    //     this.startReplayLoop(() => {
+    //         const list: SlotSymbol[] = [];
+    //         for (const { row, column } of wins) {
+    //             const symbol = this.getDisplayedRealSymbol(row, column);
+    //             if (symbol) list.push(symbol);
+    //         }
+    //         return list;
+    //     }, 'win');
+    // }
 
     public animateWinsWithWildPriority(
         wins: { row: number; column: number }[],
@@ -1469,6 +1472,13 @@ export class SlotBoard {
             if (wild) wildPositions.push({ row, column });
             else realPositions.push({ row, column });
         }
+
+        if (this.winSound) {
+            sfx.play('common/sfx-symbol-win.wav')
+        } else {
+            this.winSound = true;
+        };
+
 
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];

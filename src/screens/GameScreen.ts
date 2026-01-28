@@ -334,7 +334,6 @@ export class GameScreen extends Container {
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
             this.controlPanel.setWinTitle(i18n.t('win', { amount: roundWin }));
-            sfx.play('common/sfx-symbol-win.wav');
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
         }
@@ -389,7 +388,6 @@ export class GameScreen extends Container {
         const roundWin = this.slot.autoSpinProcess.getRoundWin();
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
-            sfx.play('common/sfx-symbol-win.wav');
         }
 
         const totalWon = this.slot.autoSpinProcess.getAccumulatedWin();
@@ -467,9 +465,6 @@ export class GameScreen extends Container {
     }
 
     private async onFreeSpinRoundComplete() {
-        const roundWin = this.slot.freeSpinProcess.getRoundWin();
-        if (roundWin > 0) sfx.play('common/sfx-symbol-win.wav');
-
         const totalWon = this.slot.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0) {
             this.controlPanel.setWinTitle(i18n.t('win', { amount: totalWon }));

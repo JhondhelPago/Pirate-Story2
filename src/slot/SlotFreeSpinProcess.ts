@@ -434,11 +434,14 @@ export class SlotFreeSpinProcess extends SlotProcess {
         this.match3.board.setWildReels(this.wildReels);
 
         this.match3.board.clearWildLayerAndMultipliers();
+        this.match3.board.winSound = false;
         this.match3.board.rebuildReelsAndAnimatePositions(
             this.reelsTraversed,
             this.multiplierTraversed,
             this.winningPositions!,
+
         );
+        this.match3.board.winSound = true;
 
         this.winningPositions = [];
 
