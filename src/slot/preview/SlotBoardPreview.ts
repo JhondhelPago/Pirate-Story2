@@ -108,7 +108,6 @@ export class SlotBoardPreview {
     }
 
     public createPiece(position: Match3Position, pieceType: Match3Type, pieceMultiplier = 0) {
-        const name = this.typesMap[pieceType];
         const piece = pool.get(SlotSymbol);
         const viewPos = this.getViewPositionByGridPosition(position);
 

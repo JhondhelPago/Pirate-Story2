@@ -3,7 +3,6 @@ import { SlotActions } from './SlotActions';
 import { SlotBoard } from './SlotBoard';
 import { SlotConfig, slotGetConfig } from './SlotConfig';
 import { SlotProcess } from './SlotProcess';
-import { SlotStats } from './SlotStats';
 import { SlotFreeSpinProcess } from './SlotFreeSpinProcess';
 import { SlotAutoSpinProcess } from './SlotAutoSpinProcess';
 import { SlotSymbol } from './SlotSymbol';
@@ -39,8 +38,6 @@ export class Slot extends Container {
 
     /** Match3 game basic configuration */
     public config: SlotConfig;
-    /** Compute score, grade, number of matches */
-    public stats: SlotStats;
     /** Display number of matches */
     /** Holds the grid state and display */
     public board: SlotBoard;
@@ -121,7 +118,6 @@ export class Slot extends Container {
 
         /** Game sub-systems */
         this.config = slotGetConfig();
-        this.stats = new SlotStats(this);
         this.board = new SlotBoard(this);
         this.actions = new SlotActions(this);
 
@@ -340,7 +336,6 @@ export class Slot extends Container {
     /** Fully reset the game */
     public reset() {
         this.interactiveChildren = false;
-        this.stats.reset();
 
         // Reset all processes safely
         this.baseProcess.reset();

@@ -1,4 +1,4 @@
-import { Container, FillGradient, Sprite, Text } from 'pixi.js';
+import { Container, FillGradient, Text } from 'pixi.js';
 import gsap from 'gsap';
 import { i18n } from '../i18n/i18n';
 import { IconButton } from '../ui/IconButton';

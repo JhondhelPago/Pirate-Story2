@@ -371,7 +371,7 @@ export class GameScreen extends Container {
         this.finished = true;
     }
 
-    private async onAutoSpinComplete(current: number, remaining: number) {
+    private async onAutoSpinComplete(current: number) {
         console.log(`Total Won in ${current} Auto Spin: `, this.slot.autoSpinProcess.getAccumulatedWin());
 
         // ✅ Unlock only when auto spin session is finished
@@ -444,7 +444,7 @@ export class GameScreen extends Container {
         this.finished = true;
     }
 
-    private async onFreeSpinComplete(current: number, remaining: number) {
+    private async onFreeSpinComplete(current: number) {
         console.log(`Total Won in ${current} Free Spin: `, this.slot.freeSpinProcess.getAccumulatedWin());
         this.controlPanel.setMessage('');
         this.controlPanel.setCredit(userSettings.getBalance());
@@ -509,7 +509,7 @@ export class GameScreen extends Container {
         this.syncFeatureAvailability();
     }
 
-    private async onFreeSpinResumeStart(spins: number) {
+    private async onFreeSpinResumeStart() {
         // this.controlPanel.setMessage(`FREE SPIN LEFT ${spins}`);
         console.log("lock interactions from onFreeSpinResumeStart");
         this.isResuming = true;

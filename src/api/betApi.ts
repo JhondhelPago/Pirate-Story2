@@ -7,7 +7,6 @@ export class BetAPI {
      * @returns {Promise<{reels: number[][]}>} A promise that resolves with the reels data.
      */
     static async spin(
-        type: 'n' | 'r' | 'f',
     ): Promise<{ reels: number[][]; multiplierReels: number[][]; bonusReels: number[][] }> {
         try {
             // Make a GET request to the Express server

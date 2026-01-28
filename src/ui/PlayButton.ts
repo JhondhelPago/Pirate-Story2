@@ -6,7 +6,6 @@ export class PlayButton extends Container {
     private shield: Sprite;
     private play: Sprite;
 
-    private isHovering = false;
     private clickCallback?: () => void;
 
     /** Speed multiplier for the wheel spin */
@@ -43,7 +42,6 @@ export class PlayButton extends Container {
     private onHover() {
         if (this.spinTimeline) return; // ignore hover while spinning
 
-        this.isHovering = true;
         sfx.play('common/sfx-hover.wav');
 
         gsap.killTweensOf(this.shield);
@@ -68,7 +66,6 @@ export class PlayButton extends Container {
     private onOut() {
         if (this.spinTimeline) return; // ignore hover-out while spinning
 
-        this.isHovering = false;
 
         gsap.to(this.shield, {
             rotation: 0,
@@ -103,7 +100,6 @@ export class PlayButton extends Container {
     // --------------------------------------------------------
     private onRelease() {
         // Stop hover effect and lock state
-        this.isHovering = false;
 
         // Kill any ongoing tweens
         gsap.killTweensOf(this.shield);

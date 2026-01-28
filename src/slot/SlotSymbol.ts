@@ -625,41 +625,6 @@ export class SlotSymbol extends Container {
         //this.applyMultiplierAnimation();
     }
 
-    /** Apply float + zoom animation to multiplier */
-    /** Apply fade-in + zoom-in intro and then idle floating animation */
-    private applyMultiplierAnimation() {
-        if (!this.multiplierSprite) return;
-
-        // Kill existing animation
-        if (this.multiplierTween) {
-            this.multiplierTween.kill();
-        }
-
-        const target = this.multiplierSprite;
-
-        // Reset initial state
-        target.alpha = 0;
-        target.scale.set(0.4); // start smaller
-        const baseY = target.y; // remember base Y
-
-        // Timeline
-        this.multiplierTween = gsap
-            .timeline({ repeat: 0 })
-            .to(target, {
-                alpha: 1,
-                scale: 0.68,
-                duration: 0.35,
-                ease: 'back.out(1.8)',
-            })
-            .to(target, {
-                y: baseY - 8,
-                duration: 0.8,
-                ease: 'sine.inOut',
-                yoyo: true,
-                repeat: -1,
-            });
-    }
-
     /**
      * ✅ CLEAR behavior:
      * - While the multiplier is in the air (jumping up & coming down): it shakes.

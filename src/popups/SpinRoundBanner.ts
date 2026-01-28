@@ -54,7 +54,7 @@ export class SpinRoundBanner extends Container {
     private glowOpacityTween?: gsap.core.Tween;
 
     // coin blast controller
-    private coinBlastActive = false;
+    //private coinBlastActive = false;
 
     // ✅ audio instances that MUST be stopped
     private sfxCoinBlast: any = null;
@@ -238,7 +238,7 @@ export class SpinRoundBanner extends Container {
 
     private startCoinBlast() {
         this.stopCoinBlast();
-        this.coinBlastActive = true;
+        // this.coinBlastActive = true;
 
         const coinTextures = this.buildCoinTextures();
 
@@ -400,7 +400,7 @@ export class SpinRoundBanner extends Container {
     }
 
     private stopCoinBlast() {
-        this.coinBlastActive = false;
+        //this.coinBlastActive = false;
 
         for (const child of this.coinContainer.children) {
             const tw = (child as any).coinTween as gsap.core.Tween | undefined;
@@ -550,7 +550,6 @@ export class SpinRoundBanner extends Container {
     }
 
     private getBannerTexture(win: number): BannerItem {
-        const bet = userSettings.getBet();
         return bannerDict.find((x) => win >= x.min)!;
     }
 

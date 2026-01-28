@@ -24,18 +24,13 @@ export class ShadowLabel extends Container {
     private shadowText: Text;
     /** The main text sprite */
     private mainText: Text;
-    /** Shadow offset X */
-    private _shadowOffsetX: number;
-    /** Shadow offset Y */
-    private _shadowOffsetY: number;
+
 
     constructor(options: ShadowLabelOptions) {
         super();
 
         const { text, style, shadowOffsetX = 0, shadowOffsetY = 4, shadowColor = '#000000', shadowAlpha = 1 } = options;
 
-        this._shadowOffsetX = shadowOffsetX;
-        this._shadowOffsetY = shadowOffsetY;
 
         // Create shadow text (without stroke)
         const shadowStyle = { ...style };
@@ -98,8 +93,6 @@ export class ShadowLabel extends Container {
 
     /** Update shadow offset */
     public setShadowOffset(x: number, y: number) {
-        this._shadowOffsetX = x;
-        this._shadowOffsetY = y;
         this.shadowText.x = x;
         this.shadowText.y = y;
     }

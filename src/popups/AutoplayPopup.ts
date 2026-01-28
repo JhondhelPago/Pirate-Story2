@@ -43,6 +43,13 @@ export class AutoplayPopup extends Container {
     private panelHeight = 570;
     private onAutoplayPress?: (spins: number) => void;
 
+    // ✅ Track switch state ourselves (so we don't rely on switcher.value which doesn't exist in typings)
+    private quickSpinOn = false;
+    private turboSpinOn = false;
+
+    // ✅ Guard to ignore onChange side-effects while we forceSwitch during sync
+    private syncingSwitches = false;
+
     constructor() {
         super();
 
@@ -99,15 +106,25 @@ export class AutoplayPopup extends Container {
             isChecked: false,
         });
         this.quickSpinCheckbox.checkbox.switcher.onChange.connect((state: number | boolean) => {
-            // Only react when user turns it ON; when it turns OFF we can fall back to normal
-            if (state == 1) {
-                const spinMode = SpinModeEnum.Quick;
-                userSettings.setSpinMode(spinMode);
+            const isOn = state == 1 || state === true;
+
+            // Always update tracked state
+            this.quickSpinOn = isOn;
+
+            // If we are syncing programmatically, don't run mode logic
+            if (this.syncingSwitches) return;
+
+            if (isOn) {
+                userSettings.setSpinMode(SpinModeEnum.Quick);
+
+                // turn off turbo
+                this.syncingSwitches = true;
                 this.turboSpinCheckbox.checkbox.switcher.forceSwitch(0);
+                this.turboSpinOn = false;
+                this.syncingSwitches = false;
             } else {
                 // If unchecked and turbo isn't checked, revert to normal
-                const turboIsOn = this.turboSpinCheckbox.checkbox.switcher.value == 1;
-                if (!turboIsOn) {
+                if (!this.turboSpinOn) {
                     userSettings.setSpinMode(SpinModeEnum.Normal);
                 }
             }
@@ -121,13 +138,24 @@ export class AutoplayPopup extends Container {
         });
 
         this.turboSpinCheckbox.checkbox.switcher.onChange.connect((state: number | boolean) => {
-            if (state == 1) {
-                const spinMode = SpinModeEnum.Turbo;
-                userSettings.setSpinMode(spinMode);
+            const isOn = state == 1 || state === true;
+
+            // Always update tracked state
+            this.turboSpinOn = isOn;
+
+            // If we are syncing programmatically, don't run mode logic
+            if (this.syncingSwitches) return;
+
+            if (isOn) {
+                userSettings.setSpinMode(SpinModeEnum.Turbo);
+
+                // turn off quick
+                this.syncingSwitches = true;
                 this.quickSpinCheckbox.checkbox.switcher.forceSwitch(0);
+                this.quickSpinOn = false;
+                this.syncingSwitches = false;
             } else {
-                const quickIsOn = this.quickSpinCheckbox.checkbox.switcher.value == 1;
-                if (!quickIsOn) {
+                if (!this.quickSpinOn) {
                     userSettings.setSpinMode(SpinModeEnum.Normal);
                 }
             }
@@ -172,8 +200,15 @@ export class AutoplayPopup extends Container {
 
     /** Update checkbox UI based on a spin mode */
     private syncSpinModeUI(mode: SlotSpinMode) {
-        this.quickSpinCheckbox.checkbox.switcher.forceSwitch(mode === 'quick-spin' ? 1 : 0);
-        this.turboSpinCheckbox.checkbox.switcher.forceSwitch(mode === 'turbo-spin' ? 1 : 0);
+        const quickOn = mode === 'quick-spin';
+        const turboOn = mode === 'turbo-spin';
+
+        this.syncingSwitches = true;
+        this.quickSpinCheckbox.checkbox.switcher.forceSwitch(quickOn ? 1 : 0);
+        this.turboSpinCheckbox.checkbox.switcher.forceSwitch(turboOn ? 1 : 0);
+        this.quickSpinOn = quickOn;
+        this.turboSpinOn = turboOn;
+        this.syncingSwitches = false;
     }
 
     /** Resize the popup, fired whenever window size changes */

@@ -261,7 +261,6 @@ function floodFillCluster(
         if (localVisited[row][column]) continue;
         localVisited[row][column] = true;
 
-        const t = grid[row][column];
         region.push(pos);
 
         const dirs = [

@@ -1,7 +1,6 @@
 import axios from 'axios';
 import axiosInstance from '../config/axios';
 import { userSettings } from '../../utils/userSettings';
-import { userAuth } from '../../utils/userAuth';
 
 const gameCode = 'piratestory';
 

@@ -147,7 +147,6 @@ export class SlotBoard {
     // LOOP-BY-REPLAY ANIMATION CONTROL
     // =========================================================================
     public hasIncomingSpinTrigger = false;
-    private animating = false;
 
     private winLoopTween?: gsap.core.Tween;
     private wildLoopTween?: gsap.core.Tween;
@@ -403,33 +402,14 @@ export class SlotBoard {
         return cell;
     }
 
-    private getCurrentGridSnapshot(): { types: number[][]; mults: number[][] } {
-        const types = initGrid(this.rows, this.columns, 0);
-        const mults = initGrid(this.rows, this.columns, 0);
-
-        for (let c = 0; c < this.columns; c++) {
-            for (let r = 0; r < this.rows; r++) {
-                const cell = this.getDisplayedRealSymbol(r, c);
-                if (cell) {
-                    types[r][c] = (cell as any).type ?? this.backendReels?.[r]?.[c] ?? this.randomType();
-                    mults[r][c] = (cell as any).multiplier ?? 0;
-                } else {
-                    types[r][c] = this.backendReels?.[r]?.[c] ?? this.randomType();
-                    mults[r][c] = 0;
-                }
-            }
-        }
-
-        return { types, mults };
-    }
-
     private hasSpinStripBuilt(): boolean {
         const r0 = this.realReels[0];
         if (!r0) return false;
         return r0.symbols.length >= this.blurCount + this.rows;
     }
 
-    private buildSpinStripIntoCurrentLayer(leadTypes: number[][], leadMults: number[][]) {
+    // private buildSpinStripIntoCurrentLayer(leadTypes: number[][], leadMults: number[][]) {
+    private buildSpinStripIntoCurrentLayer() {
         if (this.hasSpinStripBuilt()) return;
 
         const yTop = -(this.rows + this.BLUR_EXTRA) * this.tile;
@@ -575,8 +555,10 @@ export class SlotBoard {
 
         // Build blur strip early (still hidden)
         if (!this.hasSpinStripBuilt()) {
-            const snap = this.getCurrentGridSnapshot();
-            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+            // const snap = this.getCurrentGridSnapshot();
+            // this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+
+            this.buildSpinStripIntoCurrentLayer();
         }
 
         const tl = gsap.timeline();
@@ -685,8 +667,10 @@ export class SlotBoard {
 
         // build strip BEFORE showing blur
         if (!this.hasSpinStripBuilt()) {
-            const snap = this.getCurrentGridSnapshot();
-            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+            // const snap = this.getCurrentGridSnapshot();
+            // this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+
+            this.buildSpinStripIntoCurrentLayer();
         }
 
         // enter blur-view immediately (same frame)
@@ -766,7 +750,7 @@ export class SlotBoard {
         this.prepareSpinTransitionNoClear();
         this.resetWildSymbolsToIdle();
 
-        const snap = this.getCurrentGridSnapshot();
+        //const snap = this.getCurrentGridSnapshot();
 
         this.stopAndDestroyTicker();
         this.startTickerIfNeeded();
@@ -775,7 +759,7 @@ export class SlotBoard {
         const spinMode = userSettings.getSpinMode();
 
         if (spinMode === SpinModeEnum.Turbo) {
-            this.buildSpinStripIntoCurrentLayer(snap.types, snap.mults);
+            this.buildSpinStripIntoCurrentLayer();
 
             this._spinSpeed = this._defaultSpinSpeed;
 
@@ -1325,11 +1309,9 @@ export class SlotBoard {
         this.animationGate = new Promise<void>((resolve) => {
             this.resolveAnimationGate = resolve;
         });
-        this.animating = true;
     }
 
     private closeAnimationGate() {
-        this.animating = false;
         const r = this.resolveAnimationGate;
         this.resolveAnimationGate = null;
         this.animationGate = null;

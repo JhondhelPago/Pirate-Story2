@@ -52,7 +52,7 @@ export class TotalWinBanner extends Container {
 
     // Keyboard handling
     private keyListenerAdded = false;
-    private readonly keyDownHandler = (e: KeyboardEvent) => {
+    private readonly keyDownHandler = () => {
         if (!this.canClickAnywhere) return;
         void this.hide();
     };

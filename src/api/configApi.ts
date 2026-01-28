@@ -1,5 +1,4 @@
 import axios from 'axios';
-import axiosInstance from './config/axios';
 export class ConfigAPI {
     static async config() {
         try {
