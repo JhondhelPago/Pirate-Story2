@@ -11,24 +11,7 @@ import { config as loadedConfig } from '../slot/SlotSettings';
 // ✅ updated imports (letter type + definition)
 import { BuyFreeSpinOptionBanner, type BuyFreeTypeLetter, type BuyFreeTypeDefinition } from '../ui/FeatureBanner';
 import { i18n } from '../i18n/i18n';
-
-/* ===============================
-   Currency helpers
-================================ */
-export type CurrencyType = 'US' | 'KRW' | 'PHP';
-
-function getCurrencySymbol(type: CurrencyType): string {
-    switch (type) {
-        case 'US':
-            return '$';
-        case 'KRW':
-            return '₩';
-        case 'PHP':
-            return '₱';
-        default:
-            return '$';
-    }
-}
+import { CurrencyType, getCurrencySymbol } from '../utils/currencies';
 
 type BuyFeature = {
     spins: number;
@@ -296,7 +279,7 @@ export class BuyFreeSpinPopup extends Container {
         features.forEach((feature, index) => {
             const banner = banners[index];
 
-            banner.setAmount(feature.buyFeatureBetMultiplier * bet, this.currencySymbol, 0);
+            banner.setAmount(feature.buyFeatureBetMultiplier * bet, 0);
 
             banner.relayout();
             banner.visible = true;

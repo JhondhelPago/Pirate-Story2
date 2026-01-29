@@ -1,6 +1,8 @@
 import { Container, Sprite, Texture, Text, Matrix } from 'pixi.js';
 import gsap from 'gsap';
 import { i18n } from '../i18n/i18n';
+import { getUrlParam } from '../utils/getUrlParams';
+import { formatCurrency } from '../utils/formatter';
 
 // ✅ PRELOAD FONTS ASAP (before any banner Text is created)
 async function preloadBannerFonts() {
@@ -27,25 +29,22 @@ await preloadBannerFonts();
 export type BuyFreeTypeLetter = 'A' | 'B' | 'C';
 
 export type BuyFreeTypeDefinition = {
-    bannerTextureKey: string; // e.g. "green-spin-banner"
-    spins: number; // e.g. 10
-    scatters: number; // e.g. 3
+    bannerTextureKey: string;
+    spins: number;
+    scatters: number;
 };
 
 export type BuyFreeSpinOptionBannerConfig = {
     typeLetter: BuyFreeTypeLetter;
-
-    // ✅ All data must be provided by popup (no internal config)
     typeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>;
 
     amount: number;
-    currencySymbol?: string;
+    currencySymbol?: string; // should be: USD, PHP, KRW, etc
     decimals?: number;
 
-    // sizes (popup can override per mobile/desktop)
-    amountFontSize?: number; // bottom price
-    spinsFontSize?: number; // big center number
-    labelFontSize?: number; // "FREE SPINS" + "X SCATTERS"
+    amountFontSize?: number;
+    spinsFontSize?: number;
+    labelFontSize?: number;
 };
 
 export class BuyFreeSpinOptionBanner extends Container {
@@ -65,10 +64,8 @@ export class BuyFreeSpinOptionBanner extends Container {
     private decimals: number;
 
     private onTap?: () => void;
-
     private typeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>;
 
-    // cache gradient for all instances
     private static amountGradientTexture?: Texture;
     private static amountGradientMatrix?: Matrix;
 
@@ -79,8 +76,9 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.typeMap = cfg.typeMap;
 
         this.amount = cfg.amount;
-        this.currencySymbol = cfg.currencySymbol ?? '$';
-        this.decimals = cfg.decimals ?? 0;
+        this.currencySymbol = getUrlParam('cur') ?? 'USD';
+        console.log("this.currencySymbol: ", this.currencySymbol);
+        this.decimals = cfg.decimals ?? 2;
 
         const def = this.typeMap[this.typeLetter];
 
@@ -93,32 +91,27 @@ export class BuyFreeSpinOptionBanner extends Container {
 
         const labelSize = cfg.labelFontSize ?? 54;
 
-        // LINE 1
         this.freeSpinsText = this.createStyledText(i18n.t('freeSpins'), labelSize, 'Bangers');
 
-        // LINE 2
         this.scattersLine = new Container();
         this.scattersLine.eventMode = 'none';
 
         this.scattersNumberText = this.createStyledText(`${def.scatters}`, labelSize, 'Bangers');
         this.scattersWordText = this.createStyledText(i18n.t('scattersBOLD'), labelSize, 'Bangers');
 
-        // number only = white
         (this.scattersNumberText.style as any).fill = 0xffffff;
 
         this.scattersLine.addChild(this.scattersNumberText, this.scattersWordText);
-
         this.attachCenterTextsToBanner(this.sprite);
 
         // --- bottom amount ---
         this.amountText = this.createStyledText(
-            this.formatAmount(this.amount, this.currencySymbol, this.decimals),
+            formatCurrency(this.amount, this.currencySymbol),
             cfg.amountFontSize ?? 76,
             'Pirata One',
         );
         this.attachAmountTextToBanner(this.sprite, this.amountText);
 
-        // interactions
         this.eventMode = 'static';
         this.cursor = 'pointer';
 
@@ -139,7 +132,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         });
     }
 
-    // ✅ NEW: popup can update ALL banner definitions after config loads
     public setTypeMap(map: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>) {
         this.typeMap = map;
         this.refreshFromCurrentType();
@@ -153,12 +145,11 @@ export class BuyFreeSpinOptionBanner extends Container {
         return this.typeMap[this.typeLetter].spins;
     }
 
-    public setAmount(amount: number, currencySymbol = this.currencySymbol, decimals = this.decimals) {
+    public setAmount(amount: number, decimals = this.decimals) {
         this.amount = amount;
-        this.currencySymbol = currencySymbol;
         this.decimals = decimals;
 
-        this.amountText.text = this.formatAmount(amount, currencySymbol, decimals);
+        this.amountText.text = formatCurrency(amount, this.currencySymbol);
         this.attachAmountTextToBanner(this.sprite, this.amountText);
     }
 
@@ -202,10 +193,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.attachAmountTextToBanner(this.sprite, this.amountText);
     }
 
-    // -----------------------
-    // Text helpers
-    // -----------------------
-
     private createStyledText(value: string, fontSize: number, fontFamily: 'Pirata One' | 'Bangers') {
         this.ensureAmountGradient();
 
@@ -227,10 +214,6 @@ export class BuyFreeSpinOptionBanner extends Container {
         t.anchor.set(0.5);
         t.eventMode = 'none';
         return t;
-    }
-
-    private formatAmount(amount: number, currencySymbol: string, decimals: number) {
-        return `${currencySymbol}${amount.toFixed(decimals)}`;
     }
 
     private ensureAmountGradient() {
@@ -259,15 +242,10 @@ export class BuyFreeSpinOptionBanner extends Container {
         BuyFreeSpinOptionBanner.amountGradientMatrix = mat;
     }
 
-    // -----------------------
-    // Layout
-    // -----------------------
-
     private attachAmountTextToBanner(optionSprite: Sprite, text: Text) {
         if (text.parent !== optionSprite) optionSprite.addChild(text);
 
         const texH = optionSprite.texture?.orig?.height ?? optionSprite.texture?.height ?? optionSprite.height;
-
         const bottomPadding = 14;
 
         text.x = 0;
@@ -305,12 +283,7 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.scattersNumberText.x = -total / 2;
         this.scattersWordText.x = this.scattersNumberText.x + w1;
 
-        this.scattersNumberText.y = 0;
-        this.scattersWordText.y = 0;
-
         this.scattersLine.x = 0;
         this.scattersLine.y = yScat;
-
-        (this.scattersNumberText.style as any).fill = 0xffffff;
     }
 }
