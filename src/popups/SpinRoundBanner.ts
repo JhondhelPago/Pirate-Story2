@@ -11,9 +11,10 @@ type BannerItem = {
     sfx: string;
 };
 
-export const bannerDict: BannerItem[] = [
+// Replace bannerDict array with this function
+export const getBannerDict = (): BannerItem[] => [
     {
-        min: userSettings.getBet() * 200,
+        min: userSettings.getBet() * 250,
         board: 'red-banner-board',
         text: 'red-banner-text',
         sfx: 'common/sfx-avast.wav',
@@ -31,6 +32,7 @@ export const bannerDict: BannerItem[] = [
         sfx: 'common/sfx-avast.wav',
     },
 ];
+
 
 export type SpinRoundBannerData = {
     win: number;
@@ -565,7 +567,10 @@ export class SpinRoundBanner extends Container {
     }
 
     private getBannerTexture(win: number): BannerItem {
-        return bannerDict.find((x) => win >= x.min)!;
+        const dict = getBannerDict().find((x) => win >= x.min)!;
+        console.log("user bet:", userSettings.getBet());
+        console.log("min value:", dict.min);
+        return dict;
     }
 
     private animateEntrance() {

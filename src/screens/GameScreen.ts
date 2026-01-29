@@ -11,7 +11,7 @@ import { BetAction, SpinModeEnum, userSettings } from '../utils/userSettings';
 import { GoldRoger } from '../ui/GoldRoger';
 import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
-import { bannerDict, SpinRoundBanner } from '../popups/SpinRoundBanner';
+import { getBannerDict, SpinRoundBanner } from '../popups/SpinRoundBanner';
 import { getPatternByCount, RoundResult } from '../slot/SlotUtility';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
@@ -510,10 +510,11 @@ export class GameScreen extends Container {
     }
 
     private async drawWinBannerAsync(winAmount: number): Promise<void> {
-        const lowestMin = Math.min(...bannerDict.map((item) => item.min));
-        if (winAmount < lowestMin) return; // return if win is below mimimum to draw the banner
+        const lowestMin = Math.min(...getBannerDict().map((item) => item.min));
+        if (winAmount < lowestMin) return; // skip if win is below minimum
 
         await waitFor(1.5);
+
         await new Promise<void>((resolve) => {
             navigation.presentPopup(SpinRoundBanner, {
                 win: winAmount,
@@ -521,6 +522,7 @@ export class GameScreen extends Container {
             });
         });
     }
+
 
     private drawTotalWinBanner(winAmount: number, freeSpins: number): Promise<void> {
         const hasPrevProcess = this.slot.getStackSize() > 0;
