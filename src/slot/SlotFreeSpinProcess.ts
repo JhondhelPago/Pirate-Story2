@@ -439,7 +439,6 @@ export class SlotFreeSpinProcess extends SlotProcess {
             this.reelsTraversed,
             this.multiplierTraversed,
             this.winningPositions!,
-
         );
         this.match3.board.winSound = true;
 

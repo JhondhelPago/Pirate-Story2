@@ -1,7 +1,7 @@
 import { Container, Ticker } from 'pixi.js';
 import { Slot } from '../slot/Slot';
 import { navigation } from '../utils/navigation';
-import { bgm, sfx } from '../utils/audio';
+import { bgm } from '../utils/audio';
 import { waitFor } from '../utils/asyncUtils';
 import { slotGetConfig } from '../slot/Match3Config';
 import { GameLogo } from '../ui/GameLogo';

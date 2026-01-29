@@ -46,8 +46,11 @@ export class SlotSymbol extends Container {
     /** Test multiplier: 0 = none, 2/3/5 = show sprite */
     public multiplier: number = 0;
 
-    /** Multiplier sprite */
-    private multiplierSprite: Sprite | null = null;
+    /**
+     * Multiplier render container (bitmap-like digits).
+     * NOTE: kept the name `multiplierSprite` so existing code flow stays intact.
+     */
+    private multiplierSprite: Container | null = null;
 
     /** Tween reference for animation */
     private multiplierTween?: gsap.core.Tween | gsap.core.Timeline;
@@ -174,7 +177,7 @@ export class SlotSymbol extends Container {
         // RESET multiplier state before assigning the new one
         if (this.multiplierSprite) {
             this.removeChild(this.multiplierSprite);
-            this.multiplierSprite.destroy();
+            this.multiplierSprite.destroy({ children: true });
             this.multiplierSprite = null;
         }
         if (this.multiplierTween) {
@@ -558,7 +561,7 @@ export class SlotSymbol extends Container {
         }
         if (this.multiplierSprite) {
             this.removeChild(this.multiplierSprite);
-            this.multiplierSprite.destroy();
+            this.multiplierSprite.destroy({ children: true });
             this.multiplierSprite = null;
         }
 
@@ -585,46 +588,117 @@ export class SlotSymbol extends Container {
         super.destroy();
     }
 
-    /** Create or update the multiplier sprite */
+    // =========================================================
+    // ✅ NEW: Dynamic multiplier bitmap rendering
+    // =========================================================
+
+    /**
+     * Map a single character to your texture key.
+     * ✅ Change these return values to match your actual asset names.
+     */
+    private getMultiplierCharTextureKey(ch: string): string | null {
+        if (ch >= '0' && ch <= '9') return ch; // "0".."9"
+        if (ch === 'X' || ch === 'x') return 'X';
+        return null;
+    }
+
+    /**
+     * Build a bitmap-like multiplier container such as "2X", "10X", "250X".
+     * The whole container is anchored/centered so your existing effects and positioning
+     * behave like a single sprite.
+     */
+    private createMultiplierBitmap(multiplier: number): Container | null {
+        if (!multiplier || multiplier <= 0) return null;
+
+        const text = `${multiplier}X`;
+        const root = new Container();
+
+        const chars: Sprite[] = [];
+
+        // ✅ TUNE THESE
+        const digitGap = 10; // tighter between digits
+        const xGap = -32; // tighter before 'X'
+
+        let xCursor = 0;
+
+        // Helper: use trimmed/original width if available (avoids transparent padding issues)
+        const getAdvanceWidth = (spr: Sprite) => {
+            const tex = spr.texture;
+            // Prefer trimmed width (most accurate when assets are trimmed/packed)
+            const trimmedW = tex?.trim?.width;
+            if (typeof trimmedW === 'number' && trimmedW > 0) return trimmedW;
+
+            // Fallback to original frame width if available
+            const origW = (tex as any)?.orig?.width;
+            if (typeof origW === 'number' && origW > 0) return origW;
+
+            // Final fallback
+            return spr.width;
+        };
+
+        for (const ch of text) {
+            const key = this.getMultiplierCharTextureKey(ch);
+            if (!key) {
+                root.destroy({ children: true });
+                return null;
+            }
+
+            const spr = Sprite.from(key);
+            spr.anchor.set(0, 0.5);
+            spr.x = xCursor;
+            spr.y = 0;
+
+            root.addChild(spr);
+            chars.push(spr);
+
+            // ✅ Choose gap per character type
+            const gap = ch === 'X' || ch === 'x' ? xGap : digitGap;
+
+            // ✅ Use "advance width" that ignores transparent padding where possible
+            xCursor += getAdvanceWidth(spr) + gap;
+        }
+
+        // Center the whole group
+        const lastGap = text[text.length - 1] === 'X' || text[text.length - 1] === 'x' ? xGap : digitGap;
+        const totalW = xCursor - lastGap;
+        for (const c of chars) {
+            c.x -= totalW * 0.5;
+        }
+
+        root.y = 0;
+        return root;
+    }
+
+    /** Create or update the multiplier sprite (NOW dynamic bitmap digits) */
     private updateMultiplierSprite() {
         // Remove old sprite if needed
         if (this.multiplierSprite) {
             this.removeChild(this.multiplierSprite);
-            this.multiplierSprite.destroy();
+            this.multiplierSprite.destroy({ children: true });
             this.multiplierSprite = null;
         }
 
         // If multiplier = 0 → show nothing
         if (this.multiplier === 0) return;
 
-        // Pick correct asset based on multiplier value
-        const assetName =
-            this.multiplier === 2
-                ? '2XMultiplier'
-                : this.multiplier === 3
-                  ? '3XMultiplier'
-                  : this.multiplier === 5
-                    ? '5XMultiplier'
-                    : this.multiplier === 10
-                      ? '10XMultiplier'
-                      : null;
+        // Build bitmap
+        const bitmap = this.createMultiplierBitmap(this.multiplier);
+        if (!bitmap) return;
 
-        if (!assetName) return;
+        this.multiplierSprite = bitmap;
 
-        // Create sprite
-        this.multiplierSprite = Sprite.from(assetName);
-        this.multiplierSprite.anchor.set(0.5);
-        this.multiplierSprite.scale.set(0.75);
+        // Match your previous "icon feel"
+        this.multiplierSprite.scale.set(0.4);
 
         // Position BELOW the symbol (but still top layer visually)
-        this.multiplierSprite.y = 40; // adjust to your icon height
+        this.multiplierSprite.y = 40;
         this.multiplierSprite.x = 0;
 
         // Add to top layer
         this.addChild(this.multiplierSprite);
 
         // Floating animation
-        //this.applyMultiplierAnimation();
+        // this.applyMultiplierAnimation();
     }
 
     /**
@@ -662,7 +736,7 @@ export class SlotSymbol extends Container {
         const landShakeRepeats = 6;
 
         const isTargetAlive = () => {
-            return !!this.multiplierSprite && this.multiplierSprite === target && !target.destroyed;
+            return !!this.multiplierSprite && this.multiplierSprite === target && !(target as any).destroyed;
         };
 
         const startAirShake = () => {

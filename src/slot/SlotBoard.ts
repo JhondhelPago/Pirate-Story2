@@ -1,4 +1,4 @@
-import { Container, Graphics, Ticker, triangulateWithHoles } from 'pixi.js';
+import { Container, Graphics, Ticker } from 'pixi.js';
 import gsap from 'gsap';
 import { Slot } from './Slot';
 import { SlotConfig, slotGetBlocks } from './SlotConfig';
@@ -7,7 +7,6 @@ import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from './Slot
 import { userSettings, SpinModeEnum, features } from '../utils/userSettings';
 import { config } from './SlotSettings';
 import { sfx } from '../utils/audio';
-import { SlotFreeSpinProcess } from './SlotFreeSpinProcess';
 
 interface ReelColumn {
     container: Container;
@@ -1474,11 +1473,10 @@ export class SlotBoard {
         }
 
         if (this.winSound) {
-            sfx.play('common/sfx-symbol-win.wav')
+            sfx.play('common/sfx-symbol-win.wav');
         } else {
             this.winSound = true;
-        };
-
+        }
 
         this.startReplayLoop(() => {
             const list: SlotSymbol[] = [];
