@@ -33,7 +33,6 @@ export const getBannerDict = (): BannerItem[] => [
     },
 ];
 
-
 export type SpinRoundBannerData = {
     win: number;
     onClosed?: () => void;
@@ -568,8 +567,8 @@ export class SpinRoundBanner extends Container {
 
     private getBannerTexture(win: number): BannerItem {
         const dict = getBannerDict().find((x) => win >= x.min)!;
-        console.log("user bet:", userSettings.getBet());
-        console.log("min value:", dict.min);
+        console.log('user bet:', userSettings.getBet());
+        console.log('min value:', dict.min);
         return dict;
     }
 

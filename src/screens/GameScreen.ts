@@ -523,7 +523,6 @@ export class GameScreen extends Container {
         });
     }
 
-
     private drawTotalWinBanner(winAmount: number, freeSpins: number): Promise<void> {
         const hasPrevProcess = this.slot.getStackSize() > 0;
         const spinMode = userSettings.getSpinMode();

@@ -195,9 +195,9 @@ class UserSettings {
         const resumeData = await GameServices.checkResume();
         console.log(resumeData);
         this.resumeData = resumeData;
-        console.log("resumeData: ", resumeData);
+        console.log('resumeData: ', resumeData);
 
-        if (resumeData.bettingMoney){
+        if (resumeData.bettingMoney) {
             this.betIndex = this.betOptions.indexOf(resumeData.bettingMoney);
         }
     }
