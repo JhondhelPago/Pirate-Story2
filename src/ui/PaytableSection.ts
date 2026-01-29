@@ -6,6 +6,7 @@ import { List } from '@pixi/ui';
 import { PaytableCard } from './PaytableCard';
 import { config } from '../slot/SlotSettings';
 import { i18n } from '../i18n/i18n';
+import { getUrlParam } from '../utils/getUrlParams';
 
 export class PayTableSection extends Container {
     private symbolsDescriptionLabel: Label;
@@ -22,7 +23,7 @@ export class PayTableSection extends Container {
         super();
 
         this.betAmount = userSettings.getBet();
-        this.currency = userSettings.getCurrency();
+        this.currency = getUrlParam('cur') ?? 'KRW';
         this.paytables = config.settings.paytables;
 
         this.mainLayout = new List({ type: 'vertical', elementsMargin: 20 });

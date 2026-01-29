@@ -42,7 +42,7 @@ export class ControlPanel extends Container {
 
     private isMobile = false;
     private isPortrait = false;
-    private currency = 'usd';
+    private currency: string;
     private shouldStopMatches = false;
 
     private spacebarHandler?: (e: KeyboardEvent) => void;
@@ -50,7 +50,7 @@ export class ControlPanel extends Container {
     constructor() {
         super();
 
-        this.currency = getUrlParam('cur') ?? 'usd';
+        this.currency = getUrlParam('cur') ?? 'KRW';
 
         // Create semi-transparent background using Sprite
         this.background = Sprite.from(Texture.WHITE);

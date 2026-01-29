@@ -10,7 +10,7 @@ const defaultMatchPatternOptions = {
     image: 'symbol-0',
     times: 0,
     amount: 0,
-    currency: 'usd',
+    currency: 'KRW',
 };
 
 export type MatchPatternOptions = typeof defaultMatchPatternOptions;

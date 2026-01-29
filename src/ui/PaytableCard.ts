@@ -6,7 +6,7 @@ import { formatCurrency } from '../utils/formatter';
 const defaultPaytableCardOptions = {
     image: 'symbol-0',
     betAmount: 0,
-    currency: 'USD',
+    currency: 'KRW',
     patterns: [
         { min: 0, max: 0, multiplier: 0 },
         { min: 0, max: 0, multiplier: 0 },

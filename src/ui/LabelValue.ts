@@ -1,5 +1,6 @@
 import { Container, Text } from 'pixi.js';
 import { formatCurrency } from '../utils/formatter';
+import { getUrlParam } from '../utils/getUrlParams';
 
 export interface LabelValueConfig {
     labelText: string;
@@ -21,7 +22,7 @@ export class LabelValue extends Container {
     private valueColor = 0xffd700;
     private fontSize: number;
     private fontWeight: 'normal' | 'bold' | 'bolder' | 'lighter' = 'bold';
-    private currency = 'usd';
+    private currency = getUrlParam('cur') ?? 'KRW';
     private align: 'left' | 'right' | 'center';
 
     constructor(config: LabelValueConfig) {

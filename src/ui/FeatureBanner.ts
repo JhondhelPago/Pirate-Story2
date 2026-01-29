@@ -76,7 +76,7 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.typeMap = cfg.typeMap;
 
         this.amount = cfg.amount;
-        this.currencySymbol = getUrlParam('cur') ?? 'USD';
+        this.currencySymbol = getUrlParam('cur') ?? 'KRW';
         console.log("this.currencySymbol: ", this.currencySymbol);
         this.decimals = cfg.decimals ?? 2;
 
