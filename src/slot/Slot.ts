@@ -327,10 +327,10 @@ export class Slot extends Container {
             await this.onFreeSpinResumeStart?.(ResumeData.spins);
 
             this.useFreeSpinProcess();
-
             this.board.applyBackendResults(ResumeData.reels, ResumeData.multiplierReels);
             this.board.setup(config);
             await waitFor(2);
+            this.spinning = true;
             await this.process.resumeStart();
         }
     }

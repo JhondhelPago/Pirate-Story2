@@ -76,6 +76,7 @@ export class SlotProcess {
 
     public reset() {
         this.processing = false;
+        this.match3.spinning = false;
 
         // pause safety reset
         this.paused = false;

@@ -41,7 +41,7 @@ export const i18nDict = {
         'This is the WILD symbol and substitute for all symbols except for BONUS. WILD symbol hits with a random multiplier of 2x, 3x, 5x, 10x. Multiplier apply to all wining combination, their mutiplier add to each other. The same WILD can be part of multiple winning combinations.',
     freeSpins: 'FREE SPINS',
     freeSpinsDesc:
-        'Hit 4, 5, or 6 SCATTER symbols anywhere on the screen to activate the FREE SPINS feature and receive 15, 20, or 25 free spins, respectively. \n\nDuring the round any WILD symbol that hits remains on the screen until the end of the round. IN the FREE SPINS round, the Bonus symbol can appear randomly on the top of any symbol. Hit 2, 3, 4 or 5 BONUS symbols as overlay during the round to retrigger the feature and win 5, 10, 20, 30 additional free spins. Sepcial reels are in play during the feature.',
+        'Hit 3, 4, or 5 SCATTER symbols anywhere on the screen to activate the FREE SPINS feature and receive 10, 15, or 20 free spins, respectively. \n\nDuring the round any WILD symbol that hits remains on the screen until the end of the round. IN the FREE SPINS round, the Bonus symbol can appear randomly on the top of any symbol. Hit 2, 3, 4 or 5 BONUS symbols as overlay during the round to retrigger the feature and win 5, 10, 20, 30 additional free spins. Special reels are in play during the feature.',
     howToPlay: 'How to Play',
     minusButtonDesc: 'Button to decrease the bet value',
     plusButtonDesc: 'Button to increase the bet value',
