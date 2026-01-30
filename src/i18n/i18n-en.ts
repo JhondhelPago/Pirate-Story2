@@ -67,8 +67,10 @@ export const i18nDict = {
     youHaveWon: 'YOU HAVE WON',
     clickAnywhereToContinue: 'Click anywhere to continue.',
     inFreeSpins: 'IN {spins} FREE SPIN',
+    resumingGame: 'Resuming Game...',
 
     winUpTo: 'Win up to 250x bet',
     jackpotChance: 'Jackpot chance increased!',
     bigWins: 'Big Wins are coming!',
+    
 };

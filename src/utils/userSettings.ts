@@ -205,6 +205,10 @@ class UserSettings {
     public getResumeData() {
         return this.resumeData;
     }
+
+    public getResumeType() {
+        return this.resumeData.resumeType;
+    }
 }
 
 /** Shared user settings instance */

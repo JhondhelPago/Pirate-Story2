@@ -13,6 +13,7 @@ import { BarrelBoard } from '../ui/BarrelBoard';
 import { InfoPopup, InfoPopupData } from '../popups/InfoPopup';
 import { getBannerDict, SpinRoundBanner } from '../popups/SpinRoundBanner';
 import { getPatternByCount, RoundResult } from '../slot/SlotUtility';
+import { ResumePopup } from '../popups/ResumePopup';
 import { SettingsPopup } from '../popups/SettingsPopup';
 import { TotalWinBanner } from '../popups/TotalWinBanner';
 import { AutoplayPopup, AutoplayPopupData } from '../popups/AutoplayPopup';
@@ -310,6 +311,16 @@ export class GameScreen extends Container {
 
     public async show() {
         bgm.play('common/bgm-game.mp3', { volume: 0.3 });
+
+        if (userSettings.getResumeType() === 2) {
+            navigation.presentPopup(ResumePopup, {
+                title: i18n.t('goodluck'),
+                message: i18n.t('resumingGame'),
+                onClose: () => {
+                    console.log('Resume popup closed');
+                },
+            });
+        }
         this.slot.startPlaying();
         this.syncFeatureAvailability();
     }
