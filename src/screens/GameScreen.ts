@@ -21,6 +21,7 @@ import { FreeSpinWinBanner } from '../popups/FreeSpinWinBanner';
 import { SlotFreeSpinProcess } from '../slot/SlotFreeSpinProcess';
 import { collect } from '../api/services/gameServices';
 import { i18n } from '../i18n/i18n';
+import { formatCurrency } from '../utils/formatter';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -312,6 +313,7 @@ export class GameScreen extends Container {
     public async show() {
         bgm.play('common/bgm-game.mp3', { volume: 0.3 });
 
+        // block to make the resume popup appear if there is free spins to resume
         if (userSettings.getResumeType() === 2) {
             navigation.presentPopup(ResumePopup, {
                 title: i18n.t('goodluck'),
@@ -321,6 +323,7 @@ export class GameScreen extends Container {
                 },
             });
         }
+
         this.slot.startPlaying();
         this.syncFeatureAvailability();
     }
@@ -344,7 +347,7 @@ export class GameScreen extends Container {
         const roundWin = this.slot.process.getRoundWin();
         if (roundWin > 0) {
             this.controlPanel.setCredit(userSettings.getBalance());
-            this.controlPanel.setWinTitle(i18n.t('win', { amount: roundWin }));
+            this.controlPanel.setWinTitle(i18n.t('win', { amount: formatCurrency(roundWin) }));
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
         }
@@ -390,7 +393,7 @@ export class GameScreen extends Container {
         console.log('Current Spin: ', current, 'Remaining Spins: ', remaining);
         console.log('remaining spins left failed to display if there is no winning round');
 
-        this.controlPanel.setMessage(`REMAINING SPINS LEFT ${remaining}`);
+        this.controlPanel.setMessage(i18n.t('remainingSpinsLeft', { spins: remaining }));
 
         this.lockInteraction();
     }
@@ -404,7 +407,7 @@ export class GameScreen extends Container {
         const totalWon = this.slot.autoSpinProcess.getAccumulatedWin();
 
         if (totalWon > 0) {
-            this.controlPanel.setWinTitle(`Win ${totalWon}`);
+            this.controlPanel.setWinTitle(`Win ${formatCurrency(totalWon)}`);
             this.messageMatchQueuing(this.slot.autoSpinProcess.getRoundResult());
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
@@ -470,15 +473,14 @@ export class GameScreen extends Container {
 
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log('Current Spin: ', current, 'Remaining Spins: ', remaining);
-        this.controlPanel.setMessage(`FREE SPIN LEFT ${remaining}`);
+        this.controlPanel.setMessage(i18n.t('freeSpinsLeft', { spins: remaining }));
 
         this.lockInteraction();
     }
-
     private async onFreeSpinRoundComplete() {
         const totalWon = this.slot.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0) {
-            this.controlPanel.setWinTitle(i18n.t('win', { amount: totalWon }));
+            this.controlPanel.setWinTitle(i18n.t('win', { amount: formatCurrency(totalWon) }));
         } else {
             this.controlPanel.setTitle(i18n.t('goodluck'));
         }
@@ -503,7 +505,9 @@ export class GameScreen extends Container {
         this.finished = false;
         await waitFor(3);
         await this.drawFreeSpinWonBanner(currentSpin);
-        this.controlPanel.setWinTitle(i18n.t('win', { amount: this.slot.freeSpinProcess.getAccumulatedWin() })); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
+        this.controlPanel.setWinTitle(
+            i18n.t('win', { amount: formatCurrency(this.slot.freeSpinProcess.getAccumulatedWin()) }),
+        ); // this will get the intial accumulated win set by the Match3FreeSpinProcess.runInitialBonusProcess()
 
         this.syncFeatureAvailability();
     }

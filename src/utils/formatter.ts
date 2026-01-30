@@ -1,3 +1,5 @@
+import { getUrlParam } from './getUrlParams';
+
 const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
     currency: 'USD',
     style: 'currency',
@@ -8,6 +10,7 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
 export function formatCurrency(amount: number, currency: string = 'usd') {
     // Attempt to create a formatter for the provided currency
     try {
+        currency = getUrlParam('cur') ?? 'KRW';
         const formatter = new Intl.NumberFormat('en-US', {
             currency: currency,
             style: 'currency',

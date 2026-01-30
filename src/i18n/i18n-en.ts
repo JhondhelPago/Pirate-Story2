@@ -4,6 +4,7 @@ export const i18nDict = {
     jackpotChanceIncrease: 'JACKPOT CHANCE INCREASED!',
     bigWinsComing: 'BIG WINS COMING!',
     buyFree: 'BUY FREE',
+    buy: 'BUY',
     spin: 'SPIN',
     buyFreeSpins: 'BUY FREE SPINS',
     holdSpaceForTurboSpin: 'HOLD SPACE FOR TURBO SPIN',
@@ -67,10 +68,11 @@ export const i18nDict = {
     youHaveWon: 'YOU HAVE WON',
     clickAnywhereToContinue: 'Click anywhere to continue.',
     inFreeSpins: 'IN {spins} FREE SPIN',
+    freeSpinsLeft: 'FREE SPINS LEFT {spins}',
+    remainingSpinsLeft: 'REMAINING SPINS LEFT {spins}',
     resumingGame: 'Resuming Game...',
 
     winUpTo: 'Win up to 250x bet',
     jackpotChance: 'Jackpot chance increased!',
     bigWins: 'Big Wins are coming!',
-    
 };

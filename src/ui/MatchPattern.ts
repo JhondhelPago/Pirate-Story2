@@ -20,16 +20,13 @@ export class MatchPattern extends Container {
     private xTimes: Label;
     private text: Label;
     private layout: List;
-    private currency: string;
 
     constructor(options: Partial<MatchPatternOptions> = {}) {
         super();
         const opts = { ...defaultMatchPatternOptions, ...options };
         this.alpha = 0;
 
-        this.currency = opts.currency;
         this.layout = new List({ type: 'vertical' });
-
         this.xTimes = new Text({
             text: `${opts.times}x`,
             style: {
@@ -46,7 +43,7 @@ export class MatchPattern extends Container {
         this.layout.addChild(this.image);
 
         this.text = new Text({
-            text: `PAYS ${formatCurrency(opts.amount, opts.currency)}`,
+            text: `PAYS ${formatCurrency(opts.amount)}`,
             style: {
                 fill: 0xffffff,
                 fontSize: 32,
@@ -62,12 +59,11 @@ export class MatchPattern extends Container {
         this.layout.type = 'horizontal';
     }
 
-    public setup(times: number, symbol: string, amount: number, currency: string) {
-        this.currency = currency;
+    public setup(times: number, symbol: string, amount: number) {
         // Update times
         this.xTimes.text = `${times}x`;
         this.image.texture = Sprite.from(symbol).texture;
-        this.text.text = `PAYS ${formatCurrency(amount, this.currency)}`;
+        this.text.text = `PAYS ${formatCurrency(amount)}`;
 
         this.layout.elementsMargin = 10;
         this.layout.type = 'horizontal';

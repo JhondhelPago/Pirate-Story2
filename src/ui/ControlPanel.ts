@@ -6,7 +6,6 @@ import { AudioButton } from './AudioButton';
 import { SpinButton, SpinButtonState } from './SpinButton';
 import { LabelValue } from './LabelValue';
 import { i18n } from '../i18n/i18n';
-import { getUrlParam } from '../utils/getUrlParams';
 import { AutoplayButton, AutoplayButtonState } from './AutoplayButton';
 
 export interface WinMatchPattern {
@@ -42,15 +41,12 @@ export class ControlPanel extends Container {
 
     private isMobile = false;
     private isPortrait = false;
-    private currency: string;
     private shouldStopMatches = false;
 
     private spacebarHandler?: (e: KeyboardEvent) => void;
 
     constructor() {
         super();
-
-        this.currency = getUrlParam('cur') ?? 'KRW';
 
         // Create semi-transparent background using Sprite
         this.background = Sprite.from(Texture.WHITE);
@@ -68,7 +64,7 @@ export class ControlPanel extends Container {
             fontSize: 22,
             align: 'left',
         });
-        this.creditDisplay.setValue(userSettings.getBalance(), this.currency);
+        this.creditDisplay.setValue(userSettings.getBalance());
         this.contentContainer.addChild(this.creditDisplay);
 
         // Bet display
@@ -77,7 +73,7 @@ export class ControlPanel extends Container {
             fontSize: 22,
             align: 'left',
         });
-        this.betDisplay.setValue(userSettings.getBet(), this.currency);
+        this.betDisplay.setValue(userSettings.getBet());
         this.contentContainer.addChild(this.betDisplay);
 
         // Center message
@@ -400,14 +396,14 @@ export class ControlPanel extends Container {
      * Update credit display
      */
     public setCredit(value: number) {
-        this.creditDisplay.setValue(value, this.currency);
+        this.creditDisplay.setValue(value);
     }
 
     /**
      * Update bet display
      */
     public setBet(value: number) {
-        this.betDisplay.setValue(value, this.currency);
+        this.betDisplay.setValue(value);
     }
 
     /**
@@ -447,7 +443,7 @@ export class ControlPanel extends Container {
             if (this.shouldStopMatches) {
                 break;
             }
-            this.matchPattern.setup(pattern.times, `symbol-${pattern.type}`, pattern.amount, pattern.currency);
+            this.matchPattern.setup(pattern.times, `symbol-${pattern.type}`, pattern.amount);
             this.matchPattern.x = this.contentWidth * 0.5 - this.matchPattern.width * 0.5;
             this.messageText.alpha = 0;
             await this.matchPattern.show();

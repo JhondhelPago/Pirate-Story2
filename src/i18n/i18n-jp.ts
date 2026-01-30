@@ -4,6 +4,7 @@ export const i18nDict = {
     jackpotChanceIncrease: 'ジャックポットのチャンスが上昇！',
     bigWinsComing: 'ビッグウィンが来る！',
     buyFree: 'フリースピン購入',
+    buy: '購入',
     spin: 'スピン',
     buyFreeSpins: 'フリースピン\n購入',
     holdSpaceForTurboSpin: 'スペース長押しでターボスピン',
@@ -67,6 +68,8 @@ export const i18nDict = {
     youHaveWon: 'あなたは当選しました',
     clickAnywhereToContinue: 'クリックして続行してください。',
     inFreeSpins: '{spins} 回のフリースピン中',
+    freeSpinsLeft: '残り無料スピン {spins}',
+    remainingSpinsLeft: '残りスピン回数 {spins}',
     resumingGame: 'ゲームを再開します...',
 
     winUpTo: '最大250倍',

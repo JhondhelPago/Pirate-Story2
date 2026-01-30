@@ -105,11 +105,7 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.attachCenterTextsToBanner(this.sprite);
 
         // --- bottom amount ---
-        this.amountText = this.createStyledText(
-            formatCurrency(this.amount, this.currencySymbol),
-            cfg.amountFontSize ?? 76,
-            'Pirata One',
-        );
+        this.amountText = this.createStyledText(formatCurrency(this.amount), cfg.amountFontSize ?? 76, 'Pirata One');
         this.attachAmountTextToBanner(this.sprite, this.amountText);
 
         this.eventMode = 'static';
@@ -149,7 +145,7 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.amount = amount;
         this.decimals = decimals;
 
-        this.amountText.text = formatCurrency(amount, this.currencySymbol);
+        this.amountText.text = formatCurrency(amount);
         this.attachAmountTextToBanner(this.sprite, this.amountText);
     }
 

@@ -1,7 +1,5 @@
 import { Container, Text } from 'pixi.js';
 import { formatCurrency } from '../utils/formatter';
-import { getUrlParam } from '../utils/getUrlParams';
-
 export interface LabelValueConfig {
     labelText: string;
     fontSize: number;
@@ -22,7 +20,6 @@ export class LabelValue extends Container {
     private valueColor = 0xffd700;
     private fontSize: number;
     private fontWeight: 'normal' | 'bold' | 'bolder' | 'lighter' = 'bold';
-    private currency = getUrlParam('cur') ?? 'KRW';
     private align: 'left' | 'right' | 'center';
 
     constructor(config: LabelValueConfig) {
@@ -50,7 +47,7 @@ export class LabelValue extends Container {
         this.container.addChild(this.labelText);
 
         this.valueText = new Text({
-            text: formatCurrency(0, this.currency),
+            text: formatCurrency(0),
             style: {
                 fontSize: this.fontSize,
                 fill: this.valueColor,
@@ -68,19 +65,14 @@ export class LabelValue extends Container {
         this.updateLayout();
     }
 
-    public setCurrency(curr: string) {
-        this.currency = curr;
-    }
-
-    public setValue(value: number, curr: string): void {
+    public setValue(value: number): void {
         if (!isFinite(value) || value < 0) {
             console.warn('[LabelValue] Invalid value:', value);
             value = 0;
         }
 
         this.currentValue = value;
-        this.currency = curr;
-        this.valueText.text = formatCurrency(value, this.currency);
+        this.valueText.text = formatCurrency(value);
         this.updateLayout();
     }
 

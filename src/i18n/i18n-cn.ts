@@ -4,6 +4,7 @@ export const i18nDict = {
     jackpotChanceIncrease: '大奖概率提升！',
     bigWinsComing: '大奖即将到来！',
     buyFree: '购买免费旋转',
+    buy: '购买',
     spin: '旋转',
     buyFreeSpins: '购买免费旋转',
     holdSpaceForTurboSpin: '按住空格键启动极速旋转',
@@ -65,6 +66,8 @@ export const i18nDict = {
     youHaveWon: '您中奖了',
     clickAnywhereToContinue: '点击任意位置继续。',
     inFreeSpins: '第 {spins} 次免费旋转中',
+    freeSpinsLeft: '剩余免费次数 {spins}',
+    remainingSpinsLeft: '剩余旋转次数 {spins}',
     resumingGame: '正在恢复游戏...',
 
     winUpTo: '最高250倍',

@@ -1,6 +1,7 @@
 import { Container, Sprite, Texture, Graphics, Text, Matrix } from 'pixi.js';
 import gsap from 'gsap';
 import { navigation } from '../utils/navigation';
+import { i18n } from '../i18n/i18n';
 
 export interface BuyConfirmData {
     confirmationBoard: string;
@@ -182,7 +183,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         const stroke = { color: 0x4c1b05, width: 6 };
         const fontSize = 92;
 
-        const prefix = new Text('BUY ', {
+        const prefix = new Text(`${i18n.t('buy')} `, {
             fontFamily: 'Pirata One',
             fontSize,
             align: 'center',
@@ -200,7 +201,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         });
         number.anchor.set(0, 0.5);
 
-        const suffix = new Text(' FREE SPINS', {
+        const suffix = new Text(` ${i18n.t('freeSpins')}`, {
             fontFamily: 'Pirata One',
             fontSize,
             align: 'center',

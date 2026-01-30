@@ -4,6 +4,7 @@ export const i18nDict = {
     jackpotChanceIncrease: '잭팟 확률 상승!',
     bigWinsComing: '빅 윈이 곧 옵니다!',
     buyFree: '프리 스핀 구매',
+    buy: '구매',
     spin: '스핀',
     buyFreeSpins: '무료 스핀 구매',
     holdSpaceForTurboSpin: '스페이스바 길게 눌러 터보 스핀',
@@ -65,6 +66,8 @@ export const i18nDict = {
     youHaveWon: '당첨되었습니다',
     clickAnywhereToContinue: '아무 곳이나 클릭하여 계속하세요.',
     inFreeSpins: '{spins}번의 무료 스핀 중',
+    freeSpinsLeft: '남은 무료 스핀 {spins}',
+    remainingSpinsLeft: '남은 스핀 횟수 {spins}',
     resumingGame: '게임을 재개합니다...',
 
     winUpTo: '최대 250배',
