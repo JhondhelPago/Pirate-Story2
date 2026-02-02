@@ -14,6 +14,9 @@ export class SlotAutoSpinProcess extends SlotProcess {
     private remainingSpins = 0;
     private currentSpin = 0;
 
+    private stopRequested = false;
+
+
     public processCheckpoint() {
         if (this.remainingSpins > 0) {
             this.remainingSpins--;
@@ -23,27 +26,64 @@ export class SlotAutoSpinProcess extends SlotProcess {
         return false;
     }
 
+    // public async autoSpinStart() {
+    //     this.autoSpinProcessing = true;
+
+    //     await this.waitIfPaused();
+
+    //     if (!this.processCheckpoint()) {
+    //         this.autoSpinProcessing = false;
+
+    //         this.match3.onAutoSpinComplete?.(this.currentSpin, this.remainingSpins);
+
+    //         this.reset();
+    //         return;
+    //     }
+
+    //     await this.start();
+
+    //     await this.delayBetweenSpins();
+
+    //     await this.waitIfPaused();
+    //     await this.autoSpinStart();
+    // }
+
     public async autoSpinStart() {
         this.autoSpinProcessing = true;
 
         await this.waitIfPaused();
 
-        if (!this.processCheckpoint()) {
+        // 🚫 Stop requested BEFORE starting a new spin
+        if (this.stopRequested) {
             this.autoSpinProcessing = false;
-
             this.match3.onAutoSpinComplete?.(this.currentSpin, this.remainingSpins);
-
             this.reset();
             return;
         }
 
-        await this.start();
+        if (!this.processCheckpoint()) {
+            this.autoSpinProcessing = false;
+            this.match3.onAutoSpinComplete?.(this.currentSpin, this.remainingSpins);
+            this.reset();
+            return;
+        }
+
+        await this.start(); // ← parent-controlled atomic spin
 
         await this.delayBetweenSpins();
-
         await this.waitIfPaused();
+
+        // 🚫 Stop requested AFTER finishing the round
+        if (this.stopRequested) {
+            this.autoSpinProcessing = false;
+            this.match3.onAutoSpinComplete?.(this.currentSpin, this.remainingSpins);
+            this.reset();
+            return;
+        }
+
         await this.autoSpinStart();
     }
+
 
     public async start() {
         if (this.processing) return;
@@ -143,7 +183,21 @@ export class SlotAutoSpinProcess extends SlotProcess {
         return this.autoSpinProcessing;
     }
 
+    // public reset() {
+    //     this.wildReels = gridZeroReset();
+    //     this.match3.board.setWildReels(this.wildReels);
+    //     this.match3.board.clearWildLayerAndMultipliers();
+
+    //     this.currentSpin = 0;
+    //     this.remainingSpins = 0;
+    //     this.accumulatedWin = 0;
+
+    //     super.reset();
+    // }
+
     public reset() {
+        this.stopRequested = false;
+
         this.wildReels = gridZeroReset();
         this.match3.board.setWildReels(this.wildReels);
         this.match3.board.clearWildLayerAndMultipliers();
@@ -154,4 +208,10 @@ export class SlotAutoSpinProcess extends SlotProcess {
 
         super.reset();
     }
+
+
+    public requestStop() {
+        this.stopRequested = true;
+    }
+
 }

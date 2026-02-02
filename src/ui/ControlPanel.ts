@@ -513,6 +513,10 @@ export class ControlPanel extends Container {
         this.autoplayButton.on('pointerdown', () => callback());
     }
 
+    public onCancelAutoplay(callback: () => void) {
+        this.autoplayButton.on('pointerdown', () => callback());
+    };
+
     public onIncreaseBet(callback: () => void) {
         this.plusButton.on('pointerdown', callback);
     }

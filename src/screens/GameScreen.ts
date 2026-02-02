@@ -22,6 +22,7 @@ import { SlotFreeSpinProcess } from '../slot/SlotFreeSpinProcess';
 import { collect } from '../api/services/gameServices';
 import { i18n } from '../i18n/i18n';
 import { formatCurrency } from '../utils/formatter';
+import { SlotAutoSpinProcess } from '../slot/SlotAutoSpinProcess';
 
 export type SettingsPopupData = {
     finished: boolean;
@@ -118,6 +119,9 @@ export class GameScreen extends Container {
         this.controlPanel.onSpacebar(() => this.startSpinning());
 
         this.controlPanel.onAutoplay(() => {
+
+            console.log("autoplay circle button press.");
+        
             const spinMode = 'normal-spin';
             navigation.presentPopup<AutoplayPopupData>(AutoplayPopup, {
                 spinMode,
@@ -128,6 +132,7 @@ export class GameScreen extends Container {
                 },
             });
         });
+
 
         this.controlPanel.onSettings(() => {
             navigation.presentPopup<SettingsPopupData>(SettingsPopup, {
@@ -366,6 +371,21 @@ export class GameScreen extends Container {
         this.controlPanel.enableBetting();
         this.finished = false;
 
+        this.syncFeatureAvailability();
+    }
+
+    public async onCancelAutoSpin() {
+        // STOP THE PROCESS OF THE SLOTAUTOSPINPROCESS
+
+        // after ensuring that the process stops and reset
+        if (this.slot.process !== this.slot.autoSpinProcess) return;
+        const autoplayprocess = this.slot.process as SlotAutoSpinProcess;
+
+
+        autoplayprocess.requestStop();
+
+
+        // make the control panel available using the this.syncFeatureAvailability()
         this.syncFeatureAvailability();
     }
 
