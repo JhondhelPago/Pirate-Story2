@@ -34,7 +34,7 @@ export class ControlPanel extends Container {
     private minusButton: IconButton;
     private spinButton: SpinButton;
     private plusButton: IconButton;
-    private autoplayButton: AutoplayButton;
+    public autoplayButton: AutoplayButton;
 
     private panelHeight = 160;
     private contentWidth = 1920;
@@ -478,7 +478,10 @@ export class ControlPanel extends Container {
         this.plusButton.enabled = false;
         this.minusButton.enabled = false;
 
-        this.autoplayButton.setState(AutoplayButtonState.DISABLED);
+        // ✅ make Autoplay NOT triggerable when betting is disabled
+        this.autoplayButton.enabled = false;
+
+        this.autoplayButton.setState(AutoplayButtonState.ENABLED);
         this.spinButton.setState(SpinButtonState.STOP);
     }
 
@@ -510,12 +513,18 @@ export class ControlPanel extends Container {
     }
 
     public onAutoplay(callback: () => void) {
-        this.autoplayButton.on('pointerdown', () => callback());
+        this.autoplayButton.on('pointerdown', () => {
+            if (!this.autoplayButton.enabled) return;
+            callback();
+        });
     }
 
     public onCancelAutoplay(callback: () => void) {
-        this.autoplayButton.on('pointerdown', () => callback());
-    };
+        this.autoplayButton.on('pointerdown', () => {
+            if (!this.autoplayButton.enabled) return;
+            callback();
+        });
+    }
 
     public onIncreaseBet(callback: () => void) {
         this.plusButton.on('pointerdown', callback);

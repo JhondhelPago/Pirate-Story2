@@ -300,6 +300,31 @@ export class Slot extends Container {
         });
     }
 
+    public isBaseProcess() {
+        return this._currentProcess === this.baseProcess;
+    }
+
+    public isAutoSpinProcess() {
+        return this._currentProcess === this.autoSpinProcess;
+    }
+
+    public isFreeSpinProcess() {
+        return this._currentProcess === this.freeSpinProcess;
+    }
+
+    /** 
+     * True if ANY process is running, paused, queued, or switching
+     */
+    public hasPendingProcess(): boolean {
+        return (
+            this.spinning ||
+            this.controllerBusy ||
+            this.switching ||
+            this.processStack.length > 0
+        );
+    }
+
+
     // ---------------------------------------------------------------------
     // Existing lifecycle
     // ---------------------------------------------------------------------

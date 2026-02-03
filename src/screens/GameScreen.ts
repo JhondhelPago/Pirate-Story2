@@ -120,7 +120,14 @@ export class GameScreen extends Container {
 
         this.controlPanel.onAutoplay(() => {
 
-            console.log("autoplay circle button press.");
+            const hasPendingProcess = this.slot.hasPendingProcess();
+            if (hasPendingProcess) {
+                console.log('Theres pending process? ', hasPendingProcess);
+                const isAutoPlayProcess = this.slot.process instanceof SlotAutoSpinProcess;
+                console.log('isAutoPlayProcess? ', isAutoPlayProcess);
+                return; // prevent opening autoplay popup when there is ongoing process
+            }
+            this.slot.useBaseProcess();
         
             const spinMode = 'normal-spin';
             navigation.presentPopup<AutoplayPopupData>(AutoplayPopup, {
@@ -132,6 +139,8 @@ export class GameScreen extends Container {
                 },
             });
         });
+
+        this.controlPanel.onCancelAutoplay(() => this.onCancelAutoSpin());
 
 
         this.controlPanel.onSettings(() => {
@@ -375,18 +384,13 @@ export class GameScreen extends Container {
     }
 
     public async onCancelAutoSpin() {
-        // STOP THE PROCESS OF THE SLOTAUTOSPINPROCESS
-
-        // after ensuring that the process stops and reset
         if (this.slot.process !== this.slot.autoSpinProcess) return;
         const autoplayprocess = this.slot.process as SlotAutoSpinProcess;
-
-
         autoplayprocess.requestStop();
-
 
         // make the control panel available using the this.syncFeatureAvailability()
         this.syncFeatureAvailability();
+        this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
     }
 
     public async onAutoSpinStart(spins: number) {

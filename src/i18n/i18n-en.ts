@@ -76,4 +76,3 @@ export const i18nDict = {
     jackpotChance: 'Jackpot chance increased!',
     bigWins: 'Big Wins are coming!',
 };
-    

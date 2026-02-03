@@ -28,6 +28,9 @@ export class AutoplayButton extends ButtonContainer {
     private buttonWidth: number;
     private buttonHeight: number;
 
+    /** Override flag (for cancel view) */
+    private isOverridden = false;
+
     constructor(options: Partial<AutoplayButtonOptions> = {}) {
         super();
 
@@ -75,8 +78,34 @@ export class AutoplayButton extends ButtonContainer {
         return this.currentState;
     }
 
+    /** Show cancel (red) asset automatically */
+    public showCancelView() {
+        this.isOverridden = true;
+        this.buttonView.texture = Texture.from('icon-button-autoplay-cancel-view');
+
+        this.buttonView.width = this.buttonWidth;
+        this.buttonView.height = this.buttonHeight;
+    }
+
+    public showDisabledView() {
+        this.isOverridden = true;
+        this.buttonView.texture = Texture.from('icon-button-autoplay-disabled-view');
+
+        this.buttonView.width = this.buttonWidth;
+        this.buttonView.height = this.buttonHeight;
+    }
+
+    /** Restore normal state-based asset */
+    public restoreDefaultView() {
+        this.isOverridden = false;
+        this.updateView();
+    }
+
     /** Update button view based on current state */
     private updateView() {
+        // Do not change texture while overridden
+        if (this.isOverridden) return;
+
         if (this.currentState === AutoplayButtonState.ENABLED) {
             this.enabled = true;
             this.buttonView.texture = Texture.from('icon-button-autoplay-default-view');

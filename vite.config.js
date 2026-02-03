@@ -5,7 +5,7 @@ export default {
         port: 8000,
         proxy: {
             "/api": {
-                target: "http://139.180.157.23:8083",
+                target: "https://slotapi.online",
                 changeOrigin: true,
                 secure: false,
             },
