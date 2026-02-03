@@ -28,8 +28,12 @@ export class AutoplayButton extends ButtonContainer {
     private buttonWidth: number;
     private buttonHeight: number;
 
-    /** Override flag (for cancel view) */
-    private isOverridden = false;
+    /**
+     * Override mode:
+     * - null => normal state-based textures
+     * - 'cancel' / 'disabled' => force that texture
+     */
+    private overrideView: 'cancel' | 'disabled' | null = null;
 
     constructor(options: Partial<AutoplayButtonOptions> = {}) {
         super();
@@ -78,38 +82,65 @@ export class AutoplayButton extends ButtonContainer {
         return this.currentState;
     }
 
-    /** Show cancel (red) asset automatically */
+    /**
+     * Show cancel (red) asset BUT keep it interactive like default.
+     * This only swaps the texture; it does NOT force-disable the button.
+     */
     public showCancelView() {
-        this.isOverridden = true;
-        this.buttonView.texture = Texture.from('icon-button-autoplay-cancel-view');
+        this.overrideView = 'cancel';
 
-        this.buttonView.width = this.buttonWidth;
-        this.buttonView.height = this.buttonHeight;
+        // keep interaction like default state:
+        // - if your currentState is DISABLED, keep it disabled
+        // - otherwise keep it enabled (interactive)
+        this.updateInteractivityFromState();
+
+        this.buttonView.texture = Texture.from('icon-button-autoplay-cancel-view');
+        this.applySize();
     }
 
+    /**
+     * Show disabled asset and force-disable interactivity.
+     * (Your current behavior is correct per your note.)
+     */
     public showDisabledView() {
-        this.isOverridden = true;
-        this.buttonView.texture = Texture.from('icon-button-autoplay-disabled-view');
+        this.overrideView = 'disabled';
 
-        this.buttonView.width = this.buttonWidth;
-        this.buttonView.height = this.buttonHeight;
+        // force non-interactive
+        this.enabled = false;
+
+        this.buttonView.texture = Texture.from('icon-button-autoplay-disabled-view');
+        this.applySize();
     }
 
     /** Restore normal state-based asset */
     public restoreDefaultView() {
-        this.isOverridden = false;
+        this.overrideView = null;
         this.updateView();
     }
 
     /** Update button view based on current state */
     private updateView() {
-        // Do not change texture while overridden
-        if (this.isOverridden) return;
+        // If overridden, only apply the override behavior
+        if (this.overrideView === 'cancel') {
+            // keep interactivity like default
+            this.updateInteractivityFromState();
+            this.buttonView.texture = Texture.from('icon-button-autoplay-cancel-view');
+            this.applySize();
+            return;
+        }
 
+        if (this.overrideView === 'disabled') {
+            this.enabled = false;
+            this.buttonView.texture = Texture.from('icon-button-autoplay-disabled-view');
+            this.applySize();
+            return;
+        }
+
+        // Normal (not overridden): state-based textures + interactivity
         if (this.currentState === AutoplayButtonState.ENABLED) {
             this.enabled = true;
             this.buttonView.texture = Texture.from('icon-button-autoplay-default-view');
-        } else if (this.currentState == AutoplayButtonState.DISABLED) {
+        } else if (this.currentState === AutoplayButtonState.DISABLED) {
             this.enabled = false;
             this.buttonView.texture = Texture.from('icon-button-autoplay-disabled-view');
         } else {
@@ -117,7 +148,18 @@ export class AutoplayButton extends ButtonContainer {
             this.buttonView.texture = Texture.from('icon-button-autoplay-playing-view');
         }
 
-        // Ensure dimensions are maintained
+        this.applySize();
+    }
+
+    /**
+     * Keep interaction in-sync with the current state (default behavior),
+     * WITHOUT forcing disabled just because we changed the texture.
+     */
+    private updateInteractivityFromState() {
+        this.enabled = this.currentState !== AutoplayButtonState.DISABLED;
+    }
+
+    private applySize() {
         this.buttonView.width = this.buttonWidth;
         this.buttonView.height = this.buttonHeight;
     }
@@ -126,24 +168,29 @@ export class AutoplayButton extends ButtonContainer {
     public async show(animated = true) {
         gsap.killTweensOf(this);
         this.visible = true;
+
         if (animated) {
             this.y = -200;
             await gsap.to(this, { y: 0, duration: 0.5, ease: 'back.out' });
         } else {
             this.y = 0;
         }
-        this.enabled = true;
+
+        // Respect overrides/state when showing
+        this.updateView();
     }
 
     /** Hide the component */
     public async hide(animated = true) {
         this.enabled = false;
         gsap.killTweensOf(this);
+
         if (animated) {
             await gsap.to(this, { y: -200, duration: 0.3, ease: 'back.in' });
         } else {
             this.y = -200;
         }
+
         this.visible = false;
     }
 }

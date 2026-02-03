@@ -159,6 +159,10 @@ class UserSettings {
         return this.spinIndex;
     }
 
+    public setSpinIndex(index: number) {
+        this.spinIndex = index;
+    }
+
     public incrementSpinIndex() {
         this.spinIndex++;
         return this.spinIndex;

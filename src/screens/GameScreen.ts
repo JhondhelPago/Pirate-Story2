@@ -387,7 +387,7 @@ export class GameScreen extends Container {
         if (this.slot.process !== this.slot.autoSpinProcess) return;
         const autoplayprocess = this.slot.process as SlotAutoSpinProcess;
         autoplayprocess.requestStop();
-
+        this.controlPanel.autoplayButton.restoreDefaultView();
         // make the control panel available using the this.syncFeatureAvailability()
         this.syncFeatureAvailability();
         this.controlPanel.setMessage(i18n.t('holdSpaceForTurboSpin'));
@@ -397,6 +397,7 @@ export class GameScreen extends Container {
         if (this.finished) return;
         if (this.slot.autoSpinProcess.getAutoSpinProcessing()) return;
 
+        this.controlPanel.autoplayButton.showCancelView();
         this.lockInteraction();
         this.slot.autoSpin(spins);
         this.finished = true;
@@ -405,10 +406,13 @@ export class GameScreen extends Container {
     private async onAutoSpinComplete(current: number) {
         console.log(`Total Won in ${current} Auto Spin: `, this.slot.autoSpinProcess.getAccumulatedWin());
 
+        await userSettings.setupCollect();
+
         // ✅ Unlock only when auto spin session is finished
         this.controlPanel.enableBetting();
         this.finished = false;
 
+        this.controlPanel.autoplayButton.restoreDefaultView();
         this.syncFeatureAvailability();
     }
 
@@ -418,7 +422,7 @@ export class GameScreen extends Container {
         console.log('remaining spins left failed to display if there is no winning round');
 
         this.controlPanel.setMessage(i18n.t('remainingSpinsLeft', { spins: remaining }));
-
+        this.controlPanel.autoplayButton.showCancelView();
         this.lockInteraction();
     }
 
@@ -461,6 +465,7 @@ export class GameScreen extends Container {
         this.controlPanel.setTitle('');
 
         this.lockInteraction();
+        this.controlPanel.autoplayButton.showDisabledView();
         this.slot.freeSpinInitial(spins, featureCode);
         this.finished = true;
     }
@@ -483,7 +488,9 @@ export class GameScreen extends Container {
         collect().then((result) => {
             this.controlPanel.setCredit(result.balance);
             userSettings.setBalance(result.balance);
+            userSettings.setSpinIndex(result.index);
         });
+
 
         // hard lock while banner is open
         this.lockInteraction();
@@ -493,12 +500,13 @@ export class GameScreen extends Container {
 
         this.isResuming = false;
         this.syncFeatureAvailability();
+        this.controlPanel.autoplayButton.restoreDefaultView();
     }
 
     private async onFreeSpinRoundStart(current: number, remaining: number) {
         console.log('Current Spin: ', current, 'Remaining Spins: ', remaining);
         this.controlPanel.setMessage(i18n.t('freeSpinsLeft', { spins: remaining }));
-
+        this.controlPanel.autoplayButton.showDisabledView();
         this.lockInteraction();
     }
     private async onFreeSpinRoundComplete() {
