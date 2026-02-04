@@ -17,7 +17,8 @@ export interface BuyConfirmData {
 export class ConfirmationBuyFreeSpinPopup extends Container {
     private panel!: Container;
     private bg!: Sprite;
-    private board!: Sprite;
+    private board!: Container;
+    private boardSprite!: Sprite;
 
     private buyLabelContainer?: Container;
     private buyPrefixText?: Text;
@@ -62,9 +63,12 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.panel = new Container();
         this.addChild(this.panel);
 
-        this.board = Sprite.from(d.confirmationBoard);
-        this.board.anchor.set(0.5);
+        this.board = new Container();
         this.panel.addChild(this.board);
+
+        this.boardSprite = Sprite.from(d.confirmationBoard);
+        this.boardSprite.anchor.set(0.5);
+        this.board.addChild(this.boardSprite);
 
         this.createBuyLabel(d.spins);
 
@@ -104,7 +108,6 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.updateAmountBg();
     }
 
-    // ✅ FIXED: now actually uses the stored texts
     public setSpins(spins: number) {
         if (this.buyNumberText && this.buyPrefixText && this.buySuffixText && this.buyLabelContainer) {
             this.buyNumberText.text = String(spins);
@@ -136,9 +139,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     }
 
     private ensureLabelGradient() {
-        if (ConfirmationBuyFreeSpinPopup.labelGradientTexture && ConfirmationBuyFreeSpinPopup.labelGradientMatrix) {
-            return;
-        }
+        if (ConfirmationBuyFreeSpinPopup.labelGradientTexture && ConfirmationBuyFreeSpinPopup.labelGradientMatrix) return;
 
         const gradientCanvas = document.createElement('canvas');
         gradientCanvas.width = 512;
@@ -164,63 +165,42 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     }
 
     private createBuyLabel(spins: number) {
-        if (this.buyLabelContainer) {
-            this.buyLabelContainer.destroy({ children: true });
-            this.buyLabelContainer = undefined;
-            this.buyPrefixText = undefined;
-            this.buyNumberText = undefined;
-            this.buySuffixText = undefined;
-        }
+        if (this.buyLabelContainer) this.buyLabelContainer.destroy({ children: true });
 
         this.ensureLabelGradient();
-
         const tex = ConfirmationBuyFreeSpinPopup.labelGradientTexture!;
         const mat = ConfirmationBuyFreeSpinPopup.labelGradientMatrix!;
 
         const container = new Container();
-        container.eventMode = 'none';
-
         const stroke = { color: 0x4c1b05, width: 6 };
         const fontSize = 92;
 
-        const prefix = new Text(`${i18n.t('buy')} `, {
-            fontFamily: 'Pirata One',
-            fontSize,
-            align: 'center',
-            fill: { texture: tex, matrix: mat },
-            stroke,
+        const prefix = new Text({
+            text: `${i18n.t('buy')} `,
+            style: { fontFamily: 'Pirata One', fontSize, align: 'center', fill: { texture: tex, matrix: mat }, stroke },
         });
         prefix.anchor.set(0, 0.5);
 
-        const number = new Text(String(spins), {
-            fontFamily: 'Pirata One',
-            fontSize,
-            align: 'center',
-            fill: 0xffffff,
-            stroke,
+        const number = new Text({
+            text: String(spins),
+            style: { fontFamily: 'Pirata One', fontSize, align: 'center', fill: 0xffffff, stroke },
         });
         number.anchor.set(0, 0.5);
 
-        const suffix = new Text(` ${i18n.t('freeSpins')}`, {
-            fontFamily: 'Pirata One',
-            fontSize,
-            align: 'center',
-            fill: { texture: tex, matrix: mat },
-            stroke,
+        const suffix = new Text({
+            text: ` ${i18n.t('freeSpins')}`,
+            style: { fontFamily: 'Pirata One', fontSize, align: 'center', fill: { texture: tex, matrix: mat }, stroke },
         });
         suffix.anchor.set(0, 0.5);
 
         container.addChild(prefix, number, suffix);
 
         prefix.x = 0;
-        number.x = prefix.x + prefix.width;
+        number.x = prefix.width;
         suffix.x = number.x + number.width;
 
         const totalW = prefix.width + number.width + suffix.width;
         container.pivot.set(totalW * 0.5, 0);
-
-        container.x = 0;
-        container.y = 0;
 
         this.board.addChild(container);
 
@@ -231,33 +211,24 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     }
 
     private createValueText(initialText: string) {
-        if (this.valueText) {
-            this.valueText.destroy();
-            this.valueText = undefined;
-        }
+        if (this.valueText) this.valueText.destroy();
 
         this.ensureLabelGradient();
         const gradientTexture = ConfirmationBuyFreeSpinPopup.labelGradientTexture!;
         const mat = ConfirmationBuyFreeSpinPopup.labelGradientMatrix!;
 
-        this.valueText = new Text(initialText, {
-            fontFamily: 'Pirata One',
-            fontSize: 150,
-            align: 'center',
-            fill: {
-                texture: gradientTexture,
-                matrix: mat,
-            },
-            stroke: {
-                color: 0x4c1b05,
-                width: 6,
+        this.valueText = new Text({
+            text: initialText,
+            style: {
+                fontFamily: 'Pirata One',
+                fontSize: 150,
+                align: 'center',
+                fill: { texture: gradientTexture, matrix: mat },
+                stroke: { color: 0x4c1b05, width: 6 },
             },
         });
 
         this.valueText.anchor.set(0.5);
-        this.valueText.x = 0;
-        this.valueText.y = 0;
-
         this.board.addChild(this.valueText);
         this.updateAmountBg();
     }
@@ -265,19 +236,14 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     private updateAmountBg() {
         if (!this.valueText) return;
 
-        const bw = this.board.width;
-        const bh = this.board.height;
-
-        const padX = bw * 0.18;
-        const padY = bh * 0.05;
+        const padX = this.boardSprite.width * 0.18;
+        const padY = this.boardSprite.height * 0.05;
 
         const amtW = this.valueText.width + padX;
         const amtH = this.valueText.height + padY;
 
         this.amtBg.clear();
-        this.amtBg.beginFill(0x000000, 0.6);
-        this.amtBg.drawRoundedRect(-amtW * 0.5, -amtH * 0.5, amtW, amtH, 40);
-        this.amtBg.endFill();
+        this.amtBg.fill({ color: 0x000000, alpha: 0.6 }).roundRect(-amtW * 0.5, -amtH * 0.5, amtW, amtH, 40);
 
         this.amtBg.x = this.valueText.x;
         this.amtBg.y = this.valueText.y;
@@ -288,12 +254,7 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
         this.board.alpha = 0;
         this.board.y = oy - 400;
 
-        gsap.to(this.board, {
-            alpha: 1,
-            y: oy,
-            duration: 0.35,
-            ease: 'back.out(1.4)',
-        });
+        gsap.to(this.board, { alpha: 1, y: oy, duration: 0.35, ease: 'back.out(1.4)' });
     }
 
     public resize(width: number, height: number) {
@@ -307,40 +268,28 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
 
         this.board.scale.set(isMobile ? 1.2 : 1);
 
-        const bw = this.board.width;
-        const bh = this.board.height;
+        const bw = this.boardSprite.width;
+        const bh = this.boardSprite.height;
 
-        if (this.buyLabelContainer) {
-            this.buyLabelContainer.y = isMobile ? -bh * 0.25 : -bh * 0.3;
-            this.buyLabelContainer.x = 0;
-        }
-
-        if (this.valueText) {
-            this.valueText.y = 0;
-        }
+        if (this.buyLabelContainer) this.buyLabelContainer.y = isMobile ? -bh * 0.25 : -bh * 0.3;
+        if (this.valueText) this.valueText.y = 0;
 
         this.updateAmountBg();
 
-        if (isMobile) {
-            this.btnConfirm.y = bh * 0.22;
-            this.btnCancel.y = bh * 0.22;
-        } else {
-            this.btnConfirm.y = bh * 0.26;
-            this.btnCancel.y = bh * 0.26;
-        }
+        const y = isMobile ? bh * 0.22 : bh * 0.26;
+        this.btnConfirm.y = y;
+        this.btnCancel.y = y;
 
-        let buttonOffset = bw * 0.23;
-        if (isMobile) buttonOffset = bw * 0.17;
+        let offset = bw * 0.23;
+        if (isMobile) offset = bw * 0.17;
 
-        this.btnConfirm.x = -buttonOffset;
-        this.btnCancel.x = buttonOffset;
+        this.btnConfirm.x = -offset;
+        this.btnCancel.x = offset;
     }
 
     private startAmountPulse() {
         if (!this.valueText) return;
-
         gsap.killTweensOf(this.valueText.scale);
-
         this.amtPulseTween = gsap.to(this.valueText.scale, {
             x: 1.08,
             y: 1.08,
@@ -353,19 +302,13 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
 
     private stopAmountPulse() {
         if (!this.valueText) return;
-
         this.amtPulseTween?.kill();
         gsap.to(this.valueText.scale, { x: 1, y: 1, duration: 0.2 });
     }
 
     public async hide() {
         this.stopAmountPulse();
-
-        gsap.to([this.board, this.bg], {
-            alpha: 0,
-            duration: 0.2,
-        });
-
+        gsap.to([this.board, this.bg], { alpha: 0, duration: 0.2 });
         window.setTimeout(() => navigation.dismissPopup(), 200);
     }
 }

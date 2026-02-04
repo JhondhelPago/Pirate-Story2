@@ -7,7 +7,7 @@ import { resolveAndKillTweens } from '../utils/animation';
 import gsap from 'gsap';
 
 const defaultMatchPatternOptions = {
-    image: 'symbol-0',
+    image: 'symbol-1',
     times: 0,
     amount: 0,
     currency: 'KRW',

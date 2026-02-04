@@ -39,7 +39,7 @@ export type BuyFreeSpinOptionBannerConfig = {
     typeMap: Record<BuyFreeTypeLetter, BuyFreeTypeDefinition>;
 
     amount: number;
-    currencySymbol?: string; // should be: USD, PHP, KRW, etc
+    currencySymbol?: string;
     decimals?: number;
 
     amountFontSize?: number;
@@ -102,11 +102,11 @@ export class BuyFreeSpinOptionBanner extends Container {
         (this.scattersNumberText.style as any).fill = 0xffffff;
 
         this.scattersLine.addChild(this.scattersNumberText, this.scattersWordText);
-        this.attachCenterTextsToBanner(this.sprite);
+        this.attachCenterTextsToBanner(this, this.sprite);
 
         // --- bottom amount ---
         this.amountText = this.createStyledText(formatCurrency(this.amount), cfg.amountFontSize ?? 76, 'Pirata One');
-        this.attachAmountTextToBanner(this.sprite, this.amountText);
+        this.attachAmountTextToBanner(this, this.sprite, this.amountText);
 
         this.eventMode = 'static';
         this.cursor = 'pointer';
@@ -146,7 +146,7 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.decimals = decimals;
 
         this.amountText.text = formatCurrency(amount);
-        this.attachAmountTextToBanner(this.sprite, this.amountText);
+        this.attachAmountTextToBanner(this, this.sprite, this.amountText);
     }
 
     public setTypeLetter(typeLetter: BuyFreeTypeLetter) {
@@ -166,12 +166,12 @@ export class BuyFreeSpinOptionBanner extends Container {
 
     public setAmountFontSize(fontSize: number) {
         (this.amountText.style as any).fontSize = fontSize;
-        this.attachAmountTextToBanner(this.sprite, this.amountText);
+        this.attachAmountTextToBanner(this, this.sprite, this.amountText);
     }
 
     public setSpinsFontSize(fontSize: number) {
         (this.spinsText.style as any).fontSize = fontSize;
-        this.attachCenterTextsToBanner(this.sprite);
+        this.attachCenterTextsToBanner(this, this.sprite);
     }
 
     public setCenterLabelFontSize(labelFontSize: number) {
@@ -181,15 +181,19 @@ export class BuyFreeSpinOptionBanner extends Container {
 
         (this.scattersNumberText.style as any).fill = 0xffffff;
 
-        this.attachCenterTextsToBanner(this.sprite);
+        this.attachCenterTextsToBanner(this, this.sprite);
     }
 
     public relayout() {
-        this.attachCenterTextsToBanner(this.sprite);
-        this.attachAmountTextToBanner(this.sprite, this.amountText);
+        this.attachCenterTextsToBanner(this, this.sprite);
+        this.attachAmountTextToBanner(this, this.sprite, this.amountText);
     }
 
-    private createStyledText(value: string, fontSize: number, fontFamily: 'Pirata One' | 'Bangers') {
+    private createStyledText(
+        value: string,
+        fontSize: number,
+        fontFamily: 'Pirata One' | 'Bangers'
+    ) {
         this.ensureAmountGradient();
 
         const style: any = {
@@ -206,7 +210,11 @@ export class BuyFreeSpinOptionBanner extends Container {
             },
         };
 
-        const t = new Text(value, style);
+        const t = new Text({
+            text: value,
+            style,
+        });
+
         t.anchor.set(0.5);
         t.eventMode = 'none';
         return t;
@@ -238,8 +246,8 @@ export class BuyFreeSpinOptionBanner extends Container {
         BuyFreeSpinOptionBanner.amountGradientMatrix = mat;
     }
 
-    private attachAmountTextToBanner(optionSprite: Sprite, text: Text) {
-        if (text.parent !== optionSprite) optionSprite.addChild(text);
+    private attachAmountTextToBanner(optionContainer: Container, optionSprite: Sprite, text: Text) {
+        if (text.parent !== optionContainer) optionContainer.addChild(text);
 
         const texH = optionSprite.texture?.orig?.height ?? optionSprite.texture?.height ?? optionSprite.height;
         const bottomPadding = 14;
@@ -248,12 +256,15 @@ export class BuyFreeSpinOptionBanner extends Container {
         text.y = texH * 0.3 - bottomPadding;
     }
 
-    private attachCenterTextsToBanner(optionSprite: Sprite) {
-        const texH = optionSprite.texture?.orig?.height ?? optionSprite.texture?.height ?? optionSprite.height;
+    private attachCenterTextsToBanner(optionContainer: Container, optionSprite: Sprite) {
+        const texH =
+            optionSprite.texture?.orig?.height ??
+            optionSprite.texture?.height ??
+            optionSprite.height;
 
-        if (this.spinsText.parent !== optionSprite) optionSprite.addChild(this.spinsText);
-        if (this.freeSpinsText.parent !== optionSprite) optionSprite.addChild(this.freeSpinsText);
-        if (this.scattersLine.parent !== optionSprite) optionSprite.addChild(this.scattersLine);
+        if (this.spinsText.parent !== optionContainer) optionContainer.addChild(this.spinsText);
+        if (this.freeSpinsText.parent !== optionContainer) optionContainer.addChild(this.freeSpinsText);
+        if (this.scattersLine.parent !== optionContainer) optionContainer.addChild(this.scattersLine);
 
         const safeTop = -texH * 0.18;
         const safeBottom = texH * 0.18;

@@ -371,6 +371,30 @@ export class BuyFreeSpinPopup extends Container {
     // Label text helpers (gradient fill + stroke)
     // -----------------------
 
+    // private createGradientLabelText(value: string, fontSize: number) {
+    //     this.ensureLabelGradient();
+
+    //     const style: any = {
+    //         fontFamily: 'Pirata One',
+    //         fontSize,
+    //         align: 'center',
+    //         fill: {
+    //             texture: BuyFreeSpinPopup.labelGradientTexture!,
+    //             matrix: BuyFreeSpinPopup.labelGradientMatrix!,
+    //         },
+    //         stroke: {
+    //             color: 0x4c1b05,
+    //             width: 6,
+    //         },
+    //     };
+
+    //     const t = new Text(value, style);
+    //     t.anchor.set(0.5);
+    //     t.eventMode = 'none';
+    //     return t;
+    // }
+
+
     private createGradientLabelText(value: string, fontSize: number) {
         this.ensureLabelGradient();
 
@@ -388,11 +412,16 @@ export class BuyFreeSpinPopup extends Container {
             },
         };
 
-        const t = new Text(value, style);
+        const t = new Text({
+            text: value,
+            style,
+        });
+
         t.anchor.set(0.5);
         t.eventMode = 'none';
         return t;
     }
+
 
     private ensureLabelGradient() {
         if (BuyFreeSpinPopup.labelGradientTexture && BuyFreeSpinPopup.labelGradientMatrix) return;

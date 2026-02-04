@@ -59,16 +59,21 @@ export class BuyFreeSpin extends Container {
         // --------------------------
         // BUTTON LABEL
         // --------------------------
-        this.labelText = new Text(i18n.t('buyFreeSpins'), {
-            fontFamily: 'Pirata One',
-            fontSize: 28,
-            align: 'center',
-            fill: 0xffffff, // will be replaced by gradient
-            stroke: {
-                color: 0x4c1b05,
-                width: 4,
+        this.labelText = new Text({
+            text: i18n.t('buyFreeSpins'),
+            style: {
+                fontFamily: 'Pirata One',
+                fontSize: 28,
+                align: 'center',
+                fill: 0xffffff, // will be replaced by gradient
+                stroke: {
+                    color: 0x4c1b05,
+                    width: 4,
+                },
             },
         });
+
+
 
         this.labelText.anchor.set(0.5);
         this.labelText.position.set(0, this.button.height * 0.25);

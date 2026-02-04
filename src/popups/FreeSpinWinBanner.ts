@@ -506,19 +506,27 @@ export class FreeSpinWinBanner extends Container {
         this.topText?.destroy();
         this.bottomText?.destroy();
 
-        this.topText = new Text(topLabel, {
-            ...this.createWoodLabelStyle(42),
-            fontFamily: 'Bangers',
-            letterSpacing: 3,
+        this.topText = new Text({
+            text: topLabel,
+            style: {
+                ...this.createWoodLabelStyle(42),
+                fontFamily: 'Bangers',
+                letterSpacing: 3,
+            },
         });
+
         this.topText.anchor.set(0.5);
         this.topText.y = this.TOP_TEXT_Y;
 
-        this.bottomText = new Text(bottomLabel, {
-            ...this.createWoodLabelStyle(44),
-            fontFamily: 'Bangers',
-            letterSpacing: 3,
+        this.bottomText = new Text({
+            text: bottomLabel,
+            style: {
+                ...this.createWoodLabelStyle(44),
+                fontFamily: 'Bangers',
+                letterSpacing: 3,
+            },
         });
+
         this.bottomText.anchor.set(0.5);
         this.bottomText.y = this.BOTTOM_TEXT_Y;
 
@@ -528,11 +536,15 @@ export class FreeSpinWinBanner extends Container {
     private createCenterNumber() {
         this.spinsText?.destroy();
 
-        this.spinsText = new Text('0', {
-            ...this.createCenterNumberStyle(150),
-            fontFamily: 'Pirata One',
-            letterSpacing: 2,
+        this.spinsText = new Text({
+            text: '0',
+            style: {
+                ...this.createCenterNumberStyle(150),
+                fontFamily: 'Pirata One',
+                letterSpacing: 2,
+            },
         });
+
         this.spinsText.anchor.set(0.5);
         this.spinsText.y = this.CENTER_NUMBER_Y;
 
@@ -542,11 +554,15 @@ export class FreeSpinWinBanner extends Container {
     private createContinueText() {
         this.continueText?.destroy();
 
-        this.continueText = new Text('PRESS ANYWHERE TO CONTINUE', {
-            ...this.createWoodLabelStyle(36),
-            fontFamily: 'Bangers',
-            letterSpacing: 2,
+        this.continueText = new Text({
+            text: 'PRESS ANYWHERE TO CONTINUE',
+            style: {
+                ...this.createWoodLabelStyle(36),
+                fontFamily: 'Bangers',
+                letterSpacing: 2,
+            },
         });
+
 
         this.continueText.anchor.set(0.5);
         this.continueText.y = this.BOTTOM_TEXT_Y + 110;

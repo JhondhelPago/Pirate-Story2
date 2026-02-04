@@ -252,6 +252,25 @@ export class SlotBoard {
         this._spinning = false;
     }
 
+    // private refreshMask() {
+    //     const w = this.columns * this.tile;
+    //     const h = this.rows * this.tile;
+    //     const offsetX = w / 2;
+    //     const offsetY = h / 2;
+
+    //     this.piecesMask.clear();
+    //     this.piecesMask.beginFill(0xffffff, 1);
+
+    //     // keep the mask shape centered
+    //     this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
+    //     this.piecesMask.endFill();
+
+    //     // ✅ move BOTH the masked content and the mask together
+    //     const BOARD_Y_OFFSET = 5; // small value (try 6~20)
+    //     this.piecesContainer.y = BOARD_Y_OFFSET;
+    //     this.piecesMask.y = BOARD_Y_OFFSET;
+    // }
+
     private refreshMask() {
         const w = this.columns * this.tile;
         const h = this.rows * this.tile;
@@ -259,17 +278,18 @@ export class SlotBoard {
         const offsetY = h / 2;
 
         this.piecesMask.clear();
-        this.piecesMask.beginFill(0xffffff, 1);
 
         // keep the mask shape centered
-        this.piecesMask.drawRect(-offsetX, -offsetY, w, h);
-        this.piecesMask.endFill();
+        this.piecesMask
+            .rect(-offsetX, -offsetY, w, h)
+            .fill({ color: 0xffffff, alpha: 1 });
 
         // ✅ move BOTH the masked content and the mask together
         const BOARD_Y_OFFSET = 5; // small value (try 6~20)
         this.piecesContainer.y = BOARD_Y_OFFSET;
         this.piecesMask.y = BOARD_Y_OFFSET;
     }
+
 
     public setup(config: SlotConfig) {
         this.rows = config.rows;

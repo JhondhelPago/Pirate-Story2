@@ -498,18 +498,25 @@ export class TotalWinBanner extends Container {
         if (this.headerLine1) this.headerLine1.destroy();
         if (this.headerLine2) this.headerLine2.destroy();
 
-        this.headerLine1 = new Text('CONGRATULATIONS!', {
-            ...this.createHeaderGradientStyle(110),
-            fontFamily: 'Bangers',
-            letterSpacing: 6,
+        this.headerLine1 = new Text({
+            text: 'CONGRATULATIONS!',
+            style: {
+                ...this.createHeaderGradientStyle(110),
+                fontFamily: 'Bangers',
+                letterSpacing: 6,
+            },
         });
         this.headerLine1.anchor.set(0.5);
 
-        this.headerLine2 = new Text('YOU HAVE WON', {
-            ...this.createSubHeaderGradientStyle(64),
-            fontFamily: 'Bangers',
-            letterSpacing: 4,
+        this.headerLine2 = new Text({
+            text: 'YOU HAVE WON',
+            style: {
+                ...this.createSubHeaderGradientStyle(64),
+                fontFamily: 'Bangers',
+                letterSpacing: 4,
+            },
         });
+
         this.headerLine2.anchor.set(0.5);
 
         this.headerGroup.addChild(this.headerLine1, this.headerLine2);
@@ -544,7 +551,11 @@ export class TotalWinBanner extends Container {
             this.amountText.destroy();
         }
 
-        this.amountText = new Text('$0.00', this.createAmountGradientStyle(150));
+        this.amountText = new Text({
+            text: '$0.00',
+            style: this.createAmountGradientStyle(150),
+        });
+
         this.amountText.anchor.set(0.5);
         this.amountText.x = 0;
         this.amountText.y = this.AMOUNT_OFFSET_Y;
@@ -563,11 +574,15 @@ export class TotalWinBanner extends Container {
 
         const text = this.freeSpins > 0 ? `IN ${this.freeSpins} FREE SPINS` : '';
 
-        this.spinsText = new Text(text, {
-            ...this.createSubHeaderGradientStyle(64),
-            fontFamily: 'Bangers',
-            letterSpacing: 4,
+        this.spinsText = new Text({
+            text: text,
+            style: {
+                ...this.createSubHeaderGradientStyle(64),
+                fontFamily: 'Bangers',
+                letterSpacing: 4,
+            },
         });
+
         this.spinsText.anchor.set(0.5);
         this.spinsText.x = 0;
         this.spinsText.y = this.AMOUNT_OFFSET_Y + this.SPINS_OFFSET_Y;
@@ -584,11 +599,15 @@ export class TotalWinBanner extends Container {
             this.continueText.destroy();
         }
 
-        this.continueText = new Text('PRESS ANYWHERE TO CONTINUE', {
-            ...this.createSubHeaderGradientStyle(48),
-            fontFamily: 'Bangers',
-            letterSpacing: 4,
+        this.continueText = new Text({
+            text: 'PRESS ANYWHERE TO CONTINUE',
+            style: {
+                ...this.createSubHeaderGradientStyle(48),
+                fontFamily: 'Bangers',
+                letterSpacing: 4,
+            },
         });
+
         this.continueText.anchor.set(0.5);
         this.continueText.x = 0;
         this.continueText.y = this.AMOUNT_OFFSET_Y + this.CONTINUE_OFFSET_Y;

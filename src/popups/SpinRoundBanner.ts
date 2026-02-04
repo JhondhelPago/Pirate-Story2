@@ -550,17 +550,21 @@ export class SpinRoundBanner extends Container {
         const mat = new Matrix();
         mat.scale(1 / gradientCanvas.width, 1 / gradientCanvas.height);
 
-        this.valueText = new Text('$0.00', {
-            fontFamily: 'Pirata One',
-            fontSize: 150,
-            align: 'center',
-            fill: { texture: gradientTexture, matrix: mat },
-            stroke: { color: 0x4c1b05, width: 6 },
+        this.valueText = new Text({
+            text: '$0.00',
+            style: {
+                fontFamily: 'Pirata One',
+                fontSize: 150,
+                align: 'center',
+                fill: { texture: gradientTexture, matrix: mat },
+                stroke: { color: 0x4c1b05, width: 6 },
+            },
         });
+
 
         this.valueText.anchor.set(0.5);
         this.valueText.x = this.banner.x;
-        this.valueText.y = this.banner.y + 40;
+        this.valueText.y = this.banner.y + 40; 
 
         this.panel.addChild(this.valueText);
     }
