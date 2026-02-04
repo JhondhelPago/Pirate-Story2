@@ -76,9 +76,7 @@ async function setupUserSettings() {
     await userSettings.setupGameConfig();
     await userSettings.setupCollect();
 
-    const config = Config.getConfig();
-    console.log("configration data from utility class Config: ", config);
-    // uncomment in production
+    const config = Config.getConfig();    // uncomment in production
     updateUrlSettings(config.language, config.currency);
     i18n.init();
     await userSettings.setupResume();
@@ -95,11 +93,10 @@ async function preloadFonts() {
 
 /** Main bootstrap */
 async function init() {
-    console.log("before init everything");
     if (!isAuthenticated) showErrorScreen('No token provided.');
     const gameConfiguration = await GameServices.getGameConfig();
     Config.setConfig(gameConfiguration.data);
-    console.log("configration data from api services: ", gameConfiguration.data);
+    console.log("configration data from api services: ", Config.getConfig());
 
 
     // Setup app and assets
