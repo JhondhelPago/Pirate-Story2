@@ -1,7 +1,7 @@
 import { AsyncQueue } from '../utils/asyncUtils';
 import { Slot } from './Slot';
 import { userSettings, features } from '../utils/userSettings';
-import { config } from './SlotSettings';
+import Config from './SlotSettings';
 import { ConfigAPI } from '../api/configApi';
 import {
     RoundResult,
@@ -359,7 +359,7 @@ export class SlotProcess {
     }
 
     public rewardBonusCheckpoint() {
-        const freeSpins = config.settings.features;
+        const freeSpins = Config.getConfig().settings.features;
         const minBonusCount = Math.min(...freeSpins.map((item: features) => item.scatters));
         if (this.bonus >= minBonusCount) {
             // will get 2x bet reward if there is valid bonus appearance
@@ -423,7 +423,7 @@ export class SlotProcess {
 
     public async getSpinWon() {
         // exported config from userSettings that fetches slot configuration
-        const freeSpinsArray = config.settings.features;
+        const freeSpinsArray = Config.getConfig().settings.features;
 
         const freeSpinSettings = freeSpinsArray
             .filter((item: features) => item.scatters <= this.bonus)

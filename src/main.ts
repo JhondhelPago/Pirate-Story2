@@ -10,7 +10,7 @@ import { getUrlParam, updateUrlSettings } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { userSettings } from './utils/userSettings';
-import { config, isAuthenticated } from './slot/SlotSettings';
+import Config, { isAuthenticated } from './slot/SlotSettings';
 import { i18n } from './i18n/i18n';
 import { showErrorScreen } from './utils/error';
 import { GameServices } from './api/services';
@@ -76,6 +76,8 @@ async function setupUserSettings() {
     await userSettings.setupGameConfig();
     await userSettings.setupCollect();
 
+    const config = Config.getConfig();
+    console.log("configration data from utility class Config: ", config);
     // uncomment in production
     updateUrlSettings(config.language, config.currency);
     i18n.init();
@@ -93,10 +95,12 @@ async function preloadFonts() {
 
 /** Main bootstrap */
 async function init() {
+    console.log("before init everything");
     if (!isAuthenticated) showErrorScreen('No token provided.');
+    const gameConfiguration = await GameServices.getGameConfig();
+    Config.setConfig(gameConfiguration.data);
+    console.log("configration data from api services: ", gameConfiguration.data);
 
-    const configData = await GameServices.getGameConfig();
-    config.setConfig(configData.data);
 
     // Setup app and assets
     await setupUserSettings();

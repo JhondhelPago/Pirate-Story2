@@ -2,10 +2,10 @@ import { Container } from 'pixi.js';
 import { Label } from './Label';
 import { List } from '@pixi/ui';
 import { PaytableSpecialCard } from './PaytableSpecialCard';
-import { config } from '../slot/SlotSettings';
+import Config from '../slot/SlotSettings';
 import { i18n } from '../i18n/i18n';
 
-const bonusType = config.settings.specialBlocks[0]; //type 11 position at index 0
+const bonusType = Config.getConfig().settings.specialBlocks[0]; //type 11 position at index 0
 
 export class ScatterSection extends Container {
     private symbolsDescriptionLabel: Label;

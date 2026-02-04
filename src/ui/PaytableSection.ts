@@ -4,7 +4,7 @@ import { userSettings } from '../utils/userSettings';
 import { Paytable } from '../slot/SlotConfig';
 import { List } from '@pixi/ui';
 import { PaytableCard } from './PaytableCard';
-import { config } from '../slot/SlotSettings';
+import Config from '../slot/SlotSettings';
 import { i18n } from '../i18n/i18n';
 import { getUrlParam } from '../utils/getUrlParams';
 
@@ -24,7 +24,7 @@ export class PayTableSection extends Container {
 
         this.betAmount = userSettings.getBet();
         this.currency = getUrlParam('cur') ?? 'KRW';
-        this.paytables = config.settings.paytables;
+        this.paytables = Config.getConfig().settings.paytables;
 
         this.mainLayout = new List({ type: 'vertical', elementsMargin: 20 });
         this.addChild(this.mainLayout);

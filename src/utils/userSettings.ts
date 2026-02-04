@@ -1,7 +1,7 @@
 import { GameServices } from '../api/services';
 import { bgm, setMasterVolume, sfx } from './audio';
 import { storage } from './storage';
-import { config } from '../slot/SlotSettings';
+import Config from '../slot/SlotSettings';
 
 // interface for the extraFreeSpins
 export interface FreeSpinSetting {
@@ -64,11 +64,11 @@ class UserSettings {
 
     constructor() {
         this.spinMode = SpinModeEnum.Normal;
-        this.currency = config.currency;
+        this.currency = Config.getConfig().currency;
         this.balance = 0;
         this.freeSpins = 0;
 
-        this.betOptions = config.bettingLimit.MONEY_OPTION;
+        this.betOptions = Config.getConfig().bettingLimit.MONEY_OPTION;
         this.betIndex = 0;
 
         this.spinIndex = -1;

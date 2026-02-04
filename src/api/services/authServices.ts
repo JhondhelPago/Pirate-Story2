@@ -4,6 +4,16 @@ import { showErrorScreen } from '../../utils/error';
 import axios from 'axios';
 import { getUrlParam } from '../../utils/getUrlParams';
 
+export async function tryRefreshToken() {
+    try {
+        const refreshResponse = await axiosInstance.post(`/auth/refresh`, {});
+        userAuth.set(refreshResponse.data['accessToken']);
+        return refreshResponse.data;
+    } catch (error: any) {
+        throw new Error('Session expired. Please login again.');
+    }
+}
+
 export const login = async (token: string) => {
     try {
         const res = await axiosInstance.post('/auth/login', { token });

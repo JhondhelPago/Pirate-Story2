@@ -2,7 +2,7 @@ import { userSettings } from '../utils/userSettings';
 import { Slot } from './Slot';
 import { SlotProcess } from './SlotProcess';
 import { FreeSpinSetting } from '../utils/userSettings';
-import { config } from './SlotSettings';
+import Config from './SlotSettings';
 import {
     calculateTotalWin,
     countScatterBonus,
@@ -342,7 +342,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
 
     // need an specific override for the rewardBonusCheckpoint here in the Match3FreeSpinProcess
     public rewardBonusCheckpoint() {
-        const freeSpins = config.settings.extraFreeSpins;
+        const freeSpins = Config.getConfig().settings.extraFreeSpins;
         const minBonusCount = Math.min(...freeSpins.map((item: FreeSpinSetting) => item.count));
         if (this.bonus >= minBonusCount) {
             // will get 2x bet reward if there is valid bonus appearance
@@ -384,7 +384,7 @@ export class SlotFreeSpinProcess extends SlotProcess {
 
     public async getSpinWon() {
         // exported config from userSettings that fetches slot configuration
-        const freeSpinsArray = config.settings.extraFreeSpins;
+        const freeSpinsArray = Config.getConfig().settings.extraFreeSpins;
 
         const freeSpinSettings = freeSpinsArray
             .filter((item: FreeSpinSetting) => item.count <= this.bonus)

@@ -1,5 +1,5 @@
 import { userSettings, PaytableLedger, PatternSettings } from '../utils/userSettings';
-import { config } from './SlotSettings';
+import Config from './SlotSettings';
 
 /** Piece type on each position in the grid */
 export type Match3Type = number;
@@ -345,7 +345,7 @@ export function slotEvaluateClusterWins(grid: Match3Grid, bonusGrid: number[][])
 
     const clusters = slotGetClusters(grid);
 
-    const paytable: PaytableLedger[] = config.settings.paytables;
+    const paytable: PaytableLedger[] = Config.getConfig().settings.paytables;
 
     const results: ClusterWinResult[] = [];
 
@@ -384,7 +384,7 @@ export function slotEvaluateClusterWins(grid: Match3Grid, bonusGrid: number[][])
 }
 
 export function calculateTotalWin(results: ClusterWinResult[], betAmount: number): number {
-    const paytable: PaytableLedger[] = config.settings.paytables;
+    const paytable: PaytableLedger[] = Config.getConfig().settings.paytables;
     let totalWin = 0;
 
     results.forEach((r) => {
@@ -564,17 +564,17 @@ export function sleep(ms: number) {
 export function isMaxWin(win: number) {
     // boolean checker for max win
     const bet = userSettings.getBet();
-    const limit = bet * config.settings.maxBaseMultiplier;
+    const limit = bet * Config.getConfig().settings.maxBaseMultiplier;
     return win >= limit ? true : false;
 }
 
 export function getmaxWin() {
     const bet = userSettings.getBet();
-    return bet * config.settings.maxBaseMultiplier;
+    return bet * Config.getConfig().settings.maxBaseMultiplier;
 }
 
 export function getPatternByCount(type: number, count: number): PatternSettings {
-    const paytables: PaytableLedger[] = config.settings.paytables;
+    const paytables: PaytableLedger[] = Config.getConfig().settings.paytables;
 
     const ledger = paytables.find((pt) => pt.type === type);
     if (!ledger) {

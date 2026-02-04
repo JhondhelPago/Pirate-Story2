@@ -1,10 +1,10 @@
 import { Container, Sprite } from 'pixi.js';
 import { List } from '@pixi/ui';
 import { Label } from './Label';
-import { config } from '../slot/SlotSettings';
+import Config from '../slot/SlotSettings';
 import { i18n } from '../i18n/i18n';
 
-const wildType = config.settings.specialBlocks[1]; //type 12 position at index 1
+const wildType = Config.getConfig().settings.specialBlocks[1]; //type 12 position at index 1
 
 export class FeatureSection extends Container {
     private descriptionLabel: Label;

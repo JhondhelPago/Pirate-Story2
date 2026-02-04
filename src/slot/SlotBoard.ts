@@ -5,7 +5,7 @@ import { SlotConfig, slotGetBlocks } from './SlotConfig';
 import { SlotSymbol } from './SlotSymbol';
 import { gridRandomTypeReset, initGrid, forEachCell, SCATTERBONUS } from './SlotUtility';
 import { userSettings, SpinModeEnum, features } from '../utils/userSettings';
-import { config } from './SlotSettings';
+import Config from './SlotSettings';
 import { sfx } from '../utils/audio';
 
 interface ReelColumn {
@@ -1428,7 +1428,7 @@ export class SlotBoard {
         const isInitialSpin = isFreeSpin ? this.match3?.freeSpinProcess.getIsInitialFreeSpin() : false;
 
         if (!isFreeSpin || (isFreeSpin && isInitialSpin)) {
-            const freeSpins = config.settings.features;
+            const freeSpins = Config.getConfig().settings.features;
             const minCountToAnimate = Math.min(...freeSpins.map((item: features) => item.scatters));
 
             if (Array.isArray(bonusPositions) && bonusPositions.length >= minCountToAnimate) {
