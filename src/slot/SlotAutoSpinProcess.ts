@@ -16,7 +16,6 @@ export class SlotAutoSpinProcess extends SlotProcess {
 
     private stopRequested = false;
 
-
     public processCheckpoint() {
         if (this.remainingSpins > 0) {
             this.remainingSpins--;
@@ -83,7 +82,6 @@ export class SlotAutoSpinProcess extends SlotProcess {
 
         await this.autoSpinStart();
     }
-
 
     public async start() {
         if (this.processing) return;
@@ -209,9 +207,7 @@ export class SlotAutoSpinProcess extends SlotProcess {
         super.reset();
     }
 
-
     public requestStop() {
         this.stopRequested = true;
     }
-
 }

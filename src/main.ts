@@ -6,13 +6,14 @@ import { navigation } from './utils/navigation';
 import { LoadScreen } from './screens/LoadScreen';
 import { sound } from '@pixi/sound';
 import { IslandBackground } from './ui/IslandBackground';
-import { getUrlParam } from './utils/getUrlParams';
+import { getUrlParam, updateUrlSettings } from './utils/getUrlParams';
 import { GameScreen } from './screens/GameScreen';
 import { FreeSpinWinPopup } from './popups/FreeSpinWinPopup';
 import { userSettings } from './utils/userSettings';
-import { isAuthenticated } from './slot/SlotSettings';
+import { config, isAuthenticated } from './slot/SlotSettings';
 import { i18n } from './i18n/i18n';
 import { showErrorScreen } from './utils/error';
+import { GameServices } from './api/services';
 
 /** The PixiJS app Application instance */
 export const app = new Application();
@@ -76,7 +77,7 @@ async function setupUserSettings() {
     await userSettings.setupCollect();
 
     // uncomment in production
-    //updateUrlSettings(config.language, config.currency);
+    updateUrlSettings(config.language, config.currency);
     i18n.init();
     await userSettings.setupResume();
 }
@@ -93,6 +94,9 @@ async function preloadFonts() {
 /** Main bootstrap */
 async function init() {
     if (!isAuthenticated) showErrorScreen('No token provided.');
+
+    const configData = await GameServices.getGameConfig();
+    config.setConfig(configData.data);
 
     // Setup app and assets
     await setupUserSettings();

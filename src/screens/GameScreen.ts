@@ -119,7 +119,6 @@ export class GameScreen extends Container {
         this.controlPanel.onSpacebar(() => this.startSpinning());
 
         this.controlPanel.onAutoplay(() => {
-
             const hasPendingProcess = this.slot.hasPendingProcess();
             if (hasPendingProcess) {
                 console.log('Theres pending process? ', hasPendingProcess);
@@ -128,7 +127,7 @@ export class GameScreen extends Container {
                 return; // prevent opening autoplay popup when there is ongoing process
             }
             this.slot.useBaseProcess();
-        
+
             const spinMode = 'normal-spin';
             navigation.presentPopup<AutoplayPopupData>(AutoplayPopup, {
                 spinMode,
@@ -141,7 +140,6 @@ export class GameScreen extends Container {
         });
 
         this.controlPanel.onCancelAutoplay(() => this.onCancelAutoSpin());
-
 
         this.controlPanel.onSettings(() => {
             navigation.presentPopup<SettingsPopupData>(SettingsPopup, {
@@ -349,6 +347,7 @@ export class GameScreen extends Container {
 
     private async onSpinStart() {
         this.controlPanel.setCredit(userSettings.getBalance());
+        this.controlPanel.autoplayButton.showDisabledView();
         this.lockInteraction();
     }
 
@@ -379,7 +378,7 @@ export class GameScreen extends Container {
 
         this.controlPanel.enableBetting();
         this.finished = false;
-
+        this.controlPanel.autoplayButton.restoreDefaultView();
         this.syncFeatureAvailability();
     }
 
@@ -490,7 +489,6 @@ export class GameScreen extends Container {
             userSettings.setBalance(result.balance);
             userSettings.setSpinIndex(result.index);
         });
-
 
         // hard lock while banner is open
         this.lockInteraction();

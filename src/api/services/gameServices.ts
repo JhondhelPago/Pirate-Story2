@@ -56,6 +56,8 @@ export const spin = async (feature: number) => {
             index: userSettings.incrementSpinIndex(), // incremented by 1 to request the next genereted reels result
         });
 
+        console.log('spin index used: ', userSettings.getSpinIndex());
+
         console.log('spin response: ', response.data);
 
         return response.data;

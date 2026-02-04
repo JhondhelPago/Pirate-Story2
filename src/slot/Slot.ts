@@ -223,6 +223,8 @@ export class Slot extends Container {
         else if (prev === this.autoSpinProcess) this.useAutoSpinProcess();
         else this._currentProcess = prev;
 
+        await userSettings.setupCollect(); // fresh spin index and collect balance setter --- IGNORE ---
+
         // Resume the restored process
         try {
             prev.resume?.();
@@ -312,18 +314,12 @@ export class Slot extends Container {
         return this._currentProcess === this.freeSpinProcess;
     }
 
-    /** 
+    /**
      * True if ANY process is running, paused, queued, or switching
      */
     public hasPendingProcess(): boolean {
-        return (
-            this.spinning ||
-            this.controllerBusy ||
-            this.switching ||
-            this.processStack.length > 0
-        );
+        return this.spinning || this.controllerBusy || this.switching || this.processStack.length > 0;
     }
-
 
     // ---------------------------------------------------------------------
     // Existing lifecycle

@@ -6,7 +6,7 @@ import { GameScreen } from '../screens/GameScreen';
 
 // ✅ use already-loaded config from userSettings.ts
 import { userSettings } from '../utils/userSettings';
-import { config as loadedConfig } from '../slot/SlotSettings';
+import Config from '../slot/SlotSettings';
 
 // ✅ updated imports (letter type + definition)
 import { BuyFreeSpinOptionBanner, type BuyFreeTypeLetter, type BuyFreeTypeDefinition } from '../ui/FeatureBanner';
@@ -38,7 +38,7 @@ export class BuyFreeSpinPopup extends Container {
     private pulseTween?: gsap.core.Tween;
 
     // ✅ config now comes from userSettings.ts export
-    private config?: typeof loadedConfig;
+    private config = {} as any;
 
     private currencyType!: CurrencyType;
     private currencySymbol!: string;
@@ -223,7 +223,7 @@ export class BuyFreeSpinPopup extends Container {
 
         // ✅ USE already-loaded config from userSettings.ts
         // If userSettings loads it at app start, this should already be ready here.
-        this.config = loadedConfig;
+        this.config = Config.getConfig();
 
         // (Optional safety) If somehow it's not loaded yet, fail gracefully.
         if (!this.config) {
