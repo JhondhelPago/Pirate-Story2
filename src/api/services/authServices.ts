@@ -7,7 +7,7 @@ import { getUrlParam } from '../../utils/getUrlParams';
 export async function tryRefreshToken() {
     try {
         const refreshResponse = await axiosInstance.post(`/auth/refresh`, {});
-        userAuth.set(refreshResponse.data['accessToken']);
+        userAuth.set(refreshResponse.data?.data?.['accessToken']);
         return refreshResponse.data;
     } catch (error: any) {
         throw new Error('Session expired. Please login again.');

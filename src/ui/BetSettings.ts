@@ -8,7 +8,7 @@ export class BetSettings extends Container {
     private layout: List;
     private title: Label;
     private betContainer: Container; // <- now a Container
-    private betSprite: Sprite;       // <- store the actual Sprite
+    private betSprite: Sprite; // <- store the actual Sprite
     private betAmountLabel: Label;
 
     private betButtonLayout: List;

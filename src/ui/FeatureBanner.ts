@@ -189,11 +189,7 @@ export class BuyFreeSpinOptionBanner extends Container {
         this.attachAmountTextToBanner(this, this.sprite, this.amountText);
     }
 
-    private createStyledText(
-        value: string,
-        fontSize: number,
-        fontFamily: 'Pirata One' | 'Bangers'
-    ) {
+    private createStyledText(value: string, fontSize: number, fontFamily: 'Pirata One' | 'Bangers') {
         this.ensureAmountGradient();
 
         const style: any = {
@@ -257,10 +253,7 @@ export class BuyFreeSpinOptionBanner extends Container {
     }
 
     private attachCenterTextsToBanner(optionContainer: Container, optionSprite: Sprite) {
-        const texH =
-            optionSprite.texture?.orig?.height ??
-            optionSprite.texture?.height ??
-            optionSprite.height;
+        const texH = optionSprite.texture?.orig?.height ?? optionSprite.texture?.height ?? optionSprite.height;
 
         if (this.spinsText.parent !== optionContainer) optionContainer.addChild(this.spinsText);
         if (this.freeSpinsText.parent !== optionContainer) optionContainer.addChild(this.freeSpinsText);

@@ -280,16 +280,13 @@ export class SlotBoard {
         this.piecesMask.clear();
 
         // keep the mask shape centered
-        this.piecesMask
-            .rect(-offsetX, -offsetY, w, h)
-            .fill({ color: 0xffffff, alpha: 1 });
+        this.piecesMask.rect(-offsetX, -offsetY, w, h).fill({ color: 0xffffff, alpha: 1 });
 
         // ✅ move BOTH the masked content and the mask together
         const BOARD_Y_OFFSET = 5; // small value (try 6~20)
         this.piecesContainer.y = BOARD_Y_OFFSET;
         this.piecesMask.y = BOARD_Y_OFFSET;
     }
-
 
     public setup(config: SlotConfig) {
         this.rows = config.rows;

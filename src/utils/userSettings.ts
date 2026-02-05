@@ -182,8 +182,7 @@ class UserSettings {
     }
 
     public async setupGameConfig() {
-        const response = await GameServices.getGameConfig();
-        this.gameConfig = response.data;
+        this.gameConfig = Config.getConfig();
         this.currency = this.gameConfig.currency;
         this.betOptions = this.gameConfig.bettingLimit.MONEY_OPTION;
     }

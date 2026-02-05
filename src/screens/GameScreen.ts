@@ -192,6 +192,7 @@ export class GameScreen extends Container {
     private getAutoSpinProcessing(): boolean {
         return this.slot.autoSpinProcess?.getAutoSpinProcessing?.() ?? false;
     }
+
     private syncFeatureAvailability() {
         const normalProcessing = this.getNormalProcessing();
         const freeSpinProcessing = this.getFreeSpinProcessing();
@@ -224,13 +225,18 @@ export class GameScreen extends Container {
         // block the trigger of the spin if there is current popups, to prevent keyboard input to trigger spins
         if (navigation.currentPopup) return;
 
+        // ✅ During FreeSpin INITIAL bonus spin:
+        // clicking spin should NOT be blocked — it should request an interrupt (board decides if it can accelerate)
+        if (this.slot.process instanceof SlotFreeSpinProcess && this.slot.process.getIsInitialFreeSpin()) {
+            this.requestSpinInterrupt();
+            return;
+        }
+
         // Second press while spinning = interrupt
         if (this.slot.spinning) {
             this.requestSpinInterrupt();
             return;
         }
-
-        if (this.slot.process instanceof SlotFreeSpinProcess && this.slot.process.getIsInitialFreeSpin()) return; // preventing spin trigger while on the free spin initial bonus spin
 
         // Don’t start a new spin if any process is busy
         if (this.getNormalProcessing() || this.getFreeSpinProcessing() || this.getAutoSpinProcessing()) return;
@@ -507,6 +513,7 @@ export class GameScreen extends Container {
         this.controlPanel.autoplayButton.showDisabledView();
         this.lockInteraction();
     }
+
     private async onFreeSpinRoundComplete() {
         const totalWon = this.slot.freeSpinProcess.getAccumulatedWin();
         if (totalWon > 0) {

@@ -561,10 +561,9 @@ export class SpinRoundBanner extends Container {
             },
         });
 
-
         this.valueText.anchor.set(0.5);
         this.valueText.x = this.banner.x;
-        this.valueText.y = this.banner.y + 40; 
+        this.valueText.y = this.banner.y + 40;
 
         this.panel.addChild(this.valueText);
     }

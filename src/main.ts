@@ -76,7 +76,7 @@ async function setupUserSettings() {
     await userSettings.setupGameConfig();
     await userSettings.setupCollect();
 
-    const config = Config.getConfig();    // uncomment in production
+    const config = Config.getConfig(); // uncomment in production
     updateUrlSettings(config.language, config.currency);
     i18n.init();
     await userSettings.setupResume();
@@ -96,8 +96,6 @@ async function init() {
     if (!isAuthenticated) showErrorScreen('No token provided.');
     const gameConfiguration = await GameServices.getGameConfig();
     Config.setConfig(gameConfiguration.data);
-    console.log("configration data from api services: ", Config.getConfig());
-
 
     // Setup app and assets
     await setupUserSettings();

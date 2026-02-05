@@ -139,7 +139,8 @@ export class ConfirmationBuyFreeSpinPopup extends Container {
     }
 
     private ensureLabelGradient() {
-        if (ConfirmationBuyFreeSpinPopup.labelGradientTexture && ConfirmationBuyFreeSpinPopup.labelGradientMatrix) return;
+        if (ConfirmationBuyFreeSpinPopup.labelGradientTexture && ConfirmationBuyFreeSpinPopup.labelGradientMatrix)
+            return;
 
         const gradientCanvas = document.createElement('canvas');
         gradientCanvas.width = 512;

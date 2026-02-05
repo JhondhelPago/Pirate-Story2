@@ -73,8 +73,6 @@ export class BuyFreeSpin extends Container {
             },
         });
 
-
-
         this.labelText.anchor.set(0.5);
         this.labelText.position.set(0, this.button.height * 0.25);
         this.labelText.scale.set(2.5);

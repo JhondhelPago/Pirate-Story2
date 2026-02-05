@@ -563,7 +563,6 @@ export class FreeSpinWinBanner extends Container {
             },
         });
 
-
         this.continueText.anchor.set(0.5);
         this.continueText.y = this.BOTTOM_TEXT_Y + 110;
         this.continueText.alpha = 1;

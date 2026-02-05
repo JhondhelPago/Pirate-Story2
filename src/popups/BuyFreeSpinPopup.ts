@@ -394,7 +394,6 @@ export class BuyFreeSpinPopup extends Container {
     //     return t;
     // }
 
-
     private createGradientLabelText(value: string, fontSize: number) {
         this.ensureLabelGradient();
 
@@ -421,7 +420,6 @@ export class BuyFreeSpinPopup extends Container {
         t.eventMode = 'none';
         return t;
     }
-
 
     private ensureLabelGradient() {
         if (BuyFreeSpinPopup.labelGradientTexture && BuyFreeSpinPopup.labelGradientMatrix) return;
